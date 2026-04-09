@@ -16,7 +16,7 @@ exports.handler = async function(event, context) {
         values: ['In progress', 'Converted', 'Exited During Pilot', 'Churned Post Conversion']
       }]
     }],
-    properties: ['name', 'pilot_status', 'stage', 'mrr', 'expansion_mrr', 'churned_mrr_value', 'domain'],
+    properties: ['name', 'pilot_status', 'stage', 'mrr', 'expansion_mrr', 'churned_mrr_value', 'churn_reason', 'domain'],
     limit: 200
   };
 
