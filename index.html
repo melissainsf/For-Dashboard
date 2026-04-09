@@ -16,6 +16,7 @@
   --coral: #993C1D; --coral-light: #FAECE7; --coral-mid: #D85A30;
   --blue: #185FA5; --blue-light: #E6F1FB; --blue-mid: #378ADD;
   --amber: #854F0B; --amber-light: #FAEEDA;
+  --purple: #3C3489; --purple-light: #EEEDFE;
   --red: #A32D2D; --red-light: #FCEBEB;
   --yellow: #7A5F00; --yellow-light: #FFF8E7;
   --border: rgba(26,25,22,0.10); --border-strong: rgba(26,25,22,0.18);
@@ -37,10 +38,18 @@ header { background: var(--header-bg); color: var(--header-ink); padding: 18px 3
 .exclude-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; color: rgba(245,243,238,0.5); cursor: pointer; user-select: none; }
 .exclude-toggle input { cursor: pointer; accent-color: var(--teal-mid); }
 
+/* ── TABS ── */
+.tab-nav { display: flex; gap: 2px; padding: 0 32px; background: var(--header-bg); border-top: 1px solid rgba(245,243,238,0.08); }
+.tab-btn { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 10px 18px; border: none; background: transparent; color: rgba(245,243,238,0.4); cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
+.tab-btn:hover { color: rgba(245,243,238,0.7); }
+.tab-btn.active { color: var(--header-ink); border-bottom-color: var(--teal-mid); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
 main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
 #status-bar { padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 20px; display: none; align-items: center; gap: 8px; }
 #status-bar.loading { display: flex; background: var(--blue-light); color: var(--blue); }
-#status-bar.error { display: flex; background: var(--coral-light); color: var(--coral); }
+#status-bar.error   { display: flex; background: var(--coral-light); color: var(--coral); }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -51,38 +60,42 @@ main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
 #tip .tip-row { display: flex; justify-content: space-between; gap: 20px; }
 #tip .tip-name { color: #F5F3EE; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
 #tip .tip-val { color: rgba(245,243,238,0.5); white-space: nowrap; flex-shrink: 0; }
-#tip .tip-note { color: rgba(245,243,238,0.6); font-size: 11px; margin-top: 4px; white-space: normal; line-height: 1.5; border-top: 1px solid rgba(245,243,238,0.12); padding-top: 5px; }
 #tip .tip-divider { border-top: 1px solid rgba(245,243,238,0.12); margin: 5px 0; }
 
 /* ── LAYOUT ── */
 .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
 @media (max-width: 1100px) { .columns { grid-template-columns: 1fr; } }
 .column-header { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-.column-header.pilot { background: var(--amber-light); color: var(--amber); }
-.column-header.postpilot { background: var(--teal-light); color: var(--teal); }
+.column-header.pilot    { background: var(--amber-light); color: var(--amber); }
+.column-header.postpilot { background: var(--teal-light);  color: var(--teal); }
+.column-header.portfolio { background: var(--purple-light); color: var(--purple); }
 .col-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.col-dot.pilot { background: var(--amber); }
+.col-dot.pilot    { background: var(--amber); }
 .col-dot.postpilot { background: var(--teal); }
 
 .metric-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
 .metric-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+.metric-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
 
 .mcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); cursor: default; transition: border-color 0.15s, box-shadow 0.15s; }
 .mcard:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px rgba(26,25,22,0.10); }
 .mcard-label { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 4px; }
 .mcard-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
-.mcard-value.teal { color: var(--teal); }
+.mcard-value.teal  { color: var(--teal); }
 .mcard-value.coral { color: var(--coral-mid); }
-.mcard-value.blue { color: var(--blue); }
-.mcard-value.ink { color: var(--ink); }
+.mcard-value.blue  { color: var(--blue); }
+.mcard-value.ink   { color: var(--ink); }
+.mcard-value.purple { color: var(--purple); }
 .mcard-sub { font-size: 10px; color: var(--ink3); margin-top: 3px; }
 
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 12px; }
 .chart-card-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; margin-bottom: 2px; }
-.chart-card-sub { font-size: 10px; color: var(--ink3); margin-bottom: 12px; }
+.chart-card-sub   { font-size: 10px; color: var(--ink3); margin-bottom: 12px; }
 .chart-wrap-sm { position: relative; width: 100%; height: 180px; }
 .chart-wrap-md { position: relative; width: 100%; height: 200px; }
+.chart-wrap-lg { position: relative; width: 100%; height: 260px; }
 .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.chart-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink2); }
@@ -90,34 +103,34 @@ main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
 
 /* ── HEALTH SCORE WIDGET ── */
 .health-widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 12px; }
-.health-widget-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.health-widget-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
 .health-widget-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; }
 .health-widget-sub { font-size: 10px; color: var(--ink3); }
-.health-avg { display: flex; align-items: baseline; gap: 6px; }
 .health-avg-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 600; }
-.health-avg-denom { font-size: 11px; color: var(--ink3); }
-.health-sheet-note { font-size: 10px; color: var(--ink3); font-style: italic; margin-bottom: 10px; }
-
-.health-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); cursor: default; transition: background 0.1s; border-radius: 4px; padding: 5px 6px; margin: 0 -6px; }
+.health-avg-label { font-size: 11px; color: var(--ink3); }
+.health-row { display: flex; align-items: center; gap: 10px; padding: 5px 6px; margin: 0 -6px; border-bottom: 1px solid var(--border); border-radius: 4px; cursor: default; transition: background 0.1s; }
 .health-row:last-child { border-bottom: none; }
 .health-row:hover { background: var(--surface2); }
 .health-name { font-size: 12px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.health-scores { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-.score-pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 500; white-space: nowrap; }
-.score-pill .pill-label { color: inherit; opacity: 0.65; font-size: 9px; }
+.health-scores { display: flex; gap: 5px; flex-shrink: 0; }
+.score-pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 500; }
+.score-pill .pill-label { opacity: 0.6; font-size: 9px; }
 .score-red    { background: var(--red-light);    color: var(--red); }
 .score-amber  { background: var(--yellow-light);  color: var(--yellow); }
 .score-blue   { background: var(--blue-light);    color: var(--blue); }
 .score-teal   { background: var(--teal-light);    color: var(--teal); }
 .score-gray   { background: var(--surface2);      color: var(--ink3); }
+.rag-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 20px; border-radius: 10px; font-size: 10px; font-weight: 600; flex-shrink: 0; padding: 0 5px; }
+.rag-green  { background: #E1F5EE; color: #085041; }
+.rag-yellow { background: #FAEEDA; color: #633806; }
+.rag-red    { background: #FCEBEB; color: #791F1F; }
+.rag-gray   { background: var(--surface2); color: var(--ink3); }
 .health-bar-wrap { width: 60px; flex-shrink: 0; }
 .health-bar-bg { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
 .health-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
-
 .health-legend { display: flex; gap: 12px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .health-legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink3); }
 .health-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-
 .no-sheet-data { font-size: 11px; color: var(--ink3); font-style: italic; padding: 8px 0; }
 
 /* ── TABLE ── */
@@ -138,15 +151,13 @@ tbody td:first-child { font-weight: 500; }
 .badge-amber { background: var(--amber-light); color: var(--amber); }
 .badge-gray  { background: var(--surface2); color: var(--ink2); }
 
-.roster-section { margin-top: 8px; }
-.roster-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-.roster-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); }
-.roster-note { font-size: 11px; color: var(--ink3); }
+.section-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); }
+.section-note { font-size: 11px; color: var(--ink3); }
 
 footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: var(--ink3); }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.columns { animation: fadeIn 0.3s ease both; }
-.roster-section { animation: fadeIn 0.35s ease both; animation-delay: 0.1s; }
+.tab-content.active { animation: fadeIn 0.25s ease both; }
 </style>
 </head>
 <body>
@@ -168,141 +179,220 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
   </div>
 </header>
 
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('main')">Pilot &amp; Post-Pilot</button>
+  <button class="tab-btn" onclick="switchTab('portfolio')">Whole Portfolio</button>
+  <button class="tab-btn" onclick="switchTab('cohorts')">Cohorts</button>
+</div>
+
 <main>
   <div id="status-bar"></div>
 
-  <div class="columns">
-    <!-- PILOT COLUMN -->
-    <div>
-      <div class="column-header pilot"><span class="col-dot pilot"></span>Pilot</div>
+  <!-- ═══ TAB 1: PILOT & POST-PILOT ═══ -->
+  <div id="tab-main" class="tab-content active">
+    <div class="columns">
 
-      <div class="metric-grid-2">
-        <div class="mcard" id="mc-pilot-retention"><div class="mcard-label">Pilot Retention Rate</div><div class="mcard-value teal" id="m-pilot-retention">—</div><div class="mcard-sub" id="m-pilot-retention-sub"></div></div>
-        <div class="mcard" id="mc-pilot-churn"><div class="mcard-label">Pilot Churn Rate</div><div class="mcard-value coral" id="m-pilot-churn">—</div><div class="mcard-sub" id="m-pilot-churn-sub"></div></div>
-      </div>
-      <div class="metric-grid-3">
-        <div class="mcard" id="mc-active"><div class="mcard-label">Active Pilots</div><div class="mcard-value ink" id="m-active">—</div><div class="mcard-sub">In progress</div></div>
-        <div class="mcard" id="mc-converted-count"><div class="mcard-label">Converted Pilots</div><div class="mcard-value teal" id="m-converted-count">—</div><div class="mcard-sub">Concluded</div></div>
-        <div class="mcard" id="mc-pilot-conv-pct"><div class="mcard-label">Pilot Conversion %</div><div class="mcard-value teal" id="m-pilot-conv-pct">—</div><div class="mcard-sub">Of concluded pilots</div></div>
-      </div>
-      <div class="metric-grid-3">
-        <div class="mcard" id="mc-pilot-mrr"><div class="mcard-label">Total MRR in Pilot</div><div class="mcard-value ink" id="m-pilot-mrr">—</div><div class="mcard-sub">Active pilots only</div></div>
-        <div class="mcard" id="mc-pilot-count"><div class="mcard-label">Customers in Pilot</div><div class="mcard-value ink" id="m-pilot-count">—</div><div class="mcard-sub">Active pilots only</div></div>
-        <div class="mcard" id="mc-pilot-churned-count"><div class="mcard-label">Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-count">—</div><div class="mcard-sub">Exited during pilot</div></div>
-      </div>
-      <div class="metric-grid-2">
-        <div class="mcard" id="mc-pilot-churned-mrr"><div class="mcard-label">Total MRR Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-mrr">—</div><div class="mcard-sub">Exited during pilot</div></div>
-      </div>
+      <!-- PILOT COLUMN -->
+      <div>
+        <div class="column-header pilot"><span class="col-dot pilot"></span>Pilot</div>
 
-      <!-- PILOT HEALTH SCORES -->
-      <div class="health-widget" id="hw-pilot">
-        <div class="health-widget-header">
-          <div>
-            <div class="health-widget-title">Pilot health scores</div>
-            <div class="health-widget-sub">CS Sentiment · Content Performance · Warm Outbound — from Client Health Tracker</div>
+        <div class="metric-grid-2">
+          <div class="mcard" id="mc-pilot-retention"><div class="mcard-label">Pilot Retention Rate</div><div class="mcard-value teal" id="m-pilot-retention">—</div><div class="mcard-sub" id="m-pilot-retention-sub"></div></div>
+          <div class="mcard" id="mc-pilot-churn"><div class="mcard-label">Pilot Churn Rate</div><div class="mcard-value coral" id="m-pilot-churn">—</div><div class="mcard-sub" id="m-pilot-churn-sub"></div></div>
+        </div>
+        <div class="metric-grid-3">
+          <div class="mcard" id="mc-active"><div class="mcard-label">Active Pilots</div><div class="mcard-value ink" id="m-active">—</div><div class="mcard-sub">In progress</div></div>
+          <div class="mcard" id="mc-converted-count"><div class="mcard-label">Converted Pilots</div><div class="mcard-value teal" id="m-converted-count">—</div><div class="mcard-sub">Concluded</div></div>
+          <div class="mcard" id="mc-pilot-conv-pct"><div class="mcard-label">Pilot Conversion %</div><div class="mcard-value teal" id="m-pilot-conv-pct">—</div><div class="mcard-sub">Of concluded pilots</div></div>
+        </div>
+        <div class="metric-grid-3">
+          <div class="mcard" id="mc-pilot-mrr"><div class="mcard-label">Total MRR in Pilot</div><div class="mcard-value ink" id="m-pilot-mrr">—</div><div class="mcard-sub">Active pilots only</div></div>
+          <div class="mcard" id="mc-pilot-count"><div class="mcard-label">Customers in Pilot</div><div class="mcard-value ink" id="m-pilot-count">—</div><div class="mcard-sub">Active pilots only</div></div>
+          <div class="mcard" id="mc-pilot-churned-count"><div class="mcard-label">Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-count">—</div><div class="mcard-sub">Exited during pilot</div></div>
+        </div>
+        <div class="metric-grid-2">
+          <div class="mcard" id="mc-pilot-churned-mrr"><div class="mcard-label">Total MRR Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-mrr">—</div><div class="mcard-sub">Exited during pilot</div></div>
+        </div>
+
+        <div class="health-widget">
+          <div class="health-widget-header">
+            <div><div class="health-widget-title">Pilot health scores</div><div class="health-widget-sub">CS Sentiment · Content Perf · Warm Outbound</div></div>
+            <div style="text-align:right;"><div class="health-avg-num" id="pilot-avg-sentiment">—</div><div class="health-avg-label">/10 avg sentiment</div></div>
           </div>
-          <div class="health-avg">
-            <span class="health-avg-num" id="pilot-avg-sentiment">—</span>
-            <span class="health-avg-denom">/10 avg sentiment</span>
+          <div id="pilot-health-rows"><div class="no-sheet-data">Loading health scores...</div></div>
+          <div class="health-legend">
+            <span class="health-legend-item"><span class="health-legend-dot" style="background:#E24B4A;"></span>At risk (1–4)</span>
+            <span class="health-legend-item"><span class="health-legend-dot" style="background:#BA7517;"></span>Watch (5–6)</span>
+            <span class="health-legend-item"><span class="health-legend-dot" style="background:#378ADD;"></span>Stable (7–8)</span>
+            <span class="health-legend-item"><span class="health-legend-dot" style="background:#1D9E75;"></span>Healthy (9–10)</span>
           </div>
         </div>
-        <div id="pilot-health-rows"><div class="no-sheet-data">Loading health scores...</div></div>
-        <div class="health-legend">
-          <span class="health-legend-item"><span class="health-legend-dot" style="background:#E24B4A;"></span>At risk (1–4)</span>
-          <span class="health-legend-item"><span class="health-legend-dot" style="background:#BA7517;"></span>Watch (5–6)</span>
-          <span class="health-legend-item"><span class="health-legend-dot" style="background:#378ADD;"></span>Stable (7–8)</span>
-          <span class="health-legend-item"><span class="health-legend-dot" style="background:#1D9E75;"></span>Healthy (9–10)</span>
+
+        <div class="chart-card">
+          <div class="chart-card-title">Pilot outcomes</div>
+          <div class="chart-card-sub">In progress vs. converted vs. exited during pilot</div>
+          <div class="chart-wrap-sm"><canvas id="pilotOutcomePie" role="img" aria-label="Pilot outcomes.">Pilot outcomes.</canvas></div>
+          <div class="legend" id="legend-pilot-outcome"></div>
+        </div>
+
+        <div class="chart-row">
+          <div class="chart-card" style="margin-bottom:0;">
+            <div class="chart-card-title">In pilot by stage</div>
+            <div class="chart-card-sub">Active pilots</div>
+            <div class="chart-wrap-sm"><canvas id="pilotStageBar" role="img" aria-label="Active pilots by stage.">Active pilots by stage.</canvas></div>
+          </div>
+          <div class="chart-card" style="margin-bottom:0;">
+            <div class="chart-card-title">Exited during pilot by stage</div>
+            <div class="chart-card-sub">Pilot churn breakdown</div>
+            <div class="chart-wrap-sm"><canvas id="exitedStageBar" role="img" aria-label="Exits by stage.">Exits by stage.</canvas></div>
+          </div>
+        </div>
+        <div style="margin-bottom:12px;"></div>
+
+        <div class="chart-card">
+          <div class="chart-card-title">AM attribution — pilot portfolio</div>
+          <div class="chart-card-sub">Active pilots and exits per account manager</div>
+          <div class="chart-wrap-md"><canvas id="pilotAMBar" role="img" aria-label="AM attribution for pilots.">AM attribution.</canvas></div>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#378ADD;"></span>Active pilots</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Exited during pilot</span>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title">Pilot churn reasons</div>
+          <div class="chart-card-sub">All companies that exited or churned post-conversion</div>
+          <div class="chart-wrap-sm"><canvas id="churnReasonPie" role="img" aria-label="Churn reasons.">Churn reasons.</canvas></div>
+          <div class="legend" id="legend-churn-reason"></div>
         </div>
       </div>
 
-      <div class="chart-card">
-        <div class="chart-card-title">Pilot outcomes</div>
-        <div class="chart-card-sub">In progress vs. converted vs. exited during pilot</div>
-        <div class="chart-wrap-sm"><canvas id="pilotOutcomePie" role="img" aria-label="Pilot outcomes pie chart.">Pilot outcomes.</canvas></div>
-        <div class="legend" id="legend-pilot-outcome"></div>
-      </div>
+      <!-- POST-PILOT COLUMN -->
+      <div>
+        <div class="column-header postpilot"><span class="col-dot postpilot"></span>Post-Pilot</div>
 
-      <div class="chart-row">
-        <div class="chart-card" style="margin-bottom:0;">
-          <div class="chart-card-title">Customers in pilot by stage</div>
-          <div class="chart-card-sub">Active pilots</div>
-          <div class="chart-wrap-sm"><canvas id="pilotStageBar" role="img" aria-label="Active pilots by stage.">Active pilots by stage.</canvas></div>
+        <div class="metric-grid-2">
+          <div class="mcard" id="mc-post-retention"><div class="mcard-label">Post-Pilot Retention Rate</div><div class="mcard-value teal" id="m-post-retention">—</div><div class="mcard-sub" id="m-post-retention-sub"></div></div>
+          <div class="mcard" id="mc-post-churn"><div class="mcard-label">Post-Pilot Churn Rate</div><div class="mcard-value coral" id="m-post-churn">—</div><div class="mcard-sub" id="m-post-churn-sub"></div></div>
         </div>
-        <div class="chart-card" style="margin-bottom:0;">
-          <div class="chart-card-title">Exited during pilot by stage</div>
-          <div class="chart-card-sub">Pilot churn breakdown</div>
-          <div class="chart-wrap-sm"><canvas id="exitedStageBar" role="img" aria-label="Exits by stage.">Exits by stage.</canvas></div>
+        <div class="metric-grid-2">
+          <div class="mcard" id="mc-grr"><div class="mcard-label">Post-Pilot GRR</div><div class="mcard-value blue" id="m-grr">—</div><div class="mcard-sub">Gross revenue retention</div></div>
+          <div class="mcard" id="mc-nrr"><div class="mcard-label">Post-Pilot NRR</div><div class="mcard-value blue" id="m-nrr">—</div><div class="mcard-sub">Net revenue retention</div></div>
         </div>
-      </div>
-      <div style="margin-bottom:12px;"></div>
+        <div class="metric-grid-3">
+          <div class="mcard" id="mc-converted-mrr"><div class="mcard-label">Total MRR Converted</div><div class="mcard-value teal" id="m-converted-mrr">—</div><div class="mcard-sub">Active converted</div></div>
+          <div class="mcard" id="mc-post-converted-count"><div class="mcard-label">Customers Converted</div><div class="mcard-value teal" id="m-post-converted-count">—</div><div class="mcard-sub">Active post-pilot</div></div>
+          <div class="mcard" id="mc-post-churned-count"><div class="mcard-label">Churned After Pilot</div><div class="mcard-value coral" id="m-post-churned-count">—</div><div class="mcard-sub">Post-conversion churn</div></div>
+        </div>
 
-      <div class="chart-card">
-        <div class="chart-card-title">Pilot churn reasons</div>
-        <div class="chart-card-sub">All companies that exited or churned post-conversion</div>
-        <div class="chart-wrap-sm"><canvas id="churnReasonPie" role="img" aria-label="Churn reasons.">Churn reasons.</canvas></div>
-        <div class="legend" id="legend-churn-reason"></div>
+        <div class="health-widget">
+          <div class="health-widget-header">
+            <div><div class="health-widget-title">Post-pilot health scores</div><div class="health-widget-sub">CS Sentiment · Content Perf · Warm Outbound</div></div>
+            <div style="text-align:right;"><div class="health-avg-num" id="post-avg-sentiment">—</div><div class="health-avg-label">/10 avg sentiment</div></div>
+          </div>
+          <div id="post-health-rows"><div class="no-sheet-data">Loading health scores...</div></div>
+          <div class="health-legend">
+            <span class="health-legend-item"><span class="health-legend-dot" style="background:#E24B4A;"></span>At risk (1–4)</span>
+            <span class="health-legend-item"><span class="health-legend-dot" style="background:#BA7517;"></span>Watch (5–6)</span>
+            <span class="health-legend-item"><span class="health-legend-dot" style="background:#378ADD;"></span>Stable (7–8)</span>
+            <span class="health-legend-item"><span class="health-legend-dot" style="background:#1D9E75;"></span>Healthy (9–10)</span>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title">MRR breakdown by stage</div>
+          <div class="chart-card-sub">Post-pilot converted customers only</div>
+          <div class="chart-wrap-md"><canvas id="postMRRPie" role="img" aria-label="MRR by stage.">MRR by stage.</canvas></div>
+          <div class="legend" id="legend-post-mrr"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title">Customers converted by stage</div>
+          <div class="chart-card-sub">Converted + Churned Post Conversion</div>
+          <div class="chart-wrap-sm"><canvas id="convertedStageBar" role="img" aria-label="Converted by stage.">Converted by stage.</canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title">AM attribution — post-pilot portfolio</div>
+          <div class="chart-card-sub">Active converted and churned post-conversion per account manager</div>
+          <div class="chart-wrap-md"><canvas id="postAMBar" role="img" aria-label="AM attribution post-pilot.">AM attribution.</canvas></div>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span>Active converted</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Churned post-conversion</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- POST-PILOT COLUMN -->
+    <!-- ROSTER TABLE -->
     <div>
-      <div class="column-header postpilot"><span class="col-dot postpilot"></span>Post-Pilot</div>
-
-      <div class="metric-grid-2">
-        <div class="mcard" id="mc-post-retention"><div class="mcard-label">Post-Pilot Retention Rate</div><div class="mcard-value teal" id="m-post-retention">—</div><div class="mcard-sub" id="m-post-retention-sub"></div></div>
-        <div class="mcard" id="mc-post-churn"><div class="mcard-label">Post-Pilot Churn Rate</div><div class="mcard-value coral" id="m-post-churn">—</div><div class="mcard-sub" id="m-post-churn-sub"></div></div>
+      <div class="section-header">
+        <span class="section-title">Customer roster</span>
+        <span class="section-note" id="note-roster"></span>
       </div>
-      <div class="metric-grid-2">
-        <div class="mcard" id="mc-grr"><div class="mcard-label">Post-Pilot GRR</div><div class="mcard-value blue" id="m-grr">—</div><div class="mcard-sub">Gross revenue retention</div></div>
-        <div class="mcard" id="mc-nrr"><div class="mcard-label">Post-Pilot NRR</div><div class="mcard-value blue" id="m-nrr">—</div><div class="mcard-sub">Net revenue retention</div></div>
-      </div>
-      <div class="metric-grid-3">
-        <div class="mcard" id="mc-converted-mrr"><div class="mcard-label">Total MRR Converted</div><div class="mcard-value teal" id="m-converted-mrr">—</div><div class="mcard-sub">Active converted</div></div>
-        <div class="mcard" id="mc-post-converted-count"><div class="mcard-label">Customers Converted</div><div class="mcard-value teal" id="m-post-converted-count">—</div><div class="mcard-sub">Active post-pilot</div></div>
-        <div class="mcard" id="mc-post-churned-count"><div class="mcard-label">Churned After Pilot</div><div class="mcard-value coral" id="m-post-churned-count">—</div><div class="mcard-sub">Post-conversion churn</div></div>
-      </div>
-
-      <!-- POST-PILOT HEALTH SCORES -->
-      <div class="health-widget" id="hw-post">
-        <div class="health-widget-header">
-          <div>
-            <div class="health-widget-title">Post-pilot health scores</div>
-            <div class="health-widget-sub">CS Sentiment · Content Performance · Warm Outbound — from Client Health Tracker</div>
-          </div>
-          <div class="health-avg">
-            <span class="health-avg-num" id="post-avg-sentiment">—</span>
-            <span class="health-avg-denom">/10 avg sentiment</span>
-          </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Company</th><th>Pilot status</th><th>Stage</th><th>AM</th><th>Health</th><th>MRR</th><th>Time to Value</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th><th>Churn reason</th></tr></thead>
+            <tbody id="roster-body"></tbody>
+          </table>
         </div>
-        <div id="post-health-rows"><div class="no-sheet-data">Loading health scores...</div></div>
-        <div class="health-legend">
-          <span class="health-legend-item"><span class="health-legend-dot" style="background:#E24B4A;"></span>At risk (1–4)</span>
-          <span class="health-legend-item"><span class="health-legend-dot" style="background:#BA7517;"></span>Watch (5–6)</span>
-          <span class="health-legend-item"><span class="health-legend-dot" style="background:#378ADD;"></span>Stable (7–8)</span>
-          <span class="health-legend-item"><span class="health-legend-dot" style="background:#1D9E75;"></span>Healthy (9–10)</span>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <div class="chart-card-title">MRR breakdown by stage</div>
-        <div class="chart-card-sub">Post-pilot converted customers only</div>
-        <div class="chart-wrap-md"><canvas id="postMRRPie" role="img" aria-label="MRR by stage.">MRR by stage.</canvas></div>
-        <div class="legend" id="legend-post-mrr"></div>
-      </div>
-
-      <div class="chart-card">
-        <div class="chart-card-title">Customers converted by stage</div>
-        <div class="chart-card-sub">Converted + Churned Post Conversion</div>
-        <div class="chart-wrap-md"><canvas id="convertedStageBar" role="img" aria-label="Converted by stage.">Converted by stage.</canvas></div>
       </div>
     </div>
   </div>
 
-  <!-- ROSTER TABLE -->
-  <div class="roster-section">
-    <div class="roster-header">
-      <span class="roster-title">Customer roster</span>
-      <span class="roster-note" id="note-roster"></span>
+  <!-- ═══ TAB 2: WHOLE PORTFOLIO ═══ -->
+  <div id="tab-portfolio" class="tab-content">
+
+    <!-- TOP METRICS -->
+    <div class="section-header" style="margin-top:4px;">
+      <span class="section-title">Revenue health</span>
+      <span class="section-note">Whole portfolio · active + churned</span>
+    </div>
+    <div class="metric-grid-4" style="margin-bottom:20px;">
+      <div class="mcard" id="mc-port-grr"><div class="mcard-label">Gross Revenue Retention</div><div class="mcard-value blue" id="m-port-grr">—</div><div class="mcard-sub">Whole portfolio GRR</div></div>
+      <div class="mcard" id="mc-port-nrr"><div class="mcard-label">Net Revenue Retention</div><div class="mcard-value blue" id="m-port-nrr">—</div><div class="mcard-sub">Whole portfolio NRR</div></div>
+      <div class="mcard" id="mc-port-retention"><div class="mcard-label">Retention Rate</div><div class="mcard-value teal" id="m-port-retention">—</div><div class="mcard-sub">Active / ever-signed</div></div>
+      <div class="mcard" id="mc-port-churn"><div class="mcard-label">Churn Rate</div><div class="mcard-value coral" id="m-port-churn">—</div><div class="mcard-sub">Whole portfolio</div></div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Portfolio size</span>
+      <span class="section-note">Active customers only (in progress + converted)</span>
+    </div>
+    <div class="metric-grid-4" style="margin-bottom:20px;">
+      <div class="mcard" id="mc-port-active"><div class="mcard-label">Total Active Customers</div><div class="mcard-value ink" id="m-port-active">—</div><div class="mcard-sub">In progress + converted</div></div>
+      <div class="mcard" id="mc-port-mrr"><div class="mcard-label">Total Active MRR</div><div class="mcard-value teal" id="m-port-mrr">—</div><div class="mcard-sub">Incl. expansion MRR</div></div>
+      <div class="mcard" id="mc-port-arr"><div class="mcard-label">Total Active ARR</div><div class="mcard-value teal" id="m-port-arr">—</div><div class="mcard-sub">MRR + expansion × 12</div></div>
+      <div class="mcard" id="mc-port-ttv"><div class="mcard-label">Avg Time to Value</div><div class="mcard-value ink" id="m-port-ttv">—</div><div class="mcard-sub" id="m-port-ttv-sub">Kickoff to first post (days)</div></div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="chart-row-3">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Active customers by vertical</div>
+        <div class="chart-card-sub">In progress + converted</div>
+        <div class="chart-wrap-md"><canvas id="verticalPie" role="img" aria-label="Customers by vertical.">Vertical breakdown.</canvas></div>
+        <div class="legend" id="legend-vertical"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Active customers by stage</div>
+        <div class="chart-card-sub">In progress + converted</div>
+        <div class="chart-wrap-md"><canvas id="stagePie" role="img" aria-label="Customers by stage.">Stage breakdown.</canvas></div>
+        <div class="legend" id="legend-stage"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Customer journey funnel</div>
+        <div class="chart-card-sub">Active customers by current journey stage</div>
+        <div class="chart-wrap-md"><canvas id="journeyBar" role="img" aria-label="Customer journey stages.">Journey stages.</canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+
+    <div class="section-header" style="margin-top:8px;">
+      <span class="section-title">All customers</span>
+      <span class="section-note" id="note-portfolio-roster"></span>
     </div>
     <div class="table-card">
       <div class="table-wrap">
@@ -310,46 +400,147 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
           <thead>
             <tr>
               <th>Company</th>
-              <th>Pilot status</th>
+              <th>Status</th>
               <th>Stage</th>
+              <th>Vertical</th>
               <th>AM</th>
+              <th>Journey stage</th>
               <th>MRR</th>
-              <th>CS Sentiment</th>
-              <th>Content Perf.</th>
-              <th>Warm Outbound</th>
-              <th>Churn reason</th>
+              <th>Time to value</th>
+              <th>Health</th>
             </tr>
           </thead>
-          <tbody id="roster-body"></tbody>
+          <tbody id="portfolio-roster-body"></tbody>
         </table>
       </div>
     </div>
+
+
+  <!-- ═══ TAB 3: COHORTS ═══ -->
+  <div id="tab-cohorts" class="tab-content">
+
+    <div class="section-header" style="margin-top:4px;">
+      <span class="section-title">Revenue health by stage</span>
+      <span class="section-note">Ever-converted customers · n = sample size per cohort</span>
+    </div>
+    <div class="cohort-grid" id="cohort-revenue-cards"></div>
+
+    <div class="section-header">
+      <span class="section-title">Score averages by stage</span>
+      <span class="section-note">Active customers with sheet data · slice size reflects avg score</span>
+    </div>
+    <div class="chart-row-3">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">CS Sentiment by stage</div>
+        <div class="chart-card-sub">Avg score per stage · active customers</div>
+        <div class="chart-wrap-md"><canvas id="sentimentStagePie" role="img" aria-label="CS sentiment by stage.">CS sentiment by stage.</canvas></div>
+        <div class="legend" id="legend-sentiment-stage"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Content performance by stage</div>
+        <div class="chart-card-sub">Avg score per stage · active customers</div>
+        <div class="chart-wrap-md"><canvas id="contentStagePie" role="img" aria-label="Content performance by stage.">Content performance by stage.</canvas></div>
+        <div class="legend" id="legend-content-stage"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Warm outbound by stage</div>
+        <div class="chart-card-sub">Avg score per stage · active customers</div>
+        <div class="chart-wrap-md"><canvas id="warmStagePie" role="img" aria-label="Warm outbound by stage.">Warm outbound by stage.</canvas></div>
+        <div class="legend" id="legend-warm-stage"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+    <div class="section-header">
+      <span class="section-title">Operational metrics by stage</span>
+      <span class="section-note">All companies</span>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Avg composite health score by stage</div>
+        <div class="chart-card-sub">Active customers · all five signals</div>
+        <div class="chart-wrap-md"><canvas id="healthScoreStageBar" role="img" aria-label="Health score by stage.">Health score by stage.</canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Avg time to value by stage</div>
+        <div class="chart-card-sub">Days from kickoff to first post · all companies with both dates</div>
+        <div class="chart-wrap-md"><canvas id="ttvStageBar" role="img" aria-label="TTV by stage.">TTV by stage.</canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Pilot conversion rate by stage</div>
+        <div class="chart-card-sub">Concluded pilots only</div>
+        <div class="chart-wrap-md"><canvas id="conversionStageBar" role="img" aria-label="Pilot conversion by stage.">Pilot conversion by stage.</canvas></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span>Conversion rate</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Churn rate</span>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Churn reasons by stage</div>
+        <div class="chart-card-sub">All churned companies</div>
+        <div class="chart-wrap-md"><canvas id="churnReasonStageBar" role="img" aria-label="Churn reasons by stage.">Churn reasons by stage.</canvas></div>
+        <div class="legend" id="legend-churn-stage"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+    <div class="section-header">
+      <span class="section-title">Cohort roster</span>
+      <span class="section-note" id="note-cohort-roster"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th><th>Stage</th><th>Status</th><th>AM</th>
+              <th>MRR</th><th>Time to value</th><th>Health</th>
+              <th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th>
+            </tr>
+          </thead>
+          <tbody id="cohort-roster-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
   </div>
 </main>
 <footer id="footer-date"></footer>
 
 <script>
-const STAGE_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780'];
+const STAGE_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780','#5DCAA5'];
 const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
+const AM_COLORS      = ['#378ADD','#1D9E75','#7F77DD','#BA7517','#D4537E','#5DCAA5','#888780'];
+const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 
 let allCompanies = [];
 let sheetMap = {};
 let charts = {};
 
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
 // ── TOOLTIP ────────────────────────────────────────────────────
 const tipEl = document.getElementById('tip');
 const tipTitle = document.getElementById('tip-title');
-const tipBody = document.getElementById('tip-body');
+const tipBody  = document.getElementById('tip-body');
 
 function showTip(e, title, rows) {
   tipTitle.textContent = title;
   tipBody.innerHTML = rows.map(r => {
     if (r === '---') return '<div class="tip-divider"></div>';
     if (typeof r === 'string') return `<div class="tip-row"><span class="tip-name">${r}</span></div>`;
-    let html = `<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-val">${r.val||''}</span></div>`;
-    if (r.note) html += `<div class="tip-note">${r.note}</div>`;
-    return html;
+    return `<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-val">${r.val||''}</span></div>`;
   }).join('');
   tipEl.classList.add('visible');
   posTip(e);
@@ -377,13 +568,83 @@ function setStatus(msg, type) {
   el.innerHTML = type === 'loading' ? `<div class="spinner"></div><span>${msg}</span>` : `<span>${msg}</span>`;
 }
 function fmt$(n) { return n >= 1000 ? '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k' : '$' + Math.round(n); }
-function set(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
-
-function normalizeName(name) {
-  return (name || '').toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .replace(/\s+/g, '');
+function fmtBig$(n) {
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
+  if (n >= 1000) return '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+  return '$' + Math.round(n);
 }
+function set(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+function calcTTV(kickoff, firstPost) {
+  if (!kickoff || !firstPost) return null;
+  const d = Math.round((new Date(firstPost) - new Date(kickoff)) / 86400000);
+  return d >= 0 ? d : null;
+}
+function fmtTTV(kickoff, firstPost) {
+  const d = calcTTV(kickoff, firstPost);
+  return d !== null ? d + ' days' : '—';
+}
+function normalizeName(name) { return (name||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+
+const JOURNEY_SCORES = {
+  'Kickoff Call Scheduled': 2, 'Kickoff Call Completed': 4,
+  'Content Interview Completed': 6, 'Awaiting Customer QA': 7,
+  'Live': 9, 'Renewal': 10
+};
+
+function calcCompositeScore(c, s) {
+  const sentRaw  = s ? parseFloat(s.cs_sentiment) : NaN;
+  const contRaw  = s ? parseFloat(s.content_performance) : NaN;
+  const warmRaw  = s ? parseFloat(s.warm_outbound) : NaN;
+  const sentScore = isNaN(sentRaw) ? 5 : sentRaw;
+  const contScore = isNaN(contRaw) ? 5 : contRaw;
+  const warmScore = isNaN(warmRaw) ? 5 : warmRaw;
+  const journeyScore = c.customer_journey ? (JOURNEY_SCORES[c.customer_journey] || 5) : 5;
+
+  let timeScore = 7;
+  const ttv = calcTTV(c.kickoff_date, c.first_post_date);
+  if (c.pilot_status === 'In progress') {
+    if (ttv !== null) {
+      timeScore = ttv <= 14 ? 10 : ttv <= 21 ? 8 : ttv <= 35 ? 6 : 4;
+    } else if (c.kickoff_date) {
+      const daysIn = Math.round((new Date() - new Date(c.kickoff_date)) / 86400000);
+      timeScore = daysIn < 30 ? 9 : daysIn < 60 ? 7 : daysIn < 80 ? 5 : daysIn < 90 ? 3 : 1;
+    }
+  } else if (ttv !== null) {
+    timeScore = ttv <= 14 ? 10 : ttv <= 21 ? 8 : ttv <= 30 ? 7 : ttv <= 45 ? 5 : 3;
+  }
+
+  const score = (sentScore*0.30) + (contScore*0.20) + (warmScore*0.15) + (journeyScore*0.20) + (timeScore*0.15);
+  return {
+    score: Math.round(score * 10) / 10,
+    breakdown: {
+      sentiment:  { val: sentScore,   missing: isNaN(sentRaw),  weight: '30%' },
+      content:    { val: contScore,   missing: isNaN(contRaw),  weight: '20%' },
+      journey:    { val: journeyScore,missing: false,           weight: '20%' },
+      warm:       { val: warmScore,   missing: isNaN(warmRaw),  weight: '15%' },
+      time:       { val: timeScore,   missing: false,           weight: '15%' }
+    }
+  };
+}
+
+function ragClass(score) {
+  if (score === null || score === undefined) return 'rag-gray';
+  if (score >= 7)   return 'rag-green';
+  if (score >= 4.5) return 'rag-yellow';
+  return 'rag-red';
+}
+
+function ragBadge(score) {
+  if (score === null) return `<span class="rag-badge rag-gray">—</span>`;
+  return `<span class="rag-badge ${ragClass(score)}">${score.toFixed(1)}</span>`;
+}
+
+function ragLabel(score) {
+  if (score === null) return 'No data';
+  if (score >= 7)   return 'Healthy';
+  if (score >= 4.5) return 'Watch';
+  return 'At risk';
+}
+function displayAM(csm) { return csm === 'CSM 2' ? 'David' : (csm || 'Unassigned'); }
 
 function scoreColor(val) {
   const n = parseFloat(val);
@@ -393,7 +654,6 @@ function scoreColor(val) {
   if (n <= 8) return 'score-blue';
   return 'score-teal';
 }
-
 function barColor(val) {
   const n = parseFloat(val);
   if (isNaN(n)) return '#D3D1C7';
@@ -402,11 +662,9 @@ function barColor(val) {
   if (n <= 8) return '#378ADD';
   return '#1D9E75';
 }
-
 function scorePill(val, label) {
   if (!val || val === '' || val === 'N/A' || val.includes('REF')) return `<span class="score-pill score-gray"><span class="pill-label">${label}</span> —</span>`;
-  const cls = scoreColor(val);
-  return `<span class="score-pill ${cls}"><span class="pill-label">${label}</span> ${val}</span>`;
+  return `<span class="score-pill ${scoreColor(val)}"><span class="pill-label">${label}</span> ${val}</span>`;
 }
 
 // ── DATA FETCH ──────────────────────────────────────────────────
@@ -414,55 +672,51 @@ async function loadData() {
   const btn = document.getElementById('refresh-btn');
   btn.disabled = true;
   setStatus('Loading data from HubSpot + Client Health Tracker...', 'loading');
-
   try {
     const [hsRes, sheetRes] = await Promise.all([
       fetch('/api/hubspot', { method: 'POST' }),
-      fetch('/api/sheets', { method: 'GET' })
+      fetch('/api/sheets',  { method: 'GET'  })
     ]);
-
     if (!hsRes.ok) { const e = await hsRes.json().catch(()=>({})); throw new Error(e.error || `HubSpot returned ${hsRes.status}`); }
     const hsData = await hsRes.json();
 
     allCompanies = (hsData.results || []).map(r => ({
-      name: r.properties.name || r.properties.domain || r.id,
-      pilot_status: r.properties.pilot_status,
-      stage: r.properties.stage || 'Unknown',
-      mrr: parseFloat(r.properties.mrr) || 0,
-      expansion_mrr: parseFloat(r.properties.expansion_mrr) || 0,
-      churned_mrr: parseFloat(r.properties.churned_mrr_value) || 0,
-      churn_reason: r.properties.churn_reason || null,
-      domain: r.properties.domain
+      name:            r.properties.name || r.properties.domain || r.id,
+      pilot_status:    r.properties.pilot_status,
+      stage:           r.properties.stage || 'Unknown',
+      mrr:             parseFloat(r.properties.mrr) || 0,
+      expansion_mrr:   parseFloat(r.properties.expansion_mrr) || 0,
+      churned_mrr:     parseFloat(r.properties.churned_mrr_value) || 0,
+      churn_reason:    r.properties.churn_reason || null,
+      domain:          r.properties.domain,
+      csm:             r.properties.csm || null,
+      kickoff_date:    r.properties.kickoff_call_date || null,
+      first_post_date: r.properties.first_post_date || null,
+      vertical:        r.properties.vertical || null,
+      customer_journey: r.properties.customer_journey || null
     }));
 
-    // Build sheet lookup map — normalize names for fuzzy matching
     sheetMap = {};
     if (sheetRes.ok) {
       const sheetData = await sheetRes.json();
       sheetData.forEach(row => {
-        if (row.client) {
-          const key = normalizeName(row.client);
-          sheetMap[key] = row;
-        }
+        if (row.client) sheetMap[normalizeName(row.client)] = row;
       });
     }
 
     setStatus('');
     const now = new Date();
-    document.getElementById('last-updated').textContent = 'Refreshed ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    document.getElementById('footer-date').textContent = 'Virio CS Dashboard · HubSpot + Client Health Tracker · ' + now.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+    document.getElementById('last-updated').textContent = 'Refreshed ' + now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('footer-date').textContent = 'Virio CS Dashboard · HubSpot + Client Health Tracker · ' + now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
   } catch(e) {
     setStatus('Failed to load: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false;
-  }
+  } finally { btn.disabled = false; }
 }
 
-function getSheetData(companyName) {
-  const key = normalizeName(companyName);
+function getSheetData(name) {
+  const key = normalizeName(name);
   if (sheetMap[key]) return sheetMap[key];
-  // Partial match fallback
   for (const k of Object.keys(sheetMap)) {
     if (k.includes(key) || key.includes(k)) return sheetMap[k];
   }
@@ -482,6 +736,7 @@ function recompute() {
   const pilotConv   = [...converted, ...churnedPost];
   const concluded   = [...pilotConv, ...exited];
   const everConv    = [...converted, ...churnedPost];
+  const active      = [...inProgress, ...converted];
 
   const pilotRetention  = concluded.length ? pilotConv.length / concluded.length * 100 : 0;
   const pilotChurn      = 100 - pilotRetention;
@@ -496,7 +751,25 @@ function recompute() {
   const postRetentionRate = 100 - postChurnRate;
   const convertedMRR = converted.reduce((s,c) => s+c.mrr, 0);
 
-  // ── METRIC VALUES ──
+  // Whole portfolio metrics
+  const allMRR        = cos.reduce((s,c) => s + c.mrr, 0);
+  const allExpansion  = cos.reduce((s,c) => s + c.expansion_mrr, 0);
+  const allChurned    = cos.reduce((s,c) => s + c.churned_mrr, 0);
+  const portGRR = allMRR ? (allMRR - allChurned) / allMRR * 100 : 0;
+  const portNRR = allMRR ? (allMRR + allExpansion - allChurned) / allMRR * 100 : 0;
+  const portRetention = cos.length ? active.length / cos.length * 100 : 0;
+  const portChurn     = 100 - portRetention;
+  const activeMRR     = active.reduce((s,c) => s + c.mrr + c.expansion_mrr, 0);
+  const activeARR     = activeMRR * 12;
+
+  // Avg time to value
+  const ttvDays = cos
+    .filter(c => c.kickoff_date && c.first_post_date)
+    .map(c => Math.round((new Date(c.first_post_date) - new Date(c.kickoff_date)) / 86400000))
+    .filter(d => d >= 0);
+  const avgTTV = ttvDays.length ? Math.round(ttvDays.reduce((a,b)=>a+b,0) / ttvDays.length) : null;
+
+  // ── SET VALUES ──
   set('m-pilot-retention',       pilotRetention.toFixed(1) + '%');
   set('m-pilot-retention-sub',   `${pilotConv.length} converted of ${concluded.length} concluded`);
   set('m-pilot-churn',           pilotChurn.toFixed(1) + '%');
@@ -519,32 +792,53 @@ function recompute() {
   set('m-post-churned-count',    churnedPost.length);
   set('note-roster',             `${cos.length} companies`);
 
+  set('m-port-grr',      portGRR.toFixed(1) + '%');
+  set('m-port-nrr',      portNRR.toFixed(1) + '%');
+  set('m-port-retention', portRetention.toFixed(1) + '%');
+  set('m-port-churn',    portChurn.toFixed(1) + '%');
+  set('m-port-active',   active.length);
+  set('m-port-mrr',      fmtBig$(activeMRR));
+  set('m-port-arr',      fmtBig$(activeARR));
+  set('m-port-ttv',      avgTTV !== null ? avgTTV + ' days' : '—');
+  set('m-port-ttv-sub',  avgTTV !== null ? `Based on ${ttvDays.length} customers with both dates` : 'Kickoff to first post');
+
   // ── METRIC CARD TOOLTIPS ──
   bindCard('mc-pilot-retention', () => ({ title: 'Converted (incl. post-conv churned)', rows: pilotConv.map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
-  bindCard('mc-pilot-churn', () => ({ title: 'Exited during pilot', rows: exited.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
-  bindCard('mc-active', () => ({ title: 'Active pilots', rows: [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-pilot-churn',     () => ({ title: 'Exited during pilot', rows: exited.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
+  bindCard('mc-active',          () => ({ title: 'Active pilots', rows: [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
   bindCard('mc-converted-count', () => ({ title: 'Converted pilots', rows: pilotConv.map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
-  bindCard('mc-pilot-conv-pct', () => ({ title: 'Pilot conversion breakdown', rows: [{name:'Converted',val:pilotConv.length},{name:'Exited',val:exited.length},'---',{name:'Concluded total',val:concluded.length}] }));
-  bindCard('mc-pilot-mrr', () => ({ title: 'MRR by active pilot', rows: [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
-  bindCard('mc-pilot-count', () => ({ title: 'Customers in pilot', rows: inProgress.map(c => ({name:c.name, val:c.stage})) }));
+  bindCard('mc-pilot-conv-pct',  () => ({ title: 'Pilot conversion', rows: [{name:'Converted',val:pilotConv.length},{name:'Exited',val:exited.length},'---',{name:'Total concluded',val:concluded.length}] }));
+  bindCard('mc-pilot-mrr',       () => ({ title: 'MRR by active pilot', rows: [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-pilot-count',     () => ({ title: 'Customers in pilot', rows: inProgress.map(c => ({name:c.name, val:c.stage})) }));
   bindCard('mc-pilot-churned-count', () => ({ title: 'Exited during pilot', rows: exited.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
-  bindCard('mc-pilot-churned-mrr', () => ({ title: 'MRR lost — pilot exits', rows: [...exited].filter(c=>c.churned_mrr>0).sort((a,b)=>b.churned_mrr-a.churned_mrr).map(c => ({name:c.name, val:fmt$(c.churned_mrr)})) }));
-  bindCard('mc-post-retention', () => ({ title: 'Active converted customers', rows: converted.map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
-  bindCard('mc-post-churn', () => ({ title: 'Churned post-conversion', rows: churnedPost.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
-  bindCard('mc-grr', () => ({ title: 'GRR inputs', rows: [{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'GRR',val:grr.toFixed(1)+'%'}] }));
-  bindCard('mc-nrr', () => ({ title: 'NRR inputs', rows: [{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Expansion MRR',val:fmt$(expansionMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'NRR',val:nrr.toFixed(1)+'%'}] }));
-  bindCard('mc-converted-mrr', () => ({ title: 'Active converted MRR', rows: [...converted].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
-  bindCard('mc-post-converted-count', () => ({ title: 'Active converted customers', rows: converted.map(c => ({name:c.name, val:c.stage})) }));
-  bindCard('mc-post-churned-count', () => ({ title: 'Churned post-conversion', rows: churnedPost.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
+  bindCard('mc-pilot-churned-mrr',   () => ({ title: 'MRR lost — pilot exits', rows: [...exited].filter(c=>c.churned_mrr>0).sort((a,b)=>b.churned_mrr-a.churned_mrr).map(c => ({name:c.name, val:fmt$(c.churned_mrr)})) }));
+  bindCard('mc-post-retention',  () => ({ title: 'Active converted customers', rows: converted.map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-post-churn',      () => ({ title: 'Churned post-conversion', rows: churnedPost.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
+  bindCard('mc-grr',             () => ({ title: 'GRR inputs', rows: [{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'GRR',val:grr.toFixed(1)+'%'}] }));
+  bindCard('mc-nrr',             () => ({ title: 'NRR inputs', rows: [{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Expansion MRR',val:fmt$(expansionMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'NRR',val:nrr.toFixed(1)+'%'}] }));
+  bindCard('mc-converted-mrr',   () => ({ title: 'Active converted MRR', rows: [...converted].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-post-converted-count', () => ({ title: 'Active converted', rows: converted.map(c => ({name:c.name, val:c.stage})) }));
+  bindCard('mc-post-churned-count',   () => ({ title: 'Churned post-conversion', rows: churnedPost.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
+  bindCard('mc-port-grr',    () => ({ title: 'Portfolio GRR inputs', rows: [{name:'Total MRR',val:fmt$(allMRR)},{name:'Churned MRR',val:fmt$(allChurned)},'---',{name:'GRR',val:portGRR.toFixed(1)+'%'}] }));
+  bindCard('mc-port-nrr',    () => ({ title: 'Portfolio NRR inputs', rows: [{name:'Total MRR',val:fmt$(allMRR)},{name:'Expansion MRR',val:fmt$(allExpansion)},{name:'Churned MRR',val:fmt$(allChurned)},'---',{name:'NRR',val:portNRR.toFixed(1)+'%'}] }));
+  bindCard('mc-port-active', () => ({ title: 'Active customers', rows: active.map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-port-mrr',    () => ({ title: 'Active MRR (incl. expansion)', rows: [...active].sort((a,b)=>(b.mrr+b.expansion_mrr)-(a.mrr+a.expansion_mrr)).map(c => ({name:c.name, val:fmt$(c.mrr+c.expansion_mrr)})) }));
+  bindCard('mc-port-arr',    () => ({ title: 'Active ARR = MRR × 12', rows: [{name:'Active MRR',val:fmtBig$(activeMRR)},{name:'× 12',val:''},{name:'ARR',val:fmtBig$(activeARR)}] }));
+  bindCard('mc-port-ttv',    () => {
+    const with_dates = cos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>({name:c.name, val: Math.round((new Date(c.first_post_date)-new Date(c.kickoff_date))/86400000)+' days'}));
+    return { title: 'Time to value by customer', rows: with_dates.sort((a,b)=>parseInt(a.val)-parseInt(b.val)) };
+  });
 
-  // ── HEALTH SCORE WIDGETS ──
+  // ── HEALTH SCORES ──
   renderHealthWidget('pilot-health-rows', 'pilot-avg-sentiment', inProgress);
-  renderHealthWidget('post-health-rows', 'post-avg-sentiment', converted);
+  renderHealthWidget('post-health-rows',  'post-avg-sentiment',  converted);
 
   // ── CHARTS ──
   const allStages = [...new Set(cos.map(c => c.stage).filter(Boolean))].sort();
+  const allAMs    = [...new Set(cos.map(c => displayAM(c.csm)).filter(Boolean))].sort();
 
-  renderPie('pilotOutcomePie', [inProgress.length, pilotConv.length, exited.length],
+  renderPie('pilotOutcomePie',
+    [inProgress.length, pilotConv.length, exited.length],
     ['In progress','Converted','Exited during pilot'], OUTCOME_COLORS, 'legend-pilot-outcome',
     [inProgress.map(c=>({name:c.name,val:fmt$(c.mrr)})), pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)})), exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))]);
 
@@ -553,6 +847,20 @@ function recompute() {
 
   renderBar('exitedStageBar', allStages, allStages.map(st=>exited.filter(c=>c.stage===st).length), '#D85A30',
     allStages.map(st=>exited.filter(c=>c.stage===st).map(c=>({name:c.name,val:c.churn_reason||'—'}))));
+
+  // AM attribution — pilot
+  renderGroupedBar('pilotAMBar', allAMs,
+    [{ label:'Active pilots',       data: allAMs.map(am=>inProgress.filter(c=>displayAM(c.csm)===am).length), color:'#378ADD',
+       names: allAMs.map(am=>inProgress.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)}))) },
+     { label:'Exited during pilot', data: allAMs.map(am=>exited.filter(c=>displayAM(c.csm)===am).length),    color:'#D85A30',
+       names: allAMs.map(am=>exited.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'}))) }]);
+
+  // AM attribution — post-pilot
+  renderGroupedBar('postAMBar', allAMs,
+    [{ label:'Active converted',       data: allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).length),   color:'#1D9E75',
+       names: allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)}))) },
+     { label:'Churned post-conversion',data: allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).length), color:'#D85A30',
+       names: allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'}))) }]);
 
   const reasonMap = {};
   [...exited,...churnedPost].filter(c=>c.churn_reason).forEach(c => {
@@ -575,7 +883,42 @@ function recompute() {
   renderBar('convertedStageBar', allStages, allStages.map(st=>everConv.filter(c=>c.stage===st).length), '#1D9E75',
     allStages.map(st=>everConv.filter(c=>c.stage===st).map(c=>({name:c.name,val:fmt$(c.mrr)}))));
 
+  // Portfolio tab charts
+  const vertMap = {}, vertNames = {};
+  active.forEach(c => {
+    const v = c.vertical || 'Unknown';
+    vertMap[v] = (vertMap[v]||0) + 1;
+    if (!vertNames[v]) vertNames[v] = [];
+    vertNames[v].push({name:c.name, val:fmt$(c.mrr)});
+  });
+  const vLabels = Object.keys(vertMap).sort((a,b)=>vertMap[b]-vertMap[a]);
+  renderPie('verticalPie', vLabels.map(v=>vertMap[v]), vLabels, STAGE_COLORS.slice(0,vLabels.length), 'legend-vertical', vLabels.map(v=>vertNames[v]));
+
+  const stageMap = {}, stageNames = {};
+  active.forEach(c => {
+    stageMap[c.stage] = (stageMap[c.stage]||0) + 1;
+    if (!stageNames[c.stage]) stageNames[c.stage] = [];
+    stageNames[c.stage].push({name:c.name, val:fmt$(c.mrr)});
+  });
+  const stLabels = Object.keys(stageMap).sort((a,b)=>stageMap[b]-stageMap[a]);
+  renderPie('stagePie', stLabels.map(s=>stageMap[s]), stLabels, STAGE_COLORS.slice(0,stLabels.length), 'legend-stage', stLabels.map(s=>stageNames[s]));
+
+  // Journey funnel — active customers only
+  const journeyMap = {};
+  active.forEach(c => {
+    const j = c.customer_journey || 'Unknown';
+    if (!journeyMap[j]) journeyMap[j] = [];
+    journeyMap[j].push({name:c.name, val:fmt$(c.mrr)});
+  });
+  const journeyLabels = JOURNEY_ORDER.filter(j => journeyMap[j]);
+  const unknownJourney = Object.keys(journeyMap).filter(j => !JOURNEY_ORDER.includes(j));
+  const allJourneyLabels = [...journeyLabels, ...unknownJourney];
+  renderBar('journeyBar', allJourneyLabels, allJourneyLabels.map(j=>(journeyMap[j]||[]).length), '#7F77DD',
+    allJourneyLabels.map(j=>journeyMap[j]||[]));
+
   renderTable(cos);
+  renderPortfolioTable(cos);
+  renderCohortsTab(cos);
 }
 
 // ── HEALTH SCORE WIDGET ─────────────────────────────────────────
@@ -583,73 +926,69 @@ function renderHealthWidget(rowsId, avgId, companies) {
   const el = document.getElementById(rowsId);
   const withData = companies.map(c => ({ c, s: getSheetData(c.name) }));
   const hasAny = withData.some(x => x.s);
-
-  if (!hasAny) {
-    el.innerHTML = '<div class="no-sheet-data">No health tracker data found for these companies. Check that company names match the sheet exactly.</div>';
-    set(avgId, '—');
-    return;
-  }
-
-  // Compute avg sentiment
-  const sentimentScores = withData
-    .map(x => x.s ? parseFloat(x.s.cs_sentiment) : NaN)
-    .filter(n => !isNaN(n));
-  const avgSentiment = sentimentScores.length
-    ? (sentimentScores.reduce((a,b)=>a+b,0) / sentimentScores.length).toFixed(1)
-    : '—';
-  set(avgId, avgSentiment);
-
-  // Sort by CS sentiment ascending (worst first) so at-risk customers appear at top
-  const sorted = [...withData].sort((a, b) => {
-    const sa = a.s ? parseFloat(a.s.cs_sentiment) || 99 : 99;
-    const sb = b.s ? parseFloat(b.s.cs_sentiment) || 99 : 99;
-    return sa - sb;
-  });
-
-  el.innerHTML = sorted.map(({ c, s }) => {
-    const sentiment = s?.cs_sentiment || '';
-    const content   = s?.content_performance || '';
-    const warm      = s?.warm_outbound || '';
-    const notes     = s?.content_notes || '';
-    const actions   = s?.action_items || '';
-    const sentNum   = parseFloat(sentiment);
-    const barPct    = isNaN(sentNum) ? 0 : (sentNum / 10 * 100);
-    const barCol    = barColor(sentiment);
-    const tipData   = JSON.stringify({ notes, actions, am: s?.account_manager||'' }).replace(/"/g,'&quot;');
-
+  if (!hasAny) { el.innerHTML = '<div class="no-sheet-data">No health tracker data found for these companies.</div>'; set(avgId, '—'); return; }
+  const scores = withData.map(x => x.s ? parseFloat(x.s.cs_sentiment) : NaN).filter(n => !isNaN(n));
+  set(avgId, scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—');
+  const withScores = withData.map(({c,s}) => ({ c, s, result: calcCompositeScore(c,s) }));
+  withScores.sort((a,b) => (a.result?.score??99) - (b.result?.score??99));
+  el.innerHTML = withScores.map(({c, s, result}) => {
+    const sent=s?.cs_sentiment||'', cont=s?.content_performance||'', warm=s?.warm_outbound||'';
+    const n=parseFloat(sent), barPct=isNaN(n)?0:(n/10*100);
+    const ttv = fmtTTV(c.kickoff_date, c.first_post_date);
+    const ttvClass = (() => { const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null)return'score-gray'; if(d<=14)return'score-teal'; if(d<=30)return'score-blue'; return'score-amber'; })();
+    const bd = result.breakdown;
+    const bdJson = JSON.stringify({
+      score: result.score,
+      sentiment:  bd.sentiment,
+      content:    bd.content,
+      journey:    bd.journey,
+      warm:       bd.warm,
+      time:       bd.time,
+      journeyStage: c.customer_journey||'Unknown',
+      ttv: calcTTV(c.kickoff_date,c.first_post_date),
+      daysInPilot: c.kickoff_date ? Math.round((new Date()-new Date(c.kickoff_date))/86400000) : null,
+      pilotStatus: c.pilot_status
+    }).replace(/"/g,'&quot;');
     return `<div class="health-row"
-      onmouseenter="showHealthTip(event,'${c.name.replace(/'/g,'&#39;')}','${sentiment}','${content}','${warm}',${JSON.stringify(notes||'').replace(/"/g,'&quot;')},${JSON.stringify(actions||'').replace(/"/g,'&quot;')},${JSON.stringify(s?.account_manager||'').replace(/"/g,'&quot;')})"
-      onmousemove="posTip(event)"
-      onmouseleave="hideTip()">
+      onmouseenter="showHealthTip(event,'${c.name.replace(/'/g,"&#39;")}','${sent}','${cont}','${warm}',${JSON.stringify(s?.content_notes||'').replace(/"/g,'&quot;')},${JSON.stringify(s?.action_items||'').replace(/"/g,'&quot;')},${JSON.stringify(displayAM(s?.account_manager||c.csm||'')).replace(/"/g,'&quot;')},'${bdJson}')"
+      onmousemove="posTip(event)" onmouseleave="hideTip()">
+      ${ragBadge(result.score)}
       <div class="health-name">${c.name}</div>
-      <div class="health-scores">
-        ${scorePill(sentiment,'CS')}
-        ${scorePill(content,'Cont')}
-        ${scorePill(warm,'WO')}
-      </div>
-      <div class="health-bar-wrap">
-        <div class="health-bar-bg"><div class="health-bar-fill" style="width:${barPct}%;background:${barCol};"></div></div>
-      </div>
+      <div class="health-scores">${scorePill(sent,'CS')}${scorePill(cont,'Cont')}${scorePill(warm,'WO')}<span class="score-pill ${ttvClass}"><span class="pill-label">TTV</span> ${ttv}</span></div>
+      <div class="health-bar-wrap"><div class="health-bar-bg"><div class="health-bar-fill" style="width:${barPct}%;background:${barColor(sent)};"></div></div></div>
     </div>`;
   }).join('');
 }
 
-function showHealthTip(e, name, sentiment, content, warm, notes, actions, am) {
-  const rows = [
-    { name: 'CS Sentiment', val: sentiment ? sentiment + '/10' : '—' },
-    { name: 'Content Performance', val: content ? content + '/10' : '—' },
-    { name: 'Warm Outbound', val: warm ? warm + '/10' : '—' },
-  ];
-  if (am) rows.push({ name: 'Account Manager', val: am });
+function showHealthTip(e, name, sent, cont, warm, notes, actions, am, bdJsonStr) {
+  const rows = [];
+  if (bdJsonStr) {
+    try {
+      const bd = JSON.parse(bdJsonStr.replace(/&quot;/g,'"'));
+      rows.push({name:'Composite health score', val: ragLabel(bd.score) + '  ' + bd.score.toFixed(1) + '/10'});
+      rows.push('---');
+      rows.push({name:'CS Sentiment (30%)',       val: bd.sentiment.missing  ? '5.0 (default)' : bd.sentiment.val.toFixed(1)  + '/10'});
+      rows.push({name:'Content Perf. (20%)',       val: bd.content.missing   ? '5.0 (default)' : bd.content.val.toFixed(1)    + '/10'});
+      rows.push({name:'Journey stage (20%)',       val: (bd.journeyStage||'Unknown') + '  →  ' + bd.journey.val + '/10'});
+      rows.push({name:'Warm Outbound (15%)',       val: bd.warm.missing      ? '5.0 (default)' : bd.warm.val.toFixed(1)       + '/10'});
+      const timeLabel = bd.ttv !== null ? 'TTV ' + bd.ttv + ' days' : bd.daysInPilot !== null ? bd.daysInPilot + ' days in pilot' : 'No date data';
+      rows.push({name:'Time performance (15%)',    val: timeLabel + '  →  ' + bd.time.val + '/10'});
+    } catch(e) {}
+  } else {
+    rows.push({name:'CS Sentiment',val:sent?sent+'/10':'—'});
+    rows.push({name:'Content Performance',val:cont?cont+'/10':'—'});
+    rows.push({name:'Warm Outbound',val:warm?warm+'/10':'—'});
+  }
+  if (am) { rows.push('---'); rows.push({name:'Account Manager',val:am}); }
   if (notes) rows.push('---', notes);
-  if (actions) { if (!notes) rows.push('---'); rows.push('Action: ' + actions); }
+  if (actions) { if (!notes) rows.push('---'); rows.push('Action: '+actions); }
   showTip(e, name, rows);
 }
 
 // ── CHART RENDERERS ─────────────────────────────────────────────
-function buildTooltipLines(names) {
-  if (!names || !names.length) return ['No data'];
-  return names.map(n => typeof n === 'string' ? `  · ${n}` : `  · ${n.name}${n.val ? '  ('+n.val+')' : ''}`);
+function buildLines(names) {
+  if (!names||!names.length) return ['No data'];
+  return names.map(n => typeof n==='string' ? `  · ${n}` : `  · ${n.name}${n.val?'  ('+n.val+')':''}`);
 }
 
 function renderPie(id, data, labels, colors, legendId, companyLists, valLabels) {
@@ -659,14 +998,11 @@ function renderPie(id, data, labels, colors, legendId, companyLists, valLabels) 
     data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => {
-          const header = valLabels ? ` ${labels[ctx.dataIndex]}: ${valLabels[ctx.dataIndex]}` : ` ${labels[ctx.dataIndex]}: ${ctx.raw}`;
-          const names = companyLists ? companyLists[ctx.dataIndex] : [];
-          return [header, ...buildTooltipLines(names)];
-        }}}
-      }
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => {
+        const header = valLabels ? ` ${labels[ctx.dataIndex]}: ${valLabels[ctx.dataIndex]}` : ` ${labels[ctx.dataIndex]}: ${ctx.raw}`;
+        const names = companyLists ? companyLists[ctx.dataIndex] : [];
+        return [header, ...buildLines(names)];
+      }}}}
     }
   });
   const el = document.getElementById(legendId);
@@ -682,46 +1018,287 @@ function renderBar(id, labels, data, color, companyLists) {
     data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 3 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => {
-          const names = companyLists ? companyLists[ctx.dataIndex] : [];
-          return [` ${ctx.raw} customer${ctx.raw!==1?'s':''}:`, ...buildTooltipLines(names)];
-        }}}
-      },
-      scales: {
-        x: { ticks: { font:{size:10}, autoSkip:false, maxRotation:35 }, grid:{display:false} },
-        y: { ticks: { font:{size:10}, stepSize:1 }, grid:{color:'rgba(26,25,22,0.06)'} }
-      }
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => {
+        const names = companyLists ? companyLists[ctx.dataIndex] : [];
+        return [` ${ctx.raw} customer${ctx.raw!==1?'s':''}:`, ...buildLines(names)];
+      }}}}
+    },
+    scales: {
+      x: { ticks:{font:{size:10},autoSkip:false,maxRotation:35}, grid:{display:false} },
+      y: { ticks:{font:{size:10},stepSize:1}, grid:{color:'rgba(26,25,22,0.06)'} }
+    }
+  });
+}
+
+function renderGroupedBar(id, labels, datasets) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: datasets.map(d => ({ label:d.label, data:d.data, backgroundColor:d.color, borderRadius:3, names:d.names })) },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => {
+        const names = ctx.dataset.names ? ctx.dataset.names[ctx.dataIndex] : [];
+        return [` ${ctx.dataset.label}: ${ctx.raw}`, ...buildLines(names)];
+      }}}}
+    },
+    scales: {
+      x: { ticks:{font:{size:10},autoSkip:false,maxRotation:35}, grid:{display:false} },
+      y: { ticks:{font:{size:10},stepSize:1}, grid:{color:'rgba(26,25,22,0.06)'} }
     }
   });
 }
 
 function renderTable(cos) {
-  const order = { 'In progress':0,'Converted':1,'Exited During Pilot':2,'Churned Post Conversion':3 };
-  const bc = { 'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber' };
+  const order = {'In progress':0,'Converted':1,'Exited During Pilot':2,'Churned Post Conversion':3};
+  const bc    = {'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
   const f = n => n ? fmt$(n) : '—';
   document.getElementById('roster-body').innerHTML = [...cos]
     .sort((a,b) => (order[a.pilot_status]??9)-(order[b.pilot_status]??9))
     .map(c => {
       const s = getSheetData(c.name);
-      const sentiment = s?.cs_sentiment || '—';
-      const content   = s?.content_performance || '—';
-      const warm      = s?.warm_outbound || '—';
-      const am        = s?.account_manager || '—';
-      const sentCls   = s ? scoreColor(s.cs_sentiment) : 'score-gray';
-      const contCls   = s ? scoreColor(s.content_performance) : 'score-gray';
-      const warmCls   = s ? scoreColor(s.warm_outbound) : 'score-gray';
+      const ttv = fmtTTV(c.kickoff_date, c.first_post_date);
+      const ttvStyle = (() => { const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null)return'color:var(--ink3)'; if(d<=14)return'color:var(--teal);font-weight:500'; if(d<=30)return'color:var(--blue)'; return'color:var(--amber)'; })();
+      const health = calcCompositeScore(c, s);
       return `<tr>
         <td>${c.name}</td>
         <td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
         <td>${c.stage||'—'}</td>
-        <td>${am}</td>
+        <td>${displayAM(c.csm)}</td>
+        <td>${ragBadge(health.score)}</td>
         <td>${f(c.mrr)}</td>
-        <td><span class="score-pill ${sentCls}">${sentiment}</span></td>
-        <td><span class="score-pill ${contCls}">${content}</span></td>
-        <td><span class="score-pill ${warmCls}">${warm}</span></td>
+        <td style="${ttvStyle}">${ttv}</td>
+        <td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td>
+        <td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td>
+        <td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td>
         <td>${c.churn_reason||'—'}</td>
+      </tr>`;
+    }).join('');
+}
+
+
+function renderPortfolioTable(cos) {
+  const order = {'In progress':0,'Converted':1,'Exited During Pilot':2,'Churned Post Conversion':3};
+  const bc    = {'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
+  const f = n => n ? fmt$(n) : '—';
+  set('note-portfolio-roster', cos.length + ' companies');
+  document.getElementById('portfolio-roster-body').innerHTML = [...cos]
+    .sort((a,b) => (order[a.pilot_status]??9)-(order[b.pilot_status]??9))
+    .map(c => {
+      const s = getSheetData(c.name);
+      const health = calcCompositeScore(c, s);
+      const ttv = fmtTTV(c.kickoff_date, c.first_post_date);
+      const ttvStyle = (() => {
+        const d = calcTTV(c.kickoff_date, c.first_post_date);
+        if (d === null) return 'color:var(--ink3)';
+        if (d <= 14) return 'color:var(--teal);font-weight:500';
+        if (d <= 30) return 'color:var(--blue)';
+        return 'color:var(--amber)';
+      })();
+      const vertical = c.vertical || '—';
+      const journey  = c.customer_journey || '—';
+      return `<tr>
+        <td>${c.name}</td>
+        <td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
+        <td>${c.stage||'—'}</td>
+        <td>${vertical}</td>
+        <td>${displayAM(c.csm)}</td>
+        <td>${journey}</td>
+        <td>${f(c.mrr)}</td>
+        <td style="${ttvStyle}">${ttv}</td>
+        <td>${ragBadge(health.score)}</td>
+      </tr>`;
+    }).join('');
+}
+
+
+function renderCohortsTab(cos) {
+  const exclude = document.getElementById('exclude-virio').checked;
+  const allStages = [...new Set(cos.map(c => c.stage).filter(Boolean))].sort();
+  const active = cos.filter(c => c.pilot_status === 'In progress' || c.pilot_status === 'Converted');
+  const allChurnedCos = cos.filter(c => c.pilot_status === 'Exited During Pilot' || c.pilot_status === 'Churned Post Conversion');
+
+  // ── REVENUE COHORT CARDS ──
+  const cardsEl = document.getElementById('cohort-revenue-cards');
+  cardsEl.innerHTML = allStages.map(stage => {
+    const everConvStage   = cos.filter(c => c.stage === stage && (c.pilot_status === 'Converted' || c.pilot_status === 'Churned Post Conversion'));
+    const convertedStage  = cos.filter(c => c.stage === stage && c.pilot_status === 'Converted');
+    const churnedPostStage = cos.filter(c => c.stage === stage && c.pilot_status === 'Churned Post Conversion');
+    const n = everConvStage.length;
+
+    if (n === 0) {
+      return `<div class="cohort-card">
+        <div class="cohort-card-title">${stage}</div>
+        <div class="cohort-card-n">n=0 converted</div>
+        <div class="cohort-na">No converted customers in this stage yet.</div>
+      </div>`;
+    }
+
+    const sMRR  = everConvStage.reduce((s,c)=>s+c.mrr,0);
+    const sExp  = everConvStage.reduce((s,c)=>s+c.expansion_mrr,0);
+    const sChrn = churnedPostStage.reduce((s,c)=>s+c.churned_mrr,0);
+    const stageNRR = sMRR ? ((sMRR+sExp-sChrn)/sMRR*100).toFixed(1)+'%' : '—';
+    const stageGRR = sMRR ? ((sMRR-sChrn)/sMRR*100).toFixed(1)+'%' : '—';
+    const stageRet = everConvStage.length ? (convertedStage.length/everConvStage.length*100).toFixed(1)+'%' : '—';
+    const retClass = parseFloat(stageRet) >= 80 ? 'teal' : parseFloat(stageRet) >= 60 ? 'ink' : 'coral';
+
+    return `<div class="cohort-card">
+      <div class="cohort-card-title">${stage}</div>
+      <div class="cohort-card-n">n=${n} ever-converted · ${churnedPostStage.length} churned post-conversion</div>
+      <div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value blue">${stageNRR}</span></div>
+      <div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value blue">${stageGRR}</span></div>
+      <div class="cohort-metric"><span class="cohort-metric-label">Retention</span><span class="cohort-metric-value ${retClass}">${stageRet}</span></div>
+    </div>`;
+  }).join('');
+
+  // ── SCORE PIE CHARTS (avg score per stage, slice size = avg) ──
+  function scoreAvgByStage(field) {
+    return allStages.map(stage => {
+      const cos_stage = active.filter(c => c.stage === stage);
+      const vals = cos_stage.map(c => {
+        const s = getSheetData(c.name);
+        return s ? parseFloat(s[field]) : NaN;
+      }).filter(n => !isNaN(n));
+      return { stage, avg: vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0, n: vals.length, total: cos_stage.length };
+    }).filter(x => x.avg > 0);
+  }
+
+  function renderScorePie(canvasId, legendId, data) {
+    if (charts[canvasId]) charts[canvasId].destroy();
+    const labels = data.map(d => d.stage);
+    const values = data.map(d => parseFloat(d.avg.toFixed(1)));
+    charts[canvasId] = new Chart(document.getElementById(canvasId).getContext('2d'), {
+      type: 'pie',
+      data: { labels, datasets: [{ data: values, backgroundColor: STAGE_COLORS.slice(0,labels.length), borderWidth: 2, borderColor: '#fff' }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: avg ${ctx.raw.toFixed(1)}/10  (n=${data[ctx.dataIndex].n} of ${data[ctx.dataIndex].total})` }}}
+      }
+    });
+    const el = document.getElementById(legendId);
+    if (el) el.innerHTML = data.map((d,i) =>
+      `<span class="legend-item"><span class="legend-dot" style="background:${STAGE_COLORS[i]};"></span>${d.stage}: ${d.avg.toFixed(1)}/10</span>`
+    ).join('');
+  }
+
+  renderScorePie('sentimentStagePie', 'legend-sentiment-stage', scoreAvgByStage('cs_sentiment'));
+  renderScorePie('contentStagePie',   'legend-content-stage',   scoreAvgByStage('content_performance'));
+  renderScorePie('warmStagePie',      'legend-warm-stage',       scoreAvgByStage('warm_outbound'));
+
+  // ── AVG COMPOSITE HEALTH SCORE BY STAGE ──
+  const healthByStage = allStages.map(stage => {
+    const cos_stage = active.filter(c => c.stage === stage);
+    const scores = cos_stage.map(c => calcCompositeScore(c, getSheetData(c.name)).score);
+    return scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : 0;
+  });
+  if (charts['healthScoreStageBar']) charts['healthScoreStageBar'].destroy();
+  charts['healthScoreStageBar'] = new Chart(document.getElementById('healthScoreStageBar').getContext('2d'), {
+    type: 'bar',
+    data: { labels: allStages, datasets: [{ data: healthByStage.map(v=>parseFloat(v.toFixed(1))), backgroundColor: healthByStage.map(v => v>=7?'#1D9E75':v>=4.5?'#BA7517':'#E24B4A'), borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` Avg health: ${ctx.raw}/10` }}},
+      scales: {
+        x: { ticks:{font:{size:10},autoSkip:false,maxRotation:35}, grid:{display:false} },
+        y: { min:0, max:10, ticks:{font:{size:10},stepSize:2}, grid:{color:'rgba(26,25,22,0.06)'} }
+      }
+    }
+  });
+
+  // ── AVG TTV BY STAGE ──
+  const ttvByStage = allStages.map(stage => {
+    const vals = cos.filter(c => c.stage===stage && c.kickoff_date && c.first_post_date)
+      .map(c => calcTTV(c.kickoff_date, c.first_post_date)).filter(d=>d!==null && d>=0);
+    return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  });
+  const ttvCompaniesByStage = allStages.map(stage =>
+    cos.filter(c => c.stage===stage && c.kickoff_date && c.first_post_date)
+      .map(c => ({name:c.name, val:calcTTV(c.kickoff_date,c.first_post_date)+' days'}))
+  );
+  if (charts['ttvStageBar']) charts['ttvStageBar'].destroy();
+  charts['ttvStageBar'] = new Chart(document.getElementById('ttvStageBar').getContext('2d'), {
+    type: 'bar',
+    data: { labels: allStages, datasets: [{ data: ttvByStage.map(v=>v||0), backgroundColor: ttvByStage.map(v=>v===null?'#D3D1C7':v<=21?'#1D9E75':v<=30?'#378ADD':'#BA7517'), borderRadius:4, names: ttvCompaniesByStage }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => {
+        const v = ttvByStage[ctx.dataIndex];
+        const names = ctx.dataset.names ? ctx.dataset.names[ctx.dataIndex] : [];
+        const header = v ? ` Avg TTV: ${v} days (target: 21)` : ' No TTV data';
+        return [header, ...buildLines(names)];
+      }}}},
+      scales: {
+        x: { ticks:{font:{size:10},autoSkip:false,maxRotation:35}, grid:{display:false} },
+        y: { ticks:{font:{size:10}}, grid:{color:'rgba(26,25,22,0.06)'},
+             afterDataLimits: scale => { scale.max = Math.max(scale.max, 25); } }
+      }
+    }
+  });
+
+  // ── PILOT CONVERSION RATE BY STAGE ──
+  const convByStage = allStages.map(stage => {
+    const pilotConvStage = cos.filter(c => c.stage===stage && (c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion'));
+    const exitedStage    = cos.filter(c => c.stage===stage && c.pilot_status==='Exited During Pilot');
+    const total = pilotConvStage.length + exitedStage.length;
+    return total ? parseFloat((pilotConvStage.length/total*100).toFixed(1)) : 0;
+  });
+  const churnByStage = allStages.map((stage,i) => parseFloat((100 - convByStage[i]).toFixed(1)));
+  renderGroupedBar('conversionStageBar', allStages,
+    [{ label:'Conversion rate', data:convByStage, color:'#1D9E75', names: allStages.map(stage => cos.filter(c=>c.stage===stage&&(c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion')).map(c=>({name:c.name,val:fmt$(c.mrr)})))  },
+     { label:'Churn rate',      data:churnByStage, color:'#D85A30', names: allStages.map(stage => cos.filter(c=>c.stage===stage&&c.pilot_status==='Exited During Pilot').map(c=>({name:c.name,val:c.churn_reason||'—'}))) }]);
+
+  // ── CHURN REASONS BY STAGE ──
+  const allReasons = [...new Set(allChurnedCos.map(c=>c.churn_reason).filter(Boolean))].sort();
+  if (charts['churnReasonStageBar']) charts['churnReasonStageBar'].destroy();
+  const legendEl = document.getElementById('legend-churn-stage');
+  if (allReasons.length && allStages.length) {
+    charts['churnReasonStageBar'] = new Chart(document.getElementById('churnReasonStageBar').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: allStages,
+        datasets: allReasons.map((reason,i) => ({
+          label: reason,
+          data: allStages.map(stage => allChurnedCos.filter(c=>c.stage===stage&&c.churn_reason===reason).length),
+          backgroundColor: REASON_COLORS[i % REASON_COLORS.length],
+          borderRadius: 3
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}` }}},
+        scales: {
+          x: { stacked:true, ticks:{font:{size:10},autoSkip:false,maxRotation:35}, grid:{display:false} },
+          y: { stacked:true, ticks:{font:{size:10},stepSize:1}, grid:{color:'rgba(26,25,22,0.06)'} }
+        }
+      }
+    });
+    if (legendEl) legendEl.innerHTML = allReasons.map((r,i) =>
+      `<span class="legend-item"><span class="legend-dot" style="background:${REASON_COLORS[i%REASON_COLORS.length]};"></span>${r}</span>`
+    ).join('');
+  }
+
+  // ── COHORT ROSTER TABLE ──
+  set('note-cohort-roster', cos.length + ' companies · sorted by stage');
+  const bc = {'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
+  const f = n => n ? fmt$(n) : '—';
+  document.getElementById('cohort-roster-body').innerHTML = [...cos]
+    .sort((a,b) => (a.stage||'').localeCompare(b.stage||''))
+    .map(c => {
+      const s = getSheetData(c.name);
+      const health = calcCompositeScore(c, s);
+      const ttv = fmtTTV(c.kickoff_date, c.first_post_date);
+      const ttvStyle = (() => { const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null)return'color:var(--ink3)'; if(d<=14)return'color:var(--teal);font-weight:500'; if(d<=30)return'color:var(--blue)'; return'color:var(--amber)'; })();
+      return `<tr>
+        <td>${c.name}</td>
+        <td>${c.stage||'—'}</td>
+        <td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
+        <td>${displayAM(c.csm)}</td>
+        <td>${f(c.mrr)}</td>
+        <td style="${ttvStyle}">${ttv}</td>
+        <td>${ragBadge(health.score)}</td>
+        <td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td>
+        <td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td>
+        <td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td>
       </tr>`;
     }).join('');
 }
