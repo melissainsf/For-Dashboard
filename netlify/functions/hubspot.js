@@ -1,11 +1,11 @@
-export default async (request) => {
-  const token = Deno.env.get('HUBSPOT_TOKEN');
+exports.handler = async function(event, context) {
+  const token = process.env.HUBSPOT_TOKEN;
 
   if (!token) {
-    return new Response(JSON.stringify({ error: 'HUBSPOT_TOKEN environment variable is not set.' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'HUBSPOT_TOKEN environment variable is not set.' })
+    };
   }
 
   const body = {
@@ -31,13 +31,12 @@ export default async (request) => {
 
   const data = await res.json();
 
-  return new Response(JSON.stringify(data), {
-    status: res.status,
+  return {
+    statusCode: res.status,
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*'
-    }
-  });
+    },
+    body: JSON.stringify(data)
+  };
 };
-
-export const config = { path: '/api/companies' };
