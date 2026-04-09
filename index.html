@@ -180,9 +180,9 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
 </header>
 
 <div class="tab-nav">
-  <button class="tab-btn active" onclick="switchTab('main')">Pilot &amp; Post-Pilot</button>
-  <button class="tab-btn" onclick="switchTab('portfolio')">Whole Portfolio</button>
-  <button class="tab-btn" onclick="switchTab('cohorts')">Cohorts</button>
+  <button class="tab-btn active" onclick="switchTab(event,'main')">Pilot &amp; Post-Pilot</button>
+  <button class="tab-btn" onclick="switchTab(event,'portfolio')">Whole Portfolio</button>
+  <button class="tab-btn" onclick="switchTab(event,'cohorts')">Cohorts</button>
 </div>
 
 <main>
@@ -401,6 +401,8 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
     </div>
 
 
+  </div>
+
   <!-- ═══ TAB 3: COHORTS ═══ -->
   <div id="tab-cohorts" class="tab-content">
 
@@ -508,11 +510,11 @@ let allCompanies = [];
 let sheetMap = {};
 let charts = {};
 
-function switchTab(name) {
+function switchTab(e, name) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
+  if (e && e.target) e.target.classList.add('active');
   if (!allCompanies.length) return;
   const exclude = document.getElementById('exclude-virio').checked;
   const cos = exclude ? allCompanies.filter(c => c.domain !== 'virio.ai' && c.name !== 'Virio') : allCompanies;
