@@ -324,21 +324,6 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
       </div>
     </div>
 
-    <!-- ROSTER TABLE -->
-    <div>
-      <div class="section-header">
-        <span class="section-title">Customer roster</span>
-        <span class="section-note" id="note-roster"></span>
-      </div>
-      <div class="table-card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Company</th><th>Pilot status</th><th>Stage</th><th>AM</th><th>Health</th><th>MRR</th><th>Time to Value</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th><th>Churn reason</th></tr></thead>
-            <tbody id="roster-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- ═══ TAB 2: WHOLE PORTFOLIO ═══ -->
@@ -790,7 +775,6 @@ function recompute() {
   set('m-converted-mrr',         fmt$(convertedMRR));
   set('m-post-converted-count',  converted.length);
   set('m-post-churned-count',    churnedPost.length);
-  set('note-roster',             `${cos.length} companies`);
 
   set('m-port-grr',      portGRR.toFixed(1) + '%');
   set('m-port-nrr',      portNRR.toFixed(1) + '%');
@@ -916,7 +900,6 @@ function recompute() {
   renderBar('journeyBar', allJourneyLabels, allJourneyLabels.map(j=>(journeyMap[j]||[]).length), '#7F77DD',
     allJourneyLabels.map(j=>journeyMap[j]||[]));
 
-  renderTable(cos);
   renderPortfolioTable(cos);
   renderCohortsTab(cos);
 }
@@ -1049,32 +1032,6 @@ function renderGroupedBar(id, labels, datasets) {
   });
 }
 
-function renderTable(cos) {
-  const order = {'In progress':0,'Converted':1,'Exited During Pilot':2,'Churned Post Conversion':3};
-  const bc    = {'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
-  const f = n => n ? fmt$(n) : '—';
-  document.getElementById('roster-body').innerHTML = [...cos]
-    .sort((a,b) => (order[a.pilot_status]??9)-(order[b.pilot_status]??9))
-    .map(c => {
-      const s = getSheetData(c.name);
-      const ttv = fmtTTV(c.kickoff_date, c.first_post_date);
-      const ttvStyle = (() => { const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null)return'color:var(--ink3)'; if(d<=14)return'color:var(--teal);font-weight:500'; if(d<=30)return'color:var(--blue)'; return'color:var(--amber)'; })();
-      const health = calcCompositeScore(c, s);
-      return `<tr>
-        <td>${c.name}</td>
-        <td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
-        <td>${c.stage||'—'}</td>
-        <td>${displayAM(c.csm)}</td>
-        <td>${ragBadge(health.score)}</td>
-        <td>${f(c.mrr)}</td>
-        <td style="${ttvStyle}">${ttv}</td>
-        <td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td>
-        <td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td>
-        <td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td>
-        <td>${c.churn_reason||'—'}</td>
-      </tr>`;
-    }).join('');
-}
 
 
 function renderPortfolioTable(cos) {
