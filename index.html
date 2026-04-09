@@ -8,158 +8,128 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F5F3EE;
+  --surface: #FFFFFF;
+  --surface2: #EFEDE8;
+  --ink: #1A1916;
+  --ink2: #5C5A55;
+  --ink3: #9B9890;
+  --teal: #0F6E56;
+  --teal-light: #E1F5EE;
+  --teal-mid: #1D9E75;
+  --coral: #993C1D;
+  --coral-light: #FAECE7;
+  --coral-mid: #D85A30;
+  --blue: #185FA5;
+  --blue-light: #E6F1FB;
+  --blue-mid: #378ADD;
+  --amber: #854F0B;
+  --amber-light: #FAEEDA;
+  --border: rgba(26,25,22,0.10);
+  --border-strong: rgba(26,25,22,0.18);
+  --shadow: 0 1px 3px rgba(26,25,22,0.06), 0 4px 12px rgba(26,25,22,0.04);
+  --header-bg: #1A1916;
+  --header-ink: #F5F3EE;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; font-size: 14px; line-height: 1.6; }
 
-  :root {
-    --bg: #F5F3EE;
-    --surface: #FFFFFF;
-    --surface2: #EFEDE8;
-    --ink: #1A1916;
-    --ink2: #5C5A55;
-    --ink3: #9B9890;
-    --teal: #0F6E56;
-    --teal-light: #E1F5EE;
-    --teal-mid: #1D9E75;
-    --coral: #993C1D;
-    --coral-light: #FAECE7;
-    --coral-mid: #D85A30;
-    --blue: #185FA5;
-    --blue-light: #E6F1FB;
-    --blue-mid: #378ADD;
-    --border: rgba(26,25,22,0.10);
-    --border-strong: rgba(26,25,22,0.18);
-    --shadow: 0 1px 3px rgba(26,25,22,0.06), 0 4px 12px rgba(26,25,22,0.04);
-    --header-bg: #1A1916;
-    --header-ink: #F5F3EE;
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
+header {
+  background: var(--header-bg); color: var(--header-ink);
+  padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.header-left { display: flex; align-items: baseline; gap: 14px; }
+.logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.header-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 400; color: rgba(245,243,238,0.45); letter-spacing: 0.07em; text-transform: uppercase; }
+.header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+#refresh-btn { background: rgba(245,243,238,0.1); border: 1px solid rgba(245,243,238,0.18); color: var(--header-ink); padding: 7px 16px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: background 0.15s; }
+#refresh-btn:hover { background: rgba(245,243,238,0.2); }
+#refresh-btn:disabled { opacity: 0.4; cursor: default; }
+#last-updated { font-size: 12px; color: rgba(245,243,238,0.38); }
+.exclude-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; color: rgba(245,243,238,0.5); cursor: pointer; user-select: none; }
+.exclude-toggle input { cursor: pointer; accent-color: var(--teal-mid); }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    min-height: 100vh;
-    font-size: 14px;
-    line-height: 1.6;
-  }
+main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
 
-  header {
-    background: var(--header-bg);
-    color: var(--header-ink);
-    padding: 20px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .header-left { display: flex; align-items: baseline; gap: 14px; }
-  .logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
-  .header-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 400; color: rgba(245,243,238,0.45); letter-spacing: 0.07em; text-transform: uppercase; }
-  .header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  #refresh-btn {
-    background: rgba(245,243,238,0.1);
-    border: 1px solid rgba(245,243,238,0.18);
-    color: var(--header-ink);
-    padding: 7px 16px;
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  #refresh-btn:hover { background: rgba(245,243,238,0.2); }
-  #refresh-btn:disabled { opacity: 0.4; cursor: default; }
-  #last-updated { font-size: 12px; color: rgba(245,243,238,0.38); }
-  .exclude-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; color: rgba(245,243,238,0.5); cursor: pointer; user-select: none; }
-  .exclude-toggle input { cursor: pointer; accent-color: var(--teal-mid); }
+#status-bar { padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 20px; display: none; align-items: center; gap: 8px; }
+#status-bar.loading { display: flex; background: var(--blue-light); color: var(--blue); }
+#status-bar.error   { display: flex; background: var(--coral-light); color: var(--coral); }
+.spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+/* TWO COLUMN LAYOUT */
+.columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+@media (max-width: 1100px) { .columns { grid-template-columns: 1fr; } }
 
-  #status-bar {
-    padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13px;
-    margin-bottom: 20px; display: none; align-items: center; gap: 8px;
-  }
-  #status-bar.loading { display: flex; background: var(--blue-light); color: var(--blue); }
-  #status-bar.error   { display: flex; background: var(--coral-light); color: var(--coral); }
+.column-header {
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 8px 14px; border-radius: var(--radius-sm);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.column-header.pilot { background: var(--amber-light); color: var(--amber); }
+.column-header.postpilot { background: var(--teal-light); color: var(--teal); }
+.col-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.col-dot.pilot { background: var(--amber); }
+.col-dot.postpilot { background: var(--teal); }
 
-  .section { margin-bottom: 32px; animation: fadeIn 0.3s ease both; }
-  .section:nth-child(2) { animation-delay: 0.05s; }
-  .section:nth-child(3) { animation-delay: 0.10s; }
-  .section:nth-child(4) { animation-delay: 0.15s; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+/* METRIC CARDS */
+.metric-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+.metric-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+.mcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+.mcard-label { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 4px; }
+.mcard-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
+.mcard-value.teal  { color: var(--teal); }
+.mcard-value.coral { color: var(--coral-mid); }
+.mcard-value.blue  { color: var(--blue); }
+.mcard-value.amber { color: var(--amber); }
+.mcard-value.ink   { color: var(--ink); }
+.mcard-sub { font-size: 10px; color: var(--ink3); margin-top: 3px; }
 
-  .section-header {
-    display: flex; align-items: baseline; gap: 10px;
-    margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;
-  }
-  .section-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink2); }
-  .section-note { font-size: 11px; color: var(--ink3); }
+/* CHART CARDS */
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 12px; }
+.chart-card-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; margin-bottom: 2px; color: var(--ink); }
+.chart-card-sub   { font-size: 10px; color: var(--ink3); margin-bottom: 12px; }
+.chart-wrap-sm { position: relative; width: 100%; height: 180px; }
+.chart-wrap-md { position: relative; width: 100%; height: 200px; }
 
-  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 16px; }
-  @media (max-width: 900px) { .metric-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-  @media (max-width: 500px) { .metric-grid { grid-template-columns: 1fr; } }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
-  .mcard {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
-  }
-  .mcard-label { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 6px; }
-  .mcard-value { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
-  .mcard-value.teal  { color: var(--teal); }
-  .mcard-value.coral { color: var(--coral-mid); }
-  .mcard-value.blue  { color: var(--blue); }
-  .mcard-value.ink   { color: var(--ink); }
-  .mcard-sub { font-size: 11px; color: var(--ink3); margin-top: 5px; }
+/* CHARTS SIDE BY SIDE */
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 
-  .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
-  @media (max-width: 760px) { .chart-grid { grid-template-columns: 1fr; } }
+/* ROSTER TABLE */
+.table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-strong); white-space: nowrap; background: var(--surface2); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 8px 14px; vertical-align: middle; }
+tbody td:first-child { font-weight: 500; }
 
-  .chart-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--shadow);
-  }
-  .chart-card-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-  .chart-card-sub   { font-size: 11px; color: var(--ink3); margin-bottom: 16px; }
-  .chart-wrap { position: relative; width: 100%; height: 220px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+.badge-teal   { background: var(--teal-light);  color: var(--teal); }
+.badge-coral  { background: var(--coral-light); color: var(--coral); }
+.badge-blue   { background: var(--blue-light);  color: var(--blue); }
+.badge-amber  { background: var(--amber-light); color: var(--amber); }
+.badge-gray   { background: var(--surface2); color: var(--ink2); }
 
-  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink2); }
-  .legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.roster-section { margin-top: 8px; }
+.roster-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.roster-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); }
+.roster-note { font-size: 11px; color: var(--ink3); }
 
-  .table-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
-  }
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  thead th {
-    font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
-    text-transform: uppercase; color: var(--ink3); padding: 10px 14px; text-align: left;
-    border-bottom: 1px solid var(--border-strong); white-space: nowrap; background: var(--surface2);
-  }
-  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: var(--surface2); }
-  tbody td { padding: 9px 14px; vertical-align: middle; }
-  tbody td:first-child { font-weight: 500; }
+footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: var(--ink3); }
 
-  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 500; white-space: nowrap; }
-  .badge-teal   { background: var(--teal-light);  color: var(--teal); }
-  .badge-coral  { background: var(--coral-light); color: var(--coral); }
-  .badge-blue   { background: var(--blue-light);  color: var(--blue); }
-  .badge-amber  { background: #FAEEDA; color: #854F0B; }
-  .badge-gray   { background: var(--surface2); color: var(--ink2); }
-
-  footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: var(--ink3); }
-
-  .spinner {
-    width: 14px; height: 14px; border: 2px solid currentColor;
-    border-top-color: transparent; border-radius: 50%;
-    animation: spin 0.7s linear infinite; flex-shrink: 0;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.columns { animation: fadeIn 0.3s ease both; }
+.roster-section { animation: fadeIn 0.35s ease both; animation-delay: 0.1s; }
 </style>
 </head>
 <body>
@@ -182,71 +152,97 @@
 <main>
   <div id="status-bar"></div>
 
-  <div class="section">
-    <div class="section-header">
-      <span class="section-title">Pilot performance</span>
-      <span class="section-note" id="note-pilot"></span>
-    </div>
-    <div class="metric-grid">
-      <div class="mcard"><div class="mcard-label">Pilot retention rate</div><div class="mcard-value teal"  id="m-pilot-retention">—</div><div class="mcard-sub" id="m-pilot-retention-sub"></div></div>
-      <div class="mcard"><div class="mcard-label">Pilot churn rate</div>   <div class="mcard-value coral" id="m-pilot-churn">—</div>    <div class="mcard-sub" id="m-pilot-churn-sub"></div></div>
-      <div class="mcard"><div class="mcard-label">Active pilots</div>       <div class="mcard-value ink"   id="m-active">—</div>         <div class="mcard-sub">In progress</div></div>
-      <div class="mcard"><div class="mcard-label">Concluded pilots</div>    <div class="mcard-value ink"   id="m-concluded">—</div>      <div class="mcard-sub" id="m-concluded-sub"></div></div>
-    </div>
-    <div class="chart-grid">
-      <div class="chart-card">
-        <div class="chart-card-title">Pilot outcome distribution</div>
-        <div class="chart-card-sub">Concluded pilots only · widgets 1 &amp; 2</div>
-        <div class="chart-wrap"><canvas id="pilotDonut" role="img" aria-label="Donut chart showing pilot converted vs exited.">Pilot outcomes.</canvas></div>
-        <div class="legend" id="legend-pilot"></div>
+  <div class="columns">
+
+    <!-- PILOT COLUMN -->
+    <div id="col-pilot">
+      <div class="column-header pilot"><span class="col-dot pilot"></span>Pilot</div>
+
+      <div class="metric-grid-2">
+        <div class="mcard"><div class="mcard-label">Pilot Retention Rate</div><div class="mcard-value teal" id="m-pilot-retention">—</div><div class="mcard-sub" id="m-pilot-retention-sub"></div></div>
+        <div class="mcard"><div class="mcard-label">Pilot Churn Rate</div><div class="mcard-value coral" id="m-pilot-churn">—</div><div class="mcard-sub" id="m-pilot-churn-sub"></div></div>
       </div>
+      <div class="metric-grid-3">
+        <div class="mcard"><div class="mcard-label">Active Pilots</div><div class="mcard-value ink" id="m-active">—</div><div class="mcard-sub">In progress</div></div>
+        <div class="mcard"><div class="mcard-label">Converted Pilots</div><div class="mcard-value teal" id="m-converted-count">—</div><div class="mcard-sub">Concluded</div></div>
+        <div class="mcard"><div class="mcard-label">Pilot Conversion %</div><div class="mcard-value teal" id="m-pilot-conv-pct">—</div><div class="mcard-sub">Of concluded pilots</div></div>
+      </div>
+      <div class="metric-grid-3">
+        <div class="mcard"><div class="mcard-label">Total MRR in Pilot</div><div class="mcard-value ink" id="m-pilot-mrr">—</div><div class="mcard-sub">Active pilots only</div></div>
+        <div class="mcard"><div class="mcard-label">Customers in Pilot</div><div class="mcard-value ink" id="m-pilot-count">—</div><div class="mcard-sub">Active pilots only</div></div>
+        <div class="mcard"><div class="mcard-label">Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-count">—</div><div class="mcard-sub">Exited during pilot</div></div>
+      </div>
+      <div class="metric-grid-2">
+        <div class="mcard"><div class="mcard-label">Total MRR Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-mrr">—</div><div class="mcard-sub">Exited during pilot</div></div>
+      </div>
+
       <div class="chart-card">
-        <div class="chart-card-title">Pilot conversion rate by growth stage</div>
-        <div class="chart-card-sub">Concluded pilots · widget 7</div>
-        <div class="chart-wrap"><canvas id="stageBar" role="img" aria-label="Grouped bar chart of conversion and churn rate by stage.">Stage breakdown.</canvas></div>
-        <div class="legend">
-          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span>Conversion rate</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Churn rate</span>
+        <div class="chart-card-title">Pilot outcomes</div>
+        <div class="chart-card-sub">In progress vs. converted vs. exited during pilot</div>
+        <div class="chart-wrap-sm"><canvas id="pilotOutcomePie" role="img" aria-label="Pie chart of pilot outcomes.">Pilot outcomes.</canvas></div>
+        <div class="legend" id="legend-pilot-outcome"></div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card" style="margin-bottom:0;">
+          <div class="chart-card-title">Customers in pilot by stage</div>
+          <div class="chart-card-sub">Active pilots</div>
+          <div class="chart-wrap-sm"><canvas id="pilotStageBar" role="img" aria-label="Bar chart of active pilots by stage.">Active pilots by stage.</canvas></div>
         </div>
+        <div class="chart-card" style="margin-bottom:0;">
+          <div class="chart-card-title">Exited during pilot by stage</div>
+          <div class="chart-card-sub">Pilot churn breakdown</div>
+          <div class="chart-wrap-sm"><canvas id="exitedStageBar" role="img" aria-label="Bar chart of pilot exits by stage.">Exits by stage.</canvas></div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;"></div>
+
+      <div class="chart-card">
+        <div class="chart-card-title">Pilot churn reasons</div>
+        <div class="chart-card-sub">All companies that exited or churned post-conversion</div>
+        <div class="chart-wrap-sm"><canvas id="churnReasonPie" role="img" aria-label="Pie chart of churn reasons.">Churn reasons.</canvas></div>
+        <div class="legend" id="legend-churn-reason"></div>
+      </div>
+    </div>
+
+    <!-- POST-PILOT COLUMN -->
+    <div id="col-postpilot">
+      <div class="column-header postpilot"><span class="col-dot postpilot"></span>Post-Pilot</div>
+
+      <div class="metric-grid-2">
+        <div class="mcard"><div class="mcard-label">Post-Pilot Retention Rate</div><div class="mcard-value teal" id="m-post-retention">—</div><div class="mcard-sub" id="m-post-retention-sub"></div></div>
+        <div class="mcard"><div class="mcard-label">Post-Pilot Churn Rate</div><div class="mcard-value coral" id="m-post-churn">—</div><div class="mcard-sub" id="m-post-churn-sub"></div></div>
+      </div>
+      <div class="metric-grid-2">
+        <div class="mcard"><div class="mcard-label">Post-Pilot GRR</div><div class="mcard-value blue" id="m-grr">—</div><div class="mcard-sub">Gross revenue retention</div></div>
+        <div class="mcard"><div class="mcard-label">Post-Pilot NRR</div><div class="mcard-value blue" id="m-nrr">—</div><div class="mcard-sub">Net revenue retention</div></div>
+      </div>
+      <div class="metric-grid-3">
+        <div class="mcard"><div class="mcard-label">Total MRR Converted</div><div class="mcard-value teal" id="m-converted-mrr">—</div><div class="mcard-sub">Active converted customers</div></div>
+        <div class="mcard"><div class="mcard-label">Customers Converted</div><div class="mcard-value teal" id="m-post-converted-count">—</div><div class="mcard-sub">Active post-pilot</div></div>
+        <div class="mcard"><div class="mcard-label">Churned After Pilot</div><div class="mcard-value coral" id="m-post-churned-count">—</div><div class="mcard-sub">Post-conversion churn</div></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-title">MRR breakdown by stage</div>
+        <div class="chart-card-sub">Post-pilot converted customers only</div>
+        <div class="chart-wrap-md"><canvas id="postMRRPie" role="img" aria-label="Pie chart of post-pilot MRR by stage.">MRR by stage.</canvas></div>
+        <div class="legend" id="legend-post-mrr"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-title">Customers converted by stage</div>
+        <div class="chart-card-sub">Converted + Churned Post Conversion</div>
+        <div class="chart-wrap-md"><canvas id="convertedStageBar" role="img" aria-label="Bar chart of converted customers by stage.">Converted by stage.</canvas></div>
       </div>
     </div>
   </div>
 
-  <div class="section">
-    <div class="section-header">
-      <span class="section-title">Post-pilot retention</span>
-      <span class="section-note">Converted + Churned Post Conversion cohort</span>
-    </div>
-    <div class="metric-grid">
-      <div class="mcard"><div class="mcard-label">Post-pilot churn rate</div>     <div class="mcard-value coral" id="m-post-churn">—</div>     <div class="mcard-sub" id="m-post-churn-sub"></div></div>
-      <div class="mcard"><div class="mcard-label">Post-pilot retention rate</div> <div class="mcard-value teal"  id="m-post-retention">—</div> <div class="mcard-sub" id="m-post-retention-sub"></div></div>
-      <div class="mcard"><div class="mcard-label">NRR</div>                        <div class="mcard-value blue"  id="m-nrr">—</div>            <div class="mcard-sub">Net revenue retention · widget 3</div></div>
-      <div class="mcard"><div class="mcard-label">GRR</div>                        <div class="mcard-value blue"  id="m-grr">—</div>            <div class="mcard-sub">Gross revenue retention · widget 4</div></div>
-    </div>
-    <div class="chart-grid">
-      <div class="chart-card">
-        <div class="chart-card-title">Post-pilot customer status</div>
-        <div class="chart-card-sub">Widgets 5 &amp; 6</div>
-        <div class="chart-wrap"><canvas id="postDonut" role="img" aria-label="Donut chart of post-pilot retention vs churn.">Post-pilot status.</canvas></div>
-        <div class="legend" id="legend-post"></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-card-title">MRR breakdown</div>
-        <div class="chart-card-sub">Starting MRR = current mrr proxy · widgets 3 &amp; 4</div>
-        <div class="chart-wrap"><canvas id="mrrBar" role="img" aria-label="Horizontal bar chart of MRR components.">MRR breakdown.</canvas></div>
-        <div class="legend">
-          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span>Starting MRR</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#378ADD;"></span>Expansion</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Churned MRR</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-header">
-      <span class="section-title">Customer roster</span>
-      <span class="section-note" id="note-roster"></span>
+  <!-- ROSTER TABLE -->
+  <div class="roster-section">
+    <div class="roster-header">
+      <span class="roster-title">Customer roster</span>
+      <span class="roster-note" id="note-roster"></span>
     </div>
     <div class="table-card">
       <div class="table-wrap">
@@ -255,10 +251,11 @@
             <tr>
               <th>Company</th>
               <th>Pilot status</th>
-              <th>Growth stage</th>
+              <th>Stage</th>
               <th>MRR</th>
               <th>Expansion MRR</th>
               <th>Churned MRR</th>
+              <th>Churn reason</th>
             </tr>
           </thead>
           <tbody id="roster-body"></tbody>
@@ -271,6 +268,10 @@
 <footer id="footer-date"></footer>
 
 <script>
+const STAGE_COLORS = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780'];
+const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30','#BA7517'];
+const REASON_COLORS = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
+
 let allCompanies = [];
 let charts = {};
 
@@ -278,42 +279,32 @@ function setStatus(msg, type) {
   const el = document.getElementById('status-bar');
   if (!type) { el.style.display = 'none'; return; }
   el.className = type;
-  el.innerHTML = type === 'loading'
-    ? `<div class="spinner"></div><span>${msg}</span>`
-    : `<span>${msg}</span>`;
+  el.innerHTML = type === 'loading' ? `<div class="spinner"></div><span>${msg}</span>` : `<span>${msg}</span>`;
 }
 
 async function loadData() {
   const btn = document.getElementById('refresh-btn');
   btn.disabled = true;
   setStatus('Loading live data from HubSpot...', 'loading');
-
   try {
     const res = await fetch('/api/hubspot', { method: 'POST' });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Server returned ${res.status}`);
-    }
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error || `Server returned ${res.status}`); }
     const data = await res.json();
-
     allCompanies = (data.results || []).map(r => ({
       id: r.id,
       name: r.properties.name || r.properties.domain || r.id,
       pilot_status: r.properties.pilot_status,
-      stage: r.properties.stage,
+      stage: r.properties.stage || 'Unknown',
       mrr: parseFloat(r.properties.mrr) || 0,
       expansion_mrr: parseFloat(r.properties.expansion_mrr) || 0,
       churned_mrr: parseFloat(r.properties.churned_mrr_value) || 0,
+      churn_reason: r.properties.churn_reason || null,
       domain: r.properties.domain
     }));
-
     setStatus('');
     const now = new Date();
-    document.getElementById('last-updated').textContent =
-      'Refreshed ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('footer-date').textContent =
-      'Virio CS Dashboard · HubSpot (virio.ai) · ' +
-      now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    document.getElementById('last-updated').textContent = 'Refreshed ' + now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('footer-date').textContent = 'Virio CS Dashboard · HubSpot (virio.ai) · ' + now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
   } catch(e) {
     setStatus('Failed to load: ' + e.message, 'error');
@@ -321,6 +312,9 @@ async function loadData() {
     btn.disabled = false;
   }
 }
+
+function fmt$(n) { return n >= 1000 ? '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k' : '$' + Math.round(n); }
+function set(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
 
 function recompute() {
   if (!allCompanies.length) return;
@@ -331,121 +325,124 @@ function recompute() {
   const converted   = cos.filter(c => c.pilot_status === 'Converted');
   const exited      = cos.filter(c => c.pilot_status === 'Exited During Pilot');
   const churnedPost = cos.filter(c => c.pilot_status === 'Churned Post Conversion');
+  const pilotConv   = [...converted, ...churnedPost];
+  const concluded   = [...pilotConv, ...exited];
+  const everConv    = [...converted, ...churnedPost];
 
-  const pilotConverted = [...converted, ...churnedPost];
-  const concluded      = [...pilotConverted, ...exited];
-  const pilotRetention = concluded.length ? pilotConverted.length / concluded.length * 100 : 0;
+  // Pilot metrics
+  const pilotRetention = concluded.length ? pilotConv.length / concluded.length * 100 : 0;
   const pilotChurn     = 100 - pilotRetention;
+  const pilotConvPct   = concluded.length ? pilotConv.length / concluded.length * 100 : 0;
+  const pilotMRR       = inProgress.reduce((s,c) => s+c.mrr, 0);
+  const pilotChurnedMRR = exited.reduce((s,c) => s+c.churned_mrr, 0);
 
-  const everConverted = [...converted, ...churnedPost];
-  const startingMRR   = everConverted.reduce((s,c) => s + c.mrr, 0);
-  const expansionMRR  = everConverted.reduce((s,c) => s + c.expansion_mrr, 0);
-  const churnedMRR    = churnedPost.reduce((s,c) => s + c.churned_mrr, 0);
+  // Post-pilot metrics
+  const startingMRR  = everConv.reduce((s,c) => s+c.mrr, 0);
+  const expansionMRR = everConv.reduce((s,c) => s+c.expansion_mrr, 0);
+  const churnedMRR   = churnedPost.reduce((s,c) => s+c.churned_mrr, 0);
   const nrr = startingMRR ? (startingMRR + expansionMRR - churnedMRR) / startingMRR * 100 : 0;
   const grr = startingMRR ? (startingMRR - churnedMRR) / startingMRR * 100 : 0;
-
-  const postChurnRate     = everConverted.length ? churnedPost.length / everConverted.length * 100 : 0;
+  const postChurnRate     = everConv.length ? churnedPost.length / everConv.length * 100 : 0;
   const postRetentionRate = 100 - postChurnRate;
+  const convertedMRR = converted.reduce((s,c) => s+c.mrr, 0);
 
-  const stages      = ['Early (pre series A)', 'Post Series A', 'Growth'];
-  const stageLabels = ['Pre-Series A', 'Post Series A', 'Growth'];
-  const stageConv   = [], stageChurn = [];
-  for (const st of stages) {
-    const sc = pilotConverted.filter(c => c.stage === st);
-    const se = exited.filter(c => c.stage === st);
-    const tot = sc.length + se.length;
-    stageConv.push(tot ? +(sc.length / tot * 100).toFixed(1) : 0);
-    stageChurn.push(tot ? +(se.length / tot * 100).toFixed(1) : 0);
-  }
+  // SET METRICS
+  set('m-pilot-retention',       pilotRetention.toFixed(1) + '%');
+  set('m-pilot-retention-sub',   `${pilotConv.length} converted of ${concluded.length} concluded`);
+  set('m-pilot-churn',           pilotChurn.toFixed(1) + '%');
+  set('m-pilot-churn-sub',       `${exited.length} exited of ${concluded.length} concluded`);
+  set('m-active',                inProgress.length);
+  set('m-converted-count',       pilotConv.length);
+  set('m-pilot-conv-pct',        pilotConvPct.toFixed(1) + '%');
+  set('m-pilot-mrr',             fmt$(pilotMRR));
+  set('m-pilot-count',           inProgress.length);
+  set('m-pilot-churned-count',   exited.length);
+  set('m-pilot-churned-mrr',     fmt$(pilotChurnedMRR));
 
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('m-post-retention',        postRetentionRate.toFixed(1) + '%');
+  set('m-post-retention-sub',    `${converted.length} of ${everConv.length} retained`);
+  set('m-post-churn',            postChurnRate.toFixed(1) + '%');
+  set('m-post-churn-sub',        `${churnedPost.length} of ${everConv.length} ever-converted`);
+  set('m-grr',                   grr.toFixed(1) + '%');
+  set('m-nrr',                   nrr.toFixed(1) + '%');
+  set('m-converted-mrr',         fmt$(convertedMRR));
+  set('m-post-converted-count',  converted.length);
+  set('m-post-churned-count',    churnedPost.length);
+  set('note-roster',             `${cos.length} companies`);
 
-  set('m-pilot-retention',     pilotRetention.toFixed(1) + '%');
-  set('m-pilot-retention-sub', `${pilotConverted.length} converted of ${concluded.length} concluded`);
-  set('m-pilot-churn',         pilotChurn.toFixed(1) + '%');
-  set('m-pilot-churn-sub',     `${exited.length} exited of ${concluded.length} concluded`);
-  set('m-active',              inProgress.length);
-  set('m-concluded',           concluded.length);
-  set('m-concluded-sub',       `${pilotConverted.length} converted · ${exited.length} exited`);
-  set('note-pilot',            `${concluded.length} concluded · ${inProgress.length} active`);
-  set('m-post-churn',          postChurnRate.toFixed(1) + '%');
-  set('m-post-churn-sub',      `${churnedPost.length} of ${everConverted.length} ever-converted`);
-  set('m-post-retention',      postRetentionRate.toFixed(1) + '%');
-  set('m-post-retention-sub',  `${converted.length} of ${everConverted.length} retained`);
-  set('m-nrr',                 nrr.toFixed(1) + '%');
-  set('m-grr',                 grr.toFixed(1) + '%');
-  set('note-roster',           `${cos.length} companies`);
+  // STAGE DATA
+  const allStages = [...new Set(cos.map(c => c.stage).filter(Boolean))].sort();
 
-  renderDonut('pilotDonut',
-    [pilotConverted.length, exited.length],
-    ['Converted (incl. post-conv)', 'Exited during pilot'],
-    ['#1D9E75', '#D85A30'], 'legend-pilot',
-    [pilotRetention.toFixed(1)+'%', pilotChurn.toFixed(1)+'%']);
+  // Pilot outcome pie
+  renderPie('pilotOutcomePie', [inProgress.length, pilotConv.length, exited.length],
+    ['In progress', 'Converted', 'Exited during pilot'],
+    [OUTCOME_COLORS[0], OUTCOME_COLORS[1], OUTCOME_COLORS[2]], 'legend-pilot-outcome');
 
-  renderDonut('postDonut',
-    [converted.length, churnedPost.length],
-    ['Active converted', 'Churned post-conversion'],
-    ['#1D9E75', '#D85A30'], 'legend-post',
-    [postRetentionRate.toFixed(1)+'%', postChurnRate.toFixed(1)+'%']);
+  // Active pilots by stage bar
+  renderBar('pilotStageBar', allStages,
+    allStages.map(st => inProgress.filter(c => c.stage === st).length),
+    '#378ADD', false);
 
-  renderGroupedBar('stageBar', stageLabels, [
-    { label: 'Conversion rate', data: stageConv,  color: '#1D9E75' },
-    { label: 'Churn rate',      data: stageChurn, color: '#D85A30' }
-  ]);
+  // Exited by stage bar
+  renderBar('exitedStageBar', allStages,
+    allStages.map(st => exited.filter(c => c.stage === st).length),
+    '#D85A30', false);
 
-  renderMRRBar('mrrBar', startingMRR, expansionMRR, churnedMRR);
+  // Churn reason pie — all churned companies (pilot exits + post-conv)
+  const allChurned = [...exited, ...churnedPost].filter(c => c.churn_reason);
+  const reasonCounts = {};
+  allChurned.forEach(c => { reasonCounts[c.churn_reason] = (reasonCounts[c.churn_reason] || 0) + 1; });
+  const reasonLabels = Object.keys(reasonCounts);
+  const reasonData   = reasonLabels.map(r => reasonCounts[r]);
+  renderPie('churnReasonPie', reasonData, reasonLabels, REASON_COLORS.slice(0, reasonLabels.length), 'legend-churn-reason');
+
+  // Post-pilot MRR by stage pie
+  const stageMRR = {};
+  everConv.forEach(c => { if (c.stage) stageMRR[c.stage] = (stageMRR[c.stage] || 0) + c.mrr; });
+  const stageMRRLabels = Object.keys(stageMRR);
+  const stageMRRData   = stageMRRLabels.map(s => stageMRR[s]);
+  renderPie('postMRRPie', stageMRRData, stageMRRLabels, STAGE_COLORS.slice(0, stageMRRLabels.length), 'legend-post-mrr',
+    stageMRRData.map(v => fmt$(v)));
+
+  // Converted by stage bar
+  renderBar('convertedStageBar', allStages,
+    allStages.map(st => everConv.filter(c => c.stage === st).length),
+    '#1D9E75', false);
+
   renderTable(cos);
 }
 
-function renderDonut(id, data, labels, colors, legendId, pcts) {
+function renderPie(id, data, labels, colors, legendId, valueLabels) {
   if (charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
-    type: 'doughnut',
+    type: 'pie',
     data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
     options: {
-      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${pcts[ctx.dataIndex]})` } }
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}${valueLabels ? ' ('+valueLabels[ctx.dataIndex]+')' : ''}` } }
       }
     }
   });
   const el = document.getElementById(legendId);
   if (el) el.innerHTML = labels.map((l,i) =>
-    `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]};"></span>${l}: ${data[i]} (${pcts[i]})</span>`
+    `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]};"></span>${l}: ${data[i]}${valueLabels ? ' ('+valueLabels[i]+')' : ''}</span>`
   ).join('');
 }
 
-function renderGroupedBar(id, labels, datasets) {
+function renderBar(id, labels, data, color, horizontal) {
   if (charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
     type: 'bar',
-    data: { labels, datasets: datasets.map(d => ({ label: d.label, data: d.data, backgroundColor: d.color, borderRadius: 3 })) },
+    data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 3 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
+      indexAxis: horizontal ? 'y' : 'x',
       plugins: { legend: { display: false } },
       scales: {
-        y: { min: 0, max: 110, ticks: { callback: v => v+'%', font: { size: 11 } }, grid: { color: 'rgba(26,25,22,0.06)' } },
-        x: { ticks: { autoSkip: false, font: { size: 11 } }, grid: { display: false } }
-      }
-    }
-  });
-}
-
-function renderMRRBar(id, starting, expansion, churned) {
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: ['Starting MRR', 'Expansion', 'Churned MRR'],
-      datasets: [{ data: [starting, expansion, churned], backgroundColor: ['#1D9E75','#378ADD','#D85A30'], borderRadius: 4 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' $' + Math.round(ctx.raw).toLocaleString() } } },
-      scales: {
-        x: { ticks: { callback: v => '$' + Math.round(v/1000)+'k', font: { size: 10 } }, grid: { color: 'rgba(26,25,22,0.06)' } },
-        y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        x: { ticks: { font: { size: 10 }, autoSkip: false, maxRotation: 35 }, grid: { display: false } },
+        y: { ticks: { font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(26,25,22,0.06)' } }
       }
     }
   });
@@ -454,17 +451,17 @@ function renderMRRBar(id, starting, expansion, churned) {
 function renderTable(cos) {
   const order = { 'In progress':0, 'Converted':1, 'Exited During Pilot':2, 'Churned Post Conversion':3 };
   const badgeClass = { 'In progress':'badge-blue', 'Converted':'badge-teal', 'Exited During Pilot':'badge-coral', 'Churned Post Conversion':'badge-amber' };
-  const stageShort = { 'Early (pre series A)':'Pre-Series A', 'Post Series A':'Post Series A', 'Growth':'Growth' };
-  const fmt = n => n ? '$' + Math.round(n).toLocaleString() : '—';
+  const fmt = n => n ? fmt$(n) : '—';
   document.getElementById('roster-body').innerHTML = [...cos]
     .sort((a,b) => (order[a.pilot_status]??9) - (order[b.pilot_status]??9))
     .map(c => `<tr>
       <td>${c.name}</td>
       <td><span class="badge ${badgeClass[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
-      <td>${stageShort[c.stage] || c.stage || '—'}</td>
+      <td>${c.stage || '—'}</td>
       <td>${fmt(c.mrr)}</td>
       <td>${fmt(c.expansion_mrr)}</td>
       <td>${fmt(c.churned_mrr)}</td>
+      <td>${c.churn_reason || '—'}</td>
     </tr>`).join('');
 }
 
