@@ -10,37 +10,20 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #F5F3EE;
-  --surface: #FFFFFF;
-  --surface2: #EFEDE8;
-  --ink: #1A1916;
-  --ink2: #5C5A55;
-  --ink3: #9B9890;
-  --teal: #0F6E56;
-  --teal-light: #E1F5EE;
-  --teal-mid: #1D9E75;
-  --coral: #993C1D;
-  --coral-light: #FAECE7;
-  --coral-mid: #D85A30;
-  --blue: #185FA5;
-  --blue-light: #E6F1FB;
-  --blue-mid: #378ADD;
-  --amber: #854F0B;
-  --amber-light: #FAEEDA;
-  --border: rgba(26,25,22,0.10);
-  --border-strong: rgba(26,25,22,0.18);
+  --bg: #F5F3EE; --surface: #FFFFFF; --surface2: #EFEDE8;
+  --ink: #1A1916; --ink2: #5C5A55; --ink3: #9B9890;
+  --teal: #0F6E56; --teal-light: #E1F5EE; --teal-mid: #1D9E75;
+  --coral: #993C1D; --coral-light: #FAECE7; --coral-mid: #D85A30;
+  --blue: #185FA5; --blue-light: #E6F1FB; --blue-mid: #378ADD;
+  --amber: #854F0B; --amber-light: #FAEEDA;
+  --border: rgba(26,25,22,0.10); --border-strong: rgba(26,25,22,0.18);
   --shadow: 0 1px 3px rgba(26,25,22,0.06), 0 4px 12px rgba(26,25,22,0.04);
-  --header-bg: #1A1916;
-  --header-ink: #F5F3EE;
-  --radius: 10px;
-  --radius-sm: 6px;
+  --header-bg: #1A1916; --header-ink: #F5F3EE;
+  --radius: 10px; --radius-sm: 6px;
 }
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; font-size: 14px; line-height: 1.6; }
 
-header {
-  background: var(--header-bg); color: var(--header-ink);
-  padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-}
+header { background: var(--header-bg); color: var(--header-ink); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .header-left { display: flex; align-items: baseline; gap: 14px; }
 .logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
 .header-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 400; color: rgba(245,243,238,0.45); letter-spacing: 0.07em; text-transform: uppercase; }
@@ -53,56 +36,62 @@ header {
 .exclude-toggle input { cursor: pointer; accent-color: var(--teal-mid); }
 
 main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
-
 #status-bar { padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 20px; display: none; align-items: center; gap: 8px; }
 #status-bar.loading { display: flex; background: var(--blue-light); color: var(--blue); }
 #status-bar.error   { display: flex; background: var(--coral-light); color: var(--coral); }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* TWO COLUMN LAYOUT */
+/* ── FLOATING TOOLTIP ── */
+#tip {
+  position: fixed; z-index: 9999; pointer-events: none;
+  background: #1A1916; color: #F5F3EE;
+  border-radius: 8px; padding: 10px 13px;
+  font-size: 12px; line-height: 1.65;
+  max-width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  opacity: 0; transition: opacity 0.1s ease;
+}
+#tip.visible { opacity: 1; }
+#tip .tip-title { font-weight: 500; margin-bottom: 5px; color: rgba(245,243,238,0.5); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+#tip .tip-row { display: flex; justify-content: space-between; gap: 20px; }
+#tip .tip-name { color: #F5F3EE; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+#tip .tip-val  { color: rgba(245,243,238,0.5); white-space: nowrap; flex-shrink: 0; }
+#tip .tip-divider { border-top: 1px solid rgba(245,243,238,0.12); margin: 5px 0; }
+
+/* ── LAYOUT ── */
 .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
 @media (max-width: 1100px) { .columns { grid-template-columns: 1fr; } }
-
-.column-header {
-  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase; padding: 8px 14px; border-radius: var(--radius-sm);
-  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
-}
-.column-header.pilot { background: var(--amber-light); color: var(--amber); }
-.column-header.postpilot { background: var(--teal-light); color: var(--teal); }
+.column-header { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.column-header.pilot    { background: var(--amber-light); color: var(--amber); }
+.column-header.postpilot { background: var(--teal-light);  color: var(--teal); }
 .col-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.col-dot.pilot { background: var(--amber); }
+.col-dot.pilot    { background: var(--amber); }
 .col-dot.postpilot { background: var(--teal); }
 
-/* METRIC CARDS */
 .metric-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
 .metric-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
-.mcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+
+.mcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); cursor: default; transition: border-color 0.15s, box-shadow 0.15s; }
+.mcard:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px rgba(26,25,22,0.10); }
 .mcard-label { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 4px; }
 .mcard-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
 .mcard-value.teal  { color: var(--teal); }
 .mcard-value.coral { color: var(--coral-mid); }
 .mcard-value.blue  { color: var(--blue); }
-.mcard-value.amber { color: var(--amber); }
 .mcard-value.ink   { color: var(--ink); }
 .mcard-sub { font-size: 10px; color: var(--ink3); margin-top: 3px; }
 
-/* CHART CARDS */
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 12px; }
-.chart-card-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; margin-bottom: 2px; color: var(--ink); }
+.chart-card-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; margin-bottom: 2px; }
 .chart-card-sub   { font-size: 10px; color: var(--ink3); margin-bottom: 12px; }
 .chart-wrap-sm { position: relative; width: 100%; height: 180px; }
 .chart-wrap-md { position: relative; width: 100%; height: 200px; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink2); }
 .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
-/* CHARTS SIDE BY SIDE */
-.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-
-/* ROSTER TABLE */
 .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -124,7 +113,6 @@ tbody td:first-child { font-weight: 500; }
 .roster-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
 .roster-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); }
 .roster-note { font-size: 11px; color: var(--ink3); }
-
 footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: var(--ink3); }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -133,6 +121,8 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
 </style>
 </head>
 <body>
+
+<div id="tip"><div class="tip-title" id="tip-title"></div><div id="tip-body"></div></div>
 
 <header>
   <div class="header-left">
@@ -153,27 +143,25 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
   <div id="status-bar"></div>
 
   <div class="columns">
-
-    <!-- PILOT COLUMN -->
-    <div id="col-pilot">
+    <div>
       <div class="column-header pilot"><span class="col-dot pilot"></span>Pilot</div>
 
       <div class="metric-grid-2">
-        <div class="mcard"><div class="mcard-label">Pilot Retention Rate</div><div class="mcard-value teal" id="m-pilot-retention">—</div><div class="mcard-sub" id="m-pilot-retention-sub"></div></div>
-        <div class="mcard"><div class="mcard-label">Pilot Churn Rate</div><div class="mcard-value coral" id="m-pilot-churn">—</div><div class="mcard-sub" id="m-pilot-churn-sub"></div></div>
+        <div class="mcard" id="mc-pilot-retention"><div class="mcard-label">Pilot Retention Rate</div><div class="mcard-value teal" id="m-pilot-retention">—</div><div class="mcard-sub" id="m-pilot-retention-sub"></div></div>
+        <div class="mcard" id="mc-pilot-churn"><div class="mcard-label">Pilot Churn Rate</div><div class="mcard-value coral" id="m-pilot-churn">—</div><div class="mcard-sub" id="m-pilot-churn-sub"></div></div>
       </div>
       <div class="metric-grid-3">
-        <div class="mcard"><div class="mcard-label">Active Pilots</div><div class="mcard-value ink" id="m-active">—</div><div class="mcard-sub">In progress</div></div>
-        <div class="mcard"><div class="mcard-label">Converted Pilots</div><div class="mcard-value teal" id="m-converted-count">—</div><div class="mcard-sub">Concluded</div></div>
-        <div class="mcard"><div class="mcard-label">Pilot Conversion %</div><div class="mcard-value teal" id="m-pilot-conv-pct">—</div><div class="mcard-sub">Of concluded pilots</div></div>
+        <div class="mcard" id="mc-active"><div class="mcard-label">Active Pilots</div><div class="mcard-value ink" id="m-active">—</div><div class="mcard-sub">In progress</div></div>
+        <div class="mcard" id="mc-converted-count"><div class="mcard-label">Converted Pilots</div><div class="mcard-value teal" id="m-converted-count">—</div><div class="mcard-sub">Concluded</div></div>
+        <div class="mcard" id="mc-pilot-conv-pct"><div class="mcard-label">Pilot Conversion %</div><div class="mcard-value teal" id="m-pilot-conv-pct">—</div><div class="mcard-sub">Of concluded pilots</div></div>
       </div>
       <div class="metric-grid-3">
-        <div class="mcard"><div class="mcard-label">Total MRR in Pilot</div><div class="mcard-value ink" id="m-pilot-mrr">—</div><div class="mcard-sub">Active pilots only</div></div>
-        <div class="mcard"><div class="mcard-label">Customers in Pilot</div><div class="mcard-value ink" id="m-pilot-count">—</div><div class="mcard-sub">Active pilots only</div></div>
-        <div class="mcard"><div class="mcard-label">Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-count">—</div><div class="mcard-sub">Exited during pilot</div></div>
+        <div class="mcard" id="mc-pilot-mrr"><div class="mcard-label">Total MRR in Pilot</div><div class="mcard-value ink" id="m-pilot-mrr">—</div><div class="mcard-sub">Active pilots only</div></div>
+        <div class="mcard" id="mc-pilot-count"><div class="mcard-label">Customers in Pilot</div><div class="mcard-value ink" id="m-pilot-count">—</div><div class="mcard-sub">Active pilots only</div></div>
+        <div class="mcard" id="mc-pilot-churned-count"><div class="mcard-label">Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-count">—</div><div class="mcard-sub">Exited during pilot</div></div>
       </div>
       <div class="metric-grid-2">
-        <div class="mcard"><div class="mcard-label">Total MRR Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-mrr">—</div><div class="mcard-sub">Exited during pilot</div></div>
+        <div class="mcard" id="mc-pilot-churned-mrr"><div class="mcard-label">Total MRR Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-mrr">—</div><div class="mcard-sub">Exited during pilot</div></div>
       </div>
 
       <div class="chart-card">
@@ -187,12 +175,12 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
         <div class="chart-card" style="margin-bottom:0;">
           <div class="chart-card-title">Customers in pilot by stage</div>
           <div class="chart-card-sub">Active pilots</div>
-          <div class="chart-wrap-sm"><canvas id="pilotStageBar" role="img" aria-label="Bar chart of active pilots by stage.">Active pilots by stage.</canvas></div>
+          <div class="chart-wrap-sm"><canvas id="pilotStageBar" role="img" aria-label="Active pilots by stage.">Active pilots by stage.</canvas></div>
         </div>
         <div class="chart-card" style="margin-bottom:0;">
           <div class="chart-card-title">Exited during pilot by stage</div>
           <div class="chart-card-sub">Pilot churn breakdown</div>
-          <div class="chart-wrap-sm"><canvas id="exitedStageBar" role="img" aria-label="Bar chart of pilot exits by stage.">Exits by stage.</canvas></div>
+          <div class="chart-wrap-sm"><canvas id="exitedStageBar" role="img" aria-label="Exits by stage.">Exits by stage.</canvas></div>
         </div>
       </div>
       <div style="margin-bottom:12px;"></div>
@@ -200,45 +188,43 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
       <div class="chart-card">
         <div class="chart-card-title">Pilot churn reasons</div>
         <div class="chart-card-sub">All companies that exited or churned post-conversion</div>
-        <div class="chart-wrap-sm"><canvas id="churnReasonPie" role="img" aria-label="Pie chart of churn reasons.">Churn reasons.</canvas></div>
+        <div class="chart-wrap-sm"><canvas id="churnReasonPie" role="img" aria-label="Churn reasons.">Churn reasons.</canvas></div>
         <div class="legend" id="legend-churn-reason"></div>
       </div>
     </div>
 
-    <!-- POST-PILOT COLUMN -->
-    <div id="col-postpilot">
+    <div>
       <div class="column-header postpilot"><span class="col-dot postpilot"></span>Post-Pilot</div>
 
       <div class="metric-grid-2">
-        <div class="mcard"><div class="mcard-label">Post-Pilot Retention Rate</div><div class="mcard-value teal" id="m-post-retention">—</div><div class="mcard-sub" id="m-post-retention-sub"></div></div>
-        <div class="mcard"><div class="mcard-label">Post-Pilot Churn Rate</div><div class="mcard-value coral" id="m-post-churn">—</div><div class="mcard-sub" id="m-post-churn-sub"></div></div>
+        <div class="mcard" id="mc-post-retention"><div class="mcard-label">Post-Pilot Retention Rate</div><div class="mcard-value teal" id="m-post-retention">—</div><div class="mcard-sub" id="m-post-retention-sub"></div></div>
+        <div class="mcard" id="mc-post-churn"><div class="mcard-label">Post-Pilot Churn Rate</div><div class="mcard-value coral" id="m-post-churn">—</div><div class="mcard-sub" id="m-post-churn-sub"></div></div>
       </div>
       <div class="metric-grid-2">
-        <div class="mcard"><div class="mcard-label">Post-Pilot GRR</div><div class="mcard-value blue" id="m-grr">—</div><div class="mcard-sub">Gross revenue retention</div></div>
-        <div class="mcard"><div class="mcard-label">Post-Pilot NRR</div><div class="mcard-value blue" id="m-nrr">—</div><div class="mcard-sub">Net revenue retention</div></div>
+        <div class="mcard" id="mc-grr"><div class="mcard-label">Post-Pilot GRR</div><div class="mcard-value blue" id="m-grr">—</div><div class="mcard-sub">Gross revenue retention</div></div>
+        <div class="mcard" id="mc-nrr"><div class="mcard-label">Post-Pilot NRR</div><div class="mcard-value blue" id="m-nrr">—</div><div class="mcard-sub">Net revenue retention</div></div>
       </div>
       <div class="metric-grid-3">
-        <div class="mcard"><div class="mcard-label">Total MRR Converted</div><div class="mcard-value teal" id="m-converted-mrr">—</div><div class="mcard-sub">Active converted customers</div></div>
-        <div class="mcard"><div class="mcard-label">Customers Converted</div><div class="mcard-value teal" id="m-post-converted-count">—</div><div class="mcard-sub">Active post-pilot</div></div>
-        <div class="mcard"><div class="mcard-label">Churned After Pilot</div><div class="mcard-value coral" id="m-post-churned-count">—</div><div class="mcard-sub">Post-conversion churn</div></div>
+        <div class="mcard" id="mc-converted-mrr"><div class="mcard-label">Total MRR Converted</div><div class="mcard-value teal" id="m-converted-mrr">—</div><div class="mcard-sub">Active converted</div></div>
+        <div class="mcard" id="mc-post-converted-count"><div class="mcard-label">Customers Converted</div><div class="mcard-value teal" id="m-post-converted-count">—</div><div class="mcard-sub">Active post-pilot</div></div>
+        <div class="mcard" id="mc-post-churned-count"><div class="mcard-label">Churned After Pilot</div><div class="mcard-value coral" id="m-post-churned-count">—</div><div class="mcard-sub">Post-conversion churn</div></div>
       </div>
 
       <div class="chart-card">
         <div class="chart-card-title">MRR breakdown by stage</div>
         <div class="chart-card-sub">Post-pilot converted customers only</div>
-        <div class="chart-wrap-md"><canvas id="postMRRPie" role="img" aria-label="Pie chart of post-pilot MRR by stage.">MRR by stage.</canvas></div>
+        <div class="chart-wrap-md"><canvas id="postMRRPie" role="img" aria-label="MRR by stage.">MRR by stage.</canvas></div>
         <div class="legend" id="legend-post-mrr"></div>
       </div>
 
       <div class="chart-card">
         <div class="chart-card-title">Customers converted by stage</div>
         <div class="chart-card-sub">Converted + Churned Post Conversion</div>
-        <div class="chart-wrap-md"><canvas id="convertedStageBar" role="img" aria-label="Bar chart of converted customers by stage.">Converted by stage.</canvas></div>
+        <div class="chart-wrap-md"><canvas id="convertedStageBar" role="img" aria-label="Converted by stage.">Converted by stage.</canvas></div>
       </div>
     </div>
   </div>
 
-  <!-- ROSTER TABLE -->
   <div class="roster-section">
     <div class="roster-header">
       <span class="roster-title">Customer roster</span>
@@ -247,41 +233,64 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>Company</th>
-              <th>Pilot status</th>
-              <th>Stage</th>
-              <th>MRR</th>
-              <th>Expansion MRR</th>
-              <th>Churned MRR</th>
-              <th>Churn reason</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Company</th><th>Pilot status</th><th>Stage</th><th>MRR</th><th>Expansion MRR</th><th>Churned MRR</th><th>Churn reason</th></tr></thead>
           <tbody id="roster-body"></tbody>
         </table>
       </div>
     </div>
   </div>
 </main>
-
 <footer id="footer-date"></footer>
 
 <script>
-const STAGE_COLORS = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780'];
-const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30','#BA7517'];
-const REASON_COLORS = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
+const STAGE_COLORS  = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780'];
+const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
+const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 
 let allCompanies = [];
 let charts = {};
 
+// ── FLOATING TOOLTIP ENGINE ─────────────────────────────────────
+const tipEl    = document.getElementById('tip');
+const tipTitle = document.getElementById('tip-title');
+const tipBody  = document.getElementById('tip-body');
+
+function showTip(e, title, rows) {
+  tipTitle.textContent = title;
+  tipBody.innerHTML = rows.map(r => {
+    if (r === '---') return '<div class="tip-divider"></div>';
+    if (typeof r === 'string') return `<div class="tip-row"><span class="tip-name">${r}</span></div>`;
+    return `<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-val">${r.val || ''}</span></div>`;
+  }).join('');
+  tipEl.classList.add('visible');
+  posTip(e);
+}
+function posTip(e) {
+  const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  tipEl.style.left = (e.clientX + pad + w > window.innerWidth  ? e.clientX - w - pad : e.clientX + pad) + 'px';
+  tipEl.style.top  = (e.clientY + pad + h > window.innerHeight ? e.clientY - h - pad : e.clientY + pad) + 'px';
+}
+function hideTip() { tipEl.classList.remove('visible'); }
+
+function bindCard(id, getRows) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('mouseenter', e => { const r = getRows(); if (r) showTip(e, r.title, r.rows); });
+  el.addEventListener('mousemove',  posTip);
+  el.addEventListener('mouseleave', hideTip);
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────
 function setStatus(msg, type) {
   const el = document.getElementById('status-bar');
   if (!type) { el.style.display = 'none'; return; }
   el.className = type;
   el.innerHTML = type === 'loading' ? `<div class="spinner"></div><span>${msg}</span>` : `<span>${msg}</span>`;
 }
+function fmt$(n) { return n >= 1000 ? '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k' : '$' + Math.round(n); }
+function set(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
 
+// ── DATA FETCH ──────────────────────────────────────────────────
 async function loadData() {
   const btn = document.getElementById('refresh-btn');
   btn.disabled = true;
@@ -291,7 +300,6 @@ async function loadData() {
     if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error || `Server returned ${res.status}`); }
     const data = await res.json();
     allCompanies = (data.results || []).map(r => ({
-      id: r.id,
       name: r.properties.name || r.properties.domain || r.id,
       pilot_status: r.properties.pilot_status,
       stage: r.properties.stage || 'Unknown',
@@ -308,14 +316,10 @@ async function loadData() {
     recompute();
   } catch(e) {
     setStatus('Failed to load: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false;
-  }
+  } finally { btn.disabled = false; }
 }
 
-function fmt$(n) { return n >= 1000 ? '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k' : '$' + Math.round(n); }
-function set(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
-
+// ── MAIN COMPUTE ────────────────────────────────────────────────
 function recompute() {
   if (!allCompanies.length) return;
   const exclude = document.getElementById('exclude-virio').checked;
@@ -329,36 +333,31 @@ function recompute() {
   const concluded   = [...pilotConv, ...exited];
   const everConv    = [...converted, ...churnedPost];
 
-  // Pilot metrics
-  const pilotRetention = concluded.length ? pilotConv.length / concluded.length * 100 : 0;
-  const pilotChurn     = 100 - pilotRetention;
-  const pilotConvPct   = concluded.length ? pilotConv.length / concluded.length * 100 : 0;
-  const pilotMRR       = inProgress.reduce((s,c) => s+c.mrr, 0);
+  const pilotRetention  = concluded.length ? pilotConv.length / concluded.length * 100 : 0;
+  const pilotChurn      = 100 - pilotRetention;
+  const pilotMRR        = inProgress.reduce((s,c) => s+c.mrr, 0);
   const pilotChurnedMRR = exited.reduce((s,c) => s+c.churned_mrr, 0);
-
-  // Post-pilot metrics
-  const startingMRR  = everConv.reduce((s,c) => s+c.mrr, 0);
-  const expansionMRR = everConv.reduce((s,c) => s+c.expansion_mrr, 0);
-  const churnedMRR   = churnedPost.reduce((s,c) => s+c.churned_mrr, 0);
+  const startingMRR     = everConv.reduce((s,c) => s+c.mrr, 0);
+  const expansionMRR    = everConv.reduce((s,c) => s+c.expansion_mrr, 0);
+  const churnedMRR      = churnedPost.reduce((s,c) => s+c.churned_mrr, 0);
   const nrr = startingMRR ? (startingMRR + expansionMRR - churnedMRR) / startingMRR * 100 : 0;
   const grr = startingMRR ? (startingMRR - churnedMRR) / startingMRR * 100 : 0;
   const postChurnRate     = everConv.length ? churnedPost.length / everConv.length * 100 : 0;
   const postRetentionRate = 100 - postChurnRate;
   const convertedMRR = converted.reduce((s,c) => s+c.mrr, 0);
 
-  // SET METRICS
+  // ── METRIC VALUES ──
   set('m-pilot-retention',       pilotRetention.toFixed(1) + '%');
   set('m-pilot-retention-sub',   `${pilotConv.length} converted of ${concluded.length} concluded`);
   set('m-pilot-churn',           pilotChurn.toFixed(1) + '%');
   set('m-pilot-churn-sub',       `${exited.length} exited of ${concluded.length} concluded`);
   set('m-active',                inProgress.length);
   set('m-converted-count',       pilotConv.length);
-  set('m-pilot-conv-pct',        pilotConvPct.toFixed(1) + '%');
+  set('m-pilot-conv-pct',        pilotRetention.toFixed(1) + '%');
   set('m-pilot-mrr',             fmt$(pilotMRR));
   set('m-pilot-count',           inProgress.length);
   set('m-pilot-churned-count',   exited.length);
   set('m-pilot-churned-mrr',     fmt$(pilotChurnedMRR));
-
   set('m-post-retention',        postRetentionRate.toFixed(1) + '%');
   set('m-post-retention-sub',    `${converted.length} of ${everConv.length} retained`);
   set('m-post-churn',            postChurnRate.toFixed(1) + '%');
@@ -370,49 +369,153 @@ function recompute() {
   set('m-post-churned-count',    churnedPost.length);
   set('note-roster',             `${cos.length} companies`);
 
-  // STAGE DATA
+  // ── METRIC CARD TOOLTIPS ──
+  bindCard('mc-pilot-retention', () => ({
+    title: 'Converted (incl. post-conv churned)',
+    rows: pilotConv.length ? pilotConv.map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
+  }));
+  bindCard('mc-pilot-churn', () => ({
+    title: 'Exited during pilot',
+    rows: exited.length ? exited.map(c => ({name: c.name, val: c.churn_reason || '—'})) : ['No data']
+  }));
+  bindCard('mc-active', () => ({
+    title: 'Active pilots',
+    rows: inProgress.length ? [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
+  }));
+  bindCard('mc-converted-count', () => ({
+    title: 'Converted pilots',
+    rows: pilotConv.length ? pilotConv.map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
+  }));
+  bindCard('mc-pilot-conv-pct', () => ({
+    title: 'Pilot conversion breakdown',
+    rows: [
+      {name: 'Converted', val: pilotConv.length},
+      {name: 'Exited', val: exited.length},
+      '---',
+      {name: 'Concluded total', val: concluded.length}
+    ]
+  }));
+  bindCard('mc-pilot-mrr', () => ({
+    title: 'MRR by active pilot',
+    rows: inProgress.length ? [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
+  }));
+  bindCard('mc-pilot-count', () => ({
+    title: 'Customers in pilot',
+    rows: inProgress.length ? inProgress.map(c => ({name: c.name, val: c.stage})) : ['No data']
+  }));
+  bindCard('mc-pilot-churned-count', () => ({
+    title: 'Exited during pilot',
+    rows: exited.length ? exited.map(c => ({name: c.name, val: c.churn_reason || '—'})) : ['No data']
+  }));
+  bindCard('mc-pilot-churned-mrr', () => ({
+    title: 'MRR lost — pilot exits',
+    rows: exited.filter(c=>c.churned_mrr>0).length
+      ? [...exited].filter(c=>c.churned_mrr>0).sort((a,b)=>b.churned_mrr-a.churned_mrr).map(c => ({name: c.name, val: fmt$(c.churned_mrr)}))
+      : ['No data']
+  }));
+  bindCard('mc-post-retention', () => ({
+    title: 'Active converted customers',
+    rows: converted.length ? converted.map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
+  }));
+  bindCard('mc-post-churn', () => ({
+    title: 'Churned post-conversion',
+    rows: churnedPost.length ? churnedPost.map(c => ({name: c.name, val: c.churn_reason || '—'})) : ['No data']
+  }));
+  bindCard('mc-grr', () => ({
+    title: 'GRR inputs',
+    rows: [
+      {name: 'Starting MRR', val: fmt$(startingMRR)},
+      {name: 'Churned MRR', val: fmt$(churnedMRR)},
+      '---',
+      {name: 'GRR', val: grr.toFixed(1) + '%'}
+    ]
+  }));
+  bindCard('mc-nrr', () => ({
+    title: 'NRR inputs',
+    rows: [
+      {name: 'Starting MRR', val: fmt$(startingMRR)},
+      {name: 'Expansion MRR', val: fmt$(expansionMRR)},
+      {name: 'Churned MRR', val: fmt$(churnedMRR)},
+      '---',
+      {name: 'NRR', val: nrr.toFixed(1) + '%'}
+    ]
+  }));
+  bindCard('mc-converted-mrr', () => ({
+    title: 'Active converted MRR',
+    rows: converted.length ? [...converted].sort((a,b)=>b.mrr-a.mrr).map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
+  }));
+  bindCard('mc-post-converted-count', () => ({
+    title: 'Active converted customers',
+    rows: converted.length ? converted.map(c => ({name: c.name, val: c.stage})) : ['No data']
+  }));
+  bindCard('mc-post-churned-count', () => ({
+    title: 'Churned post-conversion',
+    rows: churnedPost.length ? churnedPost.map(c => ({name: c.name, val: c.churn_reason || '—'})) : ['No data']
+  }));
+
+  // ── CHARTS ──
   const allStages = [...new Set(cos.map(c => c.stage).filter(Boolean))].sort();
 
-  // Pilot outcome pie
-  renderPie('pilotOutcomePie', [inProgress.length, pilotConv.length, exited.length],
+  // Pilot outcomes pie
+  renderPie('pilotOutcomePie',
+    [inProgress.length, pilotConv.length, exited.length],
     ['In progress', 'Converted', 'Exited during pilot'],
-    [OUTCOME_COLORS[0], OUTCOME_COLORS[1], OUTCOME_COLORS[2]], 'legend-pilot-outcome');
+    OUTCOME_COLORS, 'legend-pilot-outcome',
+    [ inProgress.map(c => ({name: c.name, val: fmt$(c.mrr)})),
+      pilotConv.map(c => ({name: c.name, val: fmt$(c.mrr)})),
+      exited.map(c => ({name: c.name, val: c.churn_reason || '—'})) ]);
 
-  // Active pilots by stage bar
+  // Active pilots by stage
   renderBar('pilotStageBar', allStages,
-    allStages.map(st => inProgress.filter(c => c.stage === st).length),
-    '#378ADD', false);
+    allStages.map(st => inProgress.filter(c=>c.stage===st).length), '#378ADD',
+    allStages.map(st => inProgress.filter(c=>c.stage===st).map(c => ({name: c.name, val: fmt$(c.mrr)}))));
 
-  // Exited by stage bar
+  // Exited by stage
   renderBar('exitedStageBar', allStages,
-    allStages.map(st => exited.filter(c => c.stage === st).length),
-    '#D85A30', false);
+    allStages.map(st => exited.filter(c=>c.stage===st).length), '#D85A30',
+    allStages.map(st => exited.filter(c=>c.stage===st).map(c => ({name: c.name, val: c.churn_reason || '—'}))));
 
-  // Churn reason pie — all churned companies (pilot exits + post-conv)
-  const allChurned = [...exited, ...churnedPost].filter(c => c.churn_reason);
-  const reasonCounts = {};
-  allChurned.forEach(c => { reasonCounts[c.churn_reason] = (reasonCounts[c.churn_reason] || 0) + 1; });
-  const reasonLabels = Object.keys(reasonCounts);
-  const reasonData   = reasonLabels.map(r => reasonCounts[r]);
-  renderPie('churnReasonPie', reasonData, reasonLabels, REASON_COLORS.slice(0, reasonLabels.length), 'legend-churn-reason');
+  // Churn reasons pie
+  const reasonMap = {};
+  [...exited, ...churnedPost].filter(c=>c.churn_reason).forEach(c => {
+    if (!reasonMap[c.churn_reason]) reasonMap[c.churn_reason] = [];
+    reasonMap[c.churn_reason].push({name: c.name, val: fmt$(c.churned_mrr)});
+  });
+  const rLabels = Object.keys(reasonMap);
+  renderPie('churnReasonPie',
+    rLabels.map(r => reasonMap[r].length), rLabels,
+    REASON_COLORS.slice(0, rLabels.length), 'legend-churn-reason',
+    rLabels.map(r => reasonMap[r]));
 
   // Post-pilot MRR by stage pie
-  const stageMRR = {};
-  everConv.forEach(c => { if (c.stage) stageMRR[c.stage] = (stageMRR[c.stage] || 0) + c.mrr; });
-  const stageMRRLabels = Object.keys(stageMRR);
-  const stageMRRData   = stageMRRLabels.map(s => stageMRR[s]);
-  renderPie('postMRRPie', stageMRRData, stageMRRLabels, STAGE_COLORS.slice(0, stageMRRLabels.length), 'legend-post-mrr',
-    stageMRRData.map(v => fmt$(v)));
+  const stageMRRMap = {}, stageMRRNames = {};
+  everConv.forEach(c => {
+    stageMRRMap[c.stage]   = (stageMRRMap[c.stage] || 0) + c.mrr;
+    if (!stageMRRNames[c.stage]) stageMRRNames[c.stage] = [];
+    stageMRRNames[c.stage].push({name: c.name, val: fmt$(c.mrr)});
+  });
+  const sLabels = Object.keys(stageMRRMap);
+  renderPie('postMRRPie',
+    sLabels.map(s => stageMRRMap[s]), sLabels,
+    STAGE_COLORS.slice(0, sLabels.length), 'legend-post-mrr',
+    sLabels.map(s => stageMRRNames[s]),
+    sLabels.map(s => fmt$(stageMRRMap[s])));
 
   // Converted by stage bar
   renderBar('convertedStageBar', allStages,
-    allStages.map(st => everConv.filter(c => c.stage === st).length),
-    '#1D9E75', false);
+    allStages.map(st => everConv.filter(c=>c.stage===st).length), '#1D9E75',
+    allStages.map(st => everConv.filter(c=>c.stage===st).map(c => ({name: c.name, val: fmt$(c.mrr)}))));
 
   renderTable(cos);
 }
 
-function renderPie(id, data, labels, colors, legendId, valueLabels) {
+// ── CHART RENDERERS ──────────────────────────────────────────────
+function buildTooltipLines(names) {
+  if (!names || !names.length) return ['No data'];
+  return names.map(n => typeof n === 'string' ? `  · ${n}` : `  · ${n.name}${n.val ? '  ('+n.val+')' : ''}`);
+}
+
+function renderPie(id, data, labels, colors, legendId, companyLists, valLabels) {
   if (charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
     type: 'pie',
@@ -421,28 +524,49 @@ function renderPie(id, data, labels, colors, legendId, valueLabels) {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}${valueLabels ? ' ('+valueLabels[ctx.dataIndex]+')' : ''}` } }
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const header = valLabels
+                ? ` ${labels[ctx.dataIndex]}: ${valLabels[ctx.dataIndex]}`
+                : ` ${labels[ctx.dataIndex]}: ${ctx.raw}`;
+              const names = companyLists ? companyLists[ctx.dataIndex] : [];
+              return [header, ...buildTooltipLines(names)];
+            }
+          }
+        }
       }
     }
   });
   const el = document.getElementById(legendId);
   if (el) el.innerHTML = labels.map((l,i) =>
-    `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]};"></span>${l}: ${data[i]}${valueLabels ? ' ('+valueLabels[i]+')' : ''}</span>`
+    `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]};"></span>${l}: ${data[i]}${valLabels ? ' ('+valLabels[i]+')' : ''}</span>`
   ).join('');
 }
 
-function renderBar(id, labels, data, color, horizontal) {
+function renderBar(id, labels, data, color, companyLists) {
   if (charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
     type: 'bar',
     data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 3 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
-      indexAxis: horizontal ? 'y' : 'x',
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const count = ctx.raw;
+              const names = companyLists ? companyLists[ctx.dataIndex] : [];
+              const header = ` ${count} customer${count !== 1 ? 's' : ''}:`;
+              return [header, ...buildTooltipLines(names)];
+            }
+          }
+        }
+      },
       scales: {
-        x: { ticks: { font: { size: 10 }, autoSkip: false, maxRotation: 35 }, grid: { display: false } },
-        y: { ticks: { font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(26,25,22,0.06)' } }
+        x: { ticks: { font: {size:10}, autoSkip: false, maxRotation: 35 }, grid: { display: false } },
+        y: { ticks: { font: {size:10}, stepSize: 1 }, grid: { color: 'rgba(26,25,22,0.06)' } }
       }
     }
   });
@@ -450,18 +574,16 @@ function renderBar(id, labels, data, color, horizontal) {
 
 function renderTable(cos) {
   const order = { 'In progress':0, 'Converted':1, 'Exited During Pilot':2, 'Churned Post Conversion':3 };
-  const badgeClass = { 'In progress':'badge-blue', 'Converted':'badge-teal', 'Exited During Pilot':'badge-coral', 'Churned Post Conversion':'badge-amber' };
-  const fmt = n => n ? fmt$(n) : '—';
+  const bc    = { 'In progress':'badge-blue', 'Converted':'badge-teal', 'Exited During Pilot':'badge-coral', 'Churned Post Conversion':'badge-amber' };
+  const f = n => n ? fmt$(n) : '—';
   document.getElementById('roster-body').innerHTML = [...cos]
     .sort((a,b) => (order[a.pilot_status]??9) - (order[b.pilot_status]??9))
     .map(c => `<tr>
       <td>${c.name}</td>
-      <td><span class="badge ${badgeClass[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
-      <td>${c.stage || '—'}</td>
-      <td>${fmt(c.mrr)}</td>
-      <td>${fmt(c.expansion_mrr)}</td>
-      <td>${fmt(c.churned_mrr)}</td>
-      <td>${c.churn_reason || '—'}</td>
+      <td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
+      <td>${c.stage||'—'}</td><td>${f(c.mrr)}</td>
+      <td>${f(c.expansion_mrr)}</td><td>${f(c.churned_mrr)}</td>
+      <td>${c.churn_reason||'—'}</td>
     </tr>`).join('');
 }
 
