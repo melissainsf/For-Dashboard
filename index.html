@@ -513,6 +513,11 @@ function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   event.target.classList.add('active');
+  if (!allCompanies.length) return;
+  const exclude = document.getElementById('exclude-virio').checked;
+  const cos = exclude ? allCompanies.filter(c => c.domain !== 'virio.ai' && c.name !== 'Virio') : allCompanies;
+  if (name === 'cohorts')   renderCohortsTab(cos);
+  if (name === 'portfolio') renderPortfolioTable(cos);
 }
 
 // ── TOOLTIP ────────────────────────────────────────────────────
