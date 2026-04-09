@@ -16,6 +16,8 @@
   --coral: #993C1D; --coral-light: #FAECE7; --coral-mid: #D85A30;
   --blue: #185FA5; --blue-light: #E6F1FB; --blue-mid: #378ADD;
   --amber: #854F0B; --amber-light: #FAEEDA;
+  --red: #A32D2D; --red-light: #FCEBEB;
+  --yellow: #7A5F00; --yellow-light: #FFF8E7;
   --border: rgba(26,25,22,0.10); --border-strong: rgba(26,25,22,0.18);
   --shadow: 0 1px 3px rgba(26,25,22,0.06), 0 4px 12px rgba(26,25,22,0.04);
   --header-bg: #1A1916; --header-ink: #F5F3EE;
@@ -38,34 +40,28 @@ header { background: var(--header-bg); color: var(--header-ink); padding: 18px 3
 main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
 #status-bar { padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 20px; display: none; align-items: center; gap: 8px; }
 #status-bar.loading { display: flex; background: var(--blue-light); color: var(--blue); }
-#status-bar.error   { display: flex; background: var(--coral-light); color: var(--coral); }
+#status-bar.error { display: flex; background: var(--coral-light); color: var(--coral); }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── FLOATING TOOLTIP ── */
-#tip {
-  position: fixed; z-index: 9999; pointer-events: none;
-  background: #1A1916; color: #F5F3EE;
-  border-radius: 8px; padding: 10px 13px;
-  font-size: 12px; line-height: 1.65;
-  max-width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-  opacity: 0; transition: opacity 0.1s ease;
-}
+#tip { position: fixed; z-index: 9999; pointer-events: none; background: #1A1916; color: #F5F3EE; border-radius: 8px; padding: 10px 13px; font-size: 12px; line-height: 1.65; max-width: 300px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); opacity: 0; transition: opacity 0.1s ease; }
 #tip.visible { opacity: 1; }
 #tip .tip-title { font-weight: 500; margin-bottom: 5px; color: rgba(245,243,238,0.5); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
 #tip .tip-row { display: flex; justify-content: space-between; gap: 20px; }
-#tip .tip-name { color: #F5F3EE; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
-#tip .tip-val  { color: rgba(245,243,238,0.5); white-space: nowrap; flex-shrink: 0; }
+#tip .tip-name { color: #F5F3EE; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+#tip .tip-val { color: rgba(245,243,238,0.5); white-space: nowrap; flex-shrink: 0; }
+#tip .tip-note { color: rgba(245,243,238,0.6); font-size: 11px; margin-top: 4px; white-space: normal; line-height: 1.5; border-top: 1px solid rgba(245,243,238,0.12); padding-top: 5px; }
 #tip .tip-divider { border-top: 1px solid rgba(245,243,238,0.12); margin: 5px 0; }
 
 /* ── LAYOUT ── */
 .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
 @media (max-width: 1100px) { .columns { grid-template-columns: 1fr; } }
 .column-header { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-.column-header.pilot    { background: var(--amber-light); color: var(--amber); }
-.column-header.postpilot { background: var(--teal-light);  color: var(--teal); }
+.column-header.pilot { background: var(--amber-light); color: var(--amber); }
+.column-header.postpilot { background: var(--teal-light); color: var(--teal); }
 .col-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.col-dot.pilot    { background: var(--amber); }
+.col-dot.pilot { background: var(--amber); }
 .col-dot.postpilot { background: var(--teal); }
 
 .metric-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
@@ -75,15 +71,15 @@ main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
 .mcard:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px rgba(26,25,22,0.10); }
 .mcard-label { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 4px; }
 .mcard-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
-.mcard-value.teal  { color: var(--teal); }
+.mcard-value.teal { color: var(--teal); }
 .mcard-value.coral { color: var(--coral-mid); }
-.mcard-value.blue  { color: var(--blue); }
-.mcard-value.ink   { color: var(--ink); }
+.mcard-value.blue { color: var(--blue); }
+.mcard-value.ink { color: var(--ink); }
 .mcard-sub { font-size: 10px; color: var(--ink3); margin-top: 3px; }
 
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 12px; }
 .chart-card-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; margin-bottom: 2px; }
-.chart-card-sub   { font-size: 10px; color: var(--ink3); margin-bottom: 12px; }
+.chart-card-sub { font-size: 10px; color: var(--ink3); margin-bottom: 12px; }
 .chart-wrap-sm { position: relative; width: 100%; height: 180px; }
 .chart-wrap-md { position: relative; width: 100%; height: 200px; }
 .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -92,6 +88,39 @@ main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
 .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink2); }
 .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
+/* ── HEALTH SCORE WIDGET ── */
+.health-widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 12px; }
+.health-widget-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.health-widget-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; }
+.health-widget-sub { font-size: 10px; color: var(--ink3); }
+.health-avg { display: flex; align-items: baseline; gap: 6px; }
+.health-avg-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 600; }
+.health-avg-denom { font-size: 11px; color: var(--ink3); }
+.health-sheet-note { font-size: 10px; color: var(--ink3); font-style: italic; margin-bottom: 10px; }
+
+.health-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); cursor: default; transition: background 0.1s; border-radius: 4px; padding: 5px 6px; margin: 0 -6px; }
+.health-row:last-child { border-bottom: none; }
+.health-row:hover { background: var(--surface2); }
+.health-name { font-size: 12px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.health-scores { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.score-pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+.score-pill .pill-label { color: inherit; opacity: 0.65; font-size: 9px; }
+.score-red    { background: var(--red-light);    color: var(--red); }
+.score-amber  { background: var(--yellow-light);  color: var(--yellow); }
+.score-blue   { background: var(--blue-light);    color: var(--blue); }
+.score-teal   { background: var(--teal-light);    color: var(--teal); }
+.score-gray   { background: var(--surface2);      color: var(--ink3); }
+.health-bar-wrap { width: 60px; flex-shrink: 0; }
+.health-bar-bg { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.health-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+
+.health-legend { display: flex; gap: 12px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.health-legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink3); }
+.health-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+.no-sheet-data { font-size: 11px; color: var(--ink3); font-style: italic; padding: 8px 0; }
+
+/* ── TABLE ── */
 .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -103,18 +132,18 @@ tbody td { padding: 8px 14px; vertical-align: middle; }
 tbody td:first-child { font-weight: 500; }
 
 .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 500; white-space: nowrap; }
-.badge-teal   { background: var(--teal-light);  color: var(--teal); }
-.badge-coral  { background: var(--coral-light); color: var(--coral); }
-.badge-blue   { background: var(--blue-light);  color: var(--blue); }
-.badge-amber  { background: var(--amber-light); color: var(--amber); }
-.badge-gray   { background: var(--surface2); color: var(--ink2); }
+.badge-teal  { background: var(--teal-light);  color: var(--teal); }
+.badge-coral { background: var(--coral-light); color: var(--coral); }
+.badge-blue  { background: var(--blue-light);  color: var(--blue); }
+.badge-amber { background: var(--amber-light); color: var(--amber); }
+.badge-gray  { background: var(--surface2); color: var(--ink2); }
 
 .roster-section { margin-top: 8px; }
 .roster-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
 .roster-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); }
 .roster-note { font-size: 11px; color: var(--ink3); }
-footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: var(--ink3); }
 
+footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: var(--ink3); }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .columns { animation: fadeIn 0.3s ease both; }
 .roster-section { animation: fadeIn 0.35s ease both; animation-delay: 0.1s; }
@@ -143,6 +172,7 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
   <div id="status-bar"></div>
 
   <div class="columns">
+    <!-- PILOT COLUMN -->
     <div>
       <div class="column-header pilot"><span class="col-dot pilot"></span>Pilot</div>
 
@@ -164,10 +194,31 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
         <div class="mcard" id="mc-pilot-churned-mrr"><div class="mcard-label">Total MRR Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-mrr">—</div><div class="mcard-sub">Exited during pilot</div></div>
       </div>
 
+      <!-- PILOT HEALTH SCORES -->
+      <div class="health-widget" id="hw-pilot">
+        <div class="health-widget-header">
+          <div>
+            <div class="health-widget-title">Pilot health scores</div>
+            <div class="health-widget-sub">CS Sentiment · Content Performance · Warm Outbound — from Client Health Tracker</div>
+          </div>
+          <div class="health-avg">
+            <span class="health-avg-num" id="pilot-avg-sentiment">—</span>
+            <span class="health-avg-denom">/10 avg sentiment</span>
+          </div>
+        </div>
+        <div id="pilot-health-rows"><div class="no-sheet-data">Loading health scores...</div></div>
+        <div class="health-legend">
+          <span class="health-legend-item"><span class="health-legend-dot" style="background:#E24B4A;"></span>At risk (1–4)</span>
+          <span class="health-legend-item"><span class="health-legend-dot" style="background:#BA7517;"></span>Watch (5–6)</span>
+          <span class="health-legend-item"><span class="health-legend-dot" style="background:#378ADD;"></span>Stable (7–8)</span>
+          <span class="health-legend-item"><span class="health-legend-dot" style="background:#1D9E75;"></span>Healthy (9–10)</span>
+        </div>
+      </div>
+
       <div class="chart-card">
         <div class="chart-card-title">Pilot outcomes</div>
         <div class="chart-card-sub">In progress vs. converted vs. exited during pilot</div>
-        <div class="chart-wrap-sm"><canvas id="pilotOutcomePie" role="img" aria-label="Pie chart of pilot outcomes.">Pilot outcomes.</canvas></div>
+        <div class="chart-wrap-sm"><canvas id="pilotOutcomePie" role="img" aria-label="Pilot outcomes pie chart.">Pilot outcomes.</canvas></div>
         <div class="legend" id="legend-pilot-outcome"></div>
       </div>
 
@@ -193,6 +244,7 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
       </div>
     </div>
 
+    <!-- POST-PILOT COLUMN -->
     <div>
       <div class="column-header postpilot"><span class="col-dot postpilot"></span>Post-Pilot</div>
 
@@ -210,6 +262,27 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
         <div class="mcard" id="mc-post-churned-count"><div class="mcard-label">Churned After Pilot</div><div class="mcard-value coral" id="m-post-churned-count">—</div><div class="mcard-sub">Post-conversion churn</div></div>
       </div>
 
+      <!-- POST-PILOT HEALTH SCORES -->
+      <div class="health-widget" id="hw-post">
+        <div class="health-widget-header">
+          <div>
+            <div class="health-widget-title">Post-pilot health scores</div>
+            <div class="health-widget-sub">CS Sentiment · Content Performance · Warm Outbound — from Client Health Tracker</div>
+          </div>
+          <div class="health-avg">
+            <span class="health-avg-num" id="post-avg-sentiment">—</span>
+            <span class="health-avg-denom">/10 avg sentiment</span>
+          </div>
+        </div>
+        <div id="post-health-rows"><div class="no-sheet-data">Loading health scores...</div></div>
+        <div class="health-legend">
+          <span class="health-legend-item"><span class="health-legend-dot" style="background:#E24B4A;"></span>At risk (1–4)</span>
+          <span class="health-legend-item"><span class="health-legend-dot" style="background:#BA7517;"></span>Watch (5–6)</span>
+          <span class="health-legend-item"><span class="health-legend-dot" style="background:#378ADD;"></span>Stable (7–8)</span>
+          <span class="health-legend-item"><span class="health-legend-dot" style="background:#1D9E75;"></span>Healthy (9–10)</span>
+        </div>
+      </div>
+
       <div class="chart-card">
         <div class="chart-card-title">MRR breakdown by stage</div>
         <div class="chart-card-sub">Post-pilot converted customers only</div>
@@ -225,6 +298,7 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
     </div>
   </div>
 
+  <!-- ROSTER TABLE -->
   <div class="roster-section">
     <div class="roster-header">
       <span class="roster-title">Customer roster</span>
@@ -233,7 +307,19 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Pilot status</th><th>Stage</th><th>MRR</th><th>Expansion MRR</th><th>Churned MRR</th><th>Churn reason</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Pilot status</th>
+              <th>Stage</th>
+              <th>AM</th>
+              <th>MRR</th>
+              <th>CS Sentiment</th>
+              <th>Content Perf.</th>
+              <th>Warm Outbound</th>
+              <th>Churn reason</th>
+            </tr>
+          </thead>
           <tbody id="roster-body"></tbody>
         </table>
       </div>
@@ -243,24 +329,27 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
 <footer id="footer-date"></footer>
 
 <script>
-const STAGE_COLORS  = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780'];
+const STAGE_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780'];
 const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 
 let allCompanies = [];
+let sheetMap = {};
 let charts = {};
 
-// ── FLOATING TOOLTIP ENGINE ─────────────────────────────────────
-const tipEl    = document.getElementById('tip');
+// ── TOOLTIP ────────────────────────────────────────────────────
+const tipEl = document.getElementById('tip');
 const tipTitle = document.getElementById('tip-title');
-const tipBody  = document.getElementById('tip-body');
+const tipBody = document.getElementById('tip-body');
 
 function showTip(e, title, rows) {
   tipTitle.textContent = title;
   tipBody.innerHTML = rows.map(r => {
     if (r === '---') return '<div class="tip-divider"></div>';
     if (typeof r === 'string') return `<div class="tip-row"><span class="tip-name">${r}</span></div>`;
-    return `<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-val">${r.val || ''}</span></div>`;
+    let html = `<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-val">${r.val||''}</span></div>`;
+    if (r.note) html += `<div class="tip-note">${r.note}</div>`;
+    return html;
   }).join('');
   tipEl.classList.add('visible');
   posTip(e);
@@ -276,11 +365,11 @@ function bindCard(id, getRows) {
   const el = document.getElementById(id);
   if (!el) return;
   el.addEventListener('mouseenter', e => { const r = getRows(); if (r) showTip(e, r.title, r.rows); });
-  el.addEventListener('mousemove',  posTip);
+  el.addEventListener('mousemove', posTip);
   el.addEventListener('mouseleave', hideTip);
 }
 
-// ── HELPERS ─────────────────────────────────────────────────────
+// ── HELPERS ────────────────────────────────────────────────────
 function setStatus(msg, type) {
   const el = document.getElementById('status-bar');
   if (!type) { el.style.display = 'none'; return; }
@@ -290,16 +379,52 @@ function setStatus(msg, type) {
 function fmt$(n) { return n >= 1000 ? '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k' : '$' + Math.round(n); }
 function set(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
 
+function normalizeName(name) {
+  return (name || '').toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/\s+/g, '');
+}
+
+function scoreColor(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return 'score-gray';
+  if (n <= 4) return 'score-red';
+  if (n <= 6) return 'score-amber';
+  if (n <= 8) return 'score-blue';
+  return 'score-teal';
+}
+
+function barColor(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return '#D3D1C7';
+  if (n <= 4) return '#E24B4A';
+  if (n <= 6) return '#BA7517';
+  if (n <= 8) return '#378ADD';
+  return '#1D9E75';
+}
+
+function scorePill(val, label) {
+  if (!val || val === '' || val === 'N/A' || val.includes('REF')) return `<span class="score-pill score-gray"><span class="pill-label">${label}</span> —</span>`;
+  const cls = scoreColor(val);
+  return `<span class="score-pill ${cls}"><span class="pill-label">${label}</span> ${val}</span>`;
+}
+
 // ── DATA FETCH ──────────────────────────────────────────────────
 async function loadData() {
   const btn = document.getElementById('refresh-btn');
   btn.disabled = true;
-  setStatus('Loading live data from HubSpot...', 'loading');
+  setStatus('Loading data from HubSpot + Client Health Tracker...', 'loading');
+
   try {
-    const res = await fetch('/api/hubspot', { method: 'POST' });
-    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error || `Server returned ${res.status}`); }
-    const data = await res.json();
-    allCompanies = (data.results || []).map(r => ({
+    const [hsRes, sheetRes] = await Promise.all([
+      fetch('/api/hubspot', { method: 'POST' }),
+      fetch('/api/sheets', { method: 'GET' })
+    ]);
+
+    if (!hsRes.ok) { const e = await hsRes.json().catch(()=>({})); throw new Error(e.error || `HubSpot returned ${hsRes.status}`); }
+    const hsData = await hsRes.json();
+
+    allCompanies = (hsData.results || []).map(r => ({
       name: r.properties.name || r.properties.domain || r.id,
       pilot_status: r.properties.pilot_status,
       stage: r.properties.stage || 'Unknown',
@@ -309,14 +434,39 @@ async function loadData() {
       churn_reason: r.properties.churn_reason || null,
       domain: r.properties.domain
     }));
+
+    // Build sheet lookup map — normalize names for fuzzy matching
+    sheetMap = {};
+    if (sheetRes.ok) {
+      const sheetData = await sheetRes.json();
+      sheetData.forEach(row => {
+        if (row.client) {
+          const key = normalizeName(row.client);
+          sheetMap[key] = row;
+        }
+      });
+    }
+
     setStatus('');
     const now = new Date();
-    document.getElementById('last-updated').textContent = 'Refreshed ' + now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    document.getElementById('footer-date').textContent = 'Virio CS Dashboard · HubSpot (virio.ai) · ' + now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('last-updated').textContent = 'Refreshed ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('footer-date').textContent = 'Virio CS Dashboard · HubSpot + Client Health Tracker · ' + now.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
     recompute();
   } catch(e) {
     setStatus('Failed to load: ' + e.message, 'error');
-  } finally { btn.disabled = false; }
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function getSheetData(companyName) {
+  const key = normalizeName(companyName);
+  if (sheetMap[key]) return sheetMap[key];
+  // Partial match fallback
+  for (const k of Object.keys(sheetMap)) {
+    if (k.includes(key) || key.includes(k)) return sheetMap[k];
+  }
+  return null;
 }
 
 // ── MAIN COMPUTE ────────────────────────────────────────────────
@@ -370,146 +520,133 @@ function recompute() {
   set('note-roster',             `${cos.length} companies`);
 
   // ── METRIC CARD TOOLTIPS ──
-  bindCard('mc-pilot-retention', () => ({
-    title: 'Converted (incl. post-conv churned)',
-    rows: pilotConv.length ? pilotConv.map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
-  }));
-  bindCard('mc-pilot-churn', () => ({
-    title: 'Exited during pilot',
-    rows: exited.length ? exited.map(c => ({name: c.name, val: c.churn_reason || '—'})) : ['No data']
-  }));
-  bindCard('mc-active', () => ({
-    title: 'Active pilots',
-    rows: inProgress.length ? [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
-  }));
-  bindCard('mc-converted-count', () => ({
-    title: 'Converted pilots',
-    rows: pilotConv.length ? pilotConv.map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
-  }));
-  bindCard('mc-pilot-conv-pct', () => ({
-    title: 'Pilot conversion breakdown',
-    rows: [
-      {name: 'Converted', val: pilotConv.length},
-      {name: 'Exited', val: exited.length},
-      '---',
-      {name: 'Concluded total', val: concluded.length}
-    ]
-  }));
-  bindCard('mc-pilot-mrr', () => ({
-    title: 'MRR by active pilot',
-    rows: inProgress.length ? [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
-  }));
-  bindCard('mc-pilot-count', () => ({
-    title: 'Customers in pilot',
-    rows: inProgress.length ? inProgress.map(c => ({name: c.name, val: c.stage})) : ['No data']
-  }));
-  bindCard('mc-pilot-churned-count', () => ({
-    title: 'Exited during pilot',
-    rows: exited.length ? exited.map(c => ({name: c.name, val: c.churn_reason || '—'})) : ['No data']
-  }));
-  bindCard('mc-pilot-churned-mrr', () => ({
-    title: 'MRR lost — pilot exits',
-    rows: exited.filter(c=>c.churned_mrr>0).length
-      ? [...exited].filter(c=>c.churned_mrr>0).sort((a,b)=>b.churned_mrr-a.churned_mrr).map(c => ({name: c.name, val: fmt$(c.churned_mrr)}))
-      : ['No data']
-  }));
-  bindCard('mc-post-retention', () => ({
-    title: 'Active converted customers',
-    rows: converted.length ? converted.map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
-  }));
-  bindCard('mc-post-churn', () => ({
-    title: 'Churned post-conversion',
-    rows: churnedPost.length ? churnedPost.map(c => ({name: c.name, val: c.churn_reason || '—'})) : ['No data']
-  }));
-  bindCard('mc-grr', () => ({
-    title: 'GRR inputs',
-    rows: [
-      {name: 'Starting MRR', val: fmt$(startingMRR)},
-      {name: 'Churned MRR', val: fmt$(churnedMRR)},
-      '---',
-      {name: 'GRR', val: grr.toFixed(1) + '%'}
-    ]
-  }));
-  bindCard('mc-nrr', () => ({
-    title: 'NRR inputs',
-    rows: [
-      {name: 'Starting MRR', val: fmt$(startingMRR)},
-      {name: 'Expansion MRR', val: fmt$(expansionMRR)},
-      {name: 'Churned MRR', val: fmt$(churnedMRR)},
-      '---',
-      {name: 'NRR', val: nrr.toFixed(1) + '%'}
-    ]
-  }));
-  bindCard('mc-converted-mrr', () => ({
-    title: 'Active converted MRR',
-    rows: converted.length ? [...converted].sort((a,b)=>b.mrr-a.mrr).map(c => ({name: c.name, val: fmt$(c.mrr)})) : ['No data']
-  }));
-  bindCard('mc-post-converted-count', () => ({
-    title: 'Active converted customers',
-    rows: converted.length ? converted.map(c => ({name: c.name, val: c.stage})) : ['No data']
-  }));
-  bindCard('mc-post-churned-count', () => ({
-    title: 'Churned post-conversion',
-    rows: churnedPost.length ? churnedPost.map(c => ({name: c.name, val: c.churn_reason || '—'})) : ['No data']
-  }));
+  bindCard('mc-pilot-retention', () => ({ title: 'Converted (incl. post-conv churned)', rows: pilotConv.map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-pilot-churn', () => ({ title: 'Exited during pilot', rows: exited.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
+  bindCard('mc-active', () => ({ title: 'Active pilots', rows: [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-converted-count', () => ({ title: 'Converted pilots', rows: pilotConv.map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-pilot-conv-pct', () => ({ title: 'Pilot conversion breakdown', rows: [{name:'Converted',val:pilotConv.length},{name:'Exited',val:exited.length},'---',{name:'Concluded total',val:concluded.length}] }));
+  bindCard('mc-pilot-mrr', () => ({ title: 'MRR by active pilot', rows: [...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-pilot-count', () => ({ title: 'Customers in pilot', rows: inProgress.map(c => ({name:c.name, val:c.stage})) }));
+  bindCard('mc-pilot-churned-count', () => ({ title: 'Exited during pilot', rows: exited.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
+  bindCard('mc-pilot-churned-mrr', () => ({ title: 'MRR lost — pilot exits', rows: [...exited].filter(c=>c.churned_mrr>0).sort((a,b)=>b.churned_mrr-a.churned_mrr).map(c => ({name:c.name, val:fmt$(c.churned_mrr)})) }));
+  bindCard('mc-post-retention', () => ({ title: 'Active converted customers', rows: converted.map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-post-churn', () => ({ title: 'Churned post-conversion', rows: churnedPost.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
+  bindCard('mc-grr', () => ({ title: 'GRR inputs', rows: [{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'GRR',val:grr.toFixed(1)+'%'}] }));
+  bindCard('mc-nrr', () => ({ title: 'NRR inputs', rows: [{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Expansion MRR',val:fmt$(expansionMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'NRR',val:nrr.toFixed(1)+'%'}] }));
+  bindCard('mc-converted-mrr', () => ({ title: 'Active converted MRR', rows: [...converted].sort((a,b)=>b.mrr-a.mrr).map(c => ({name:c.name, val:fmt$(c.mrr)})) }));
+  bindCard('mc-post-converted-count', () => ({ title: 'Active converted customers', rows: converted.map(c => ({name:c.name, val:c.stage})) }));
+  bindCard('mc-post-churned-count', () => ({ title: 'Churned post-conversion', rows: churnedPost.map(c => ({name:c.name, val:c.churn_reason||'—'})) }));
+
+  // ── HEALTH SCORE WIDGETS ──
+  renderHealthWidget('pilot-health-rows', 'pilot-avg-sentiment', inProgress);
+  renderHealthWidget('post-health-rows', 'post-avg-sentiment', converted);
 
   // ── CHARTS ──
   const allStages = [...new Set(cos.map(c => c.stage).filter(Boolean))].sort();
 
-  // Pilot outcomes pie
-  renderPie('pilotOutcomePie',
-    [inProgress.length, pilotConv.length, exited.length],
-    ['In progress', 'Converted', 'Exited during pilot'],
-    OUTCOME_COLORS, 'legend-pilot-outcome',
-    [ inProgress.map(c => ({name: c.name, val: fmt$(c.mrr)})),
-      pilotConv.map(c => ({name: c.name, val: fmt$(c.mrr)})),
-      exited.map(c => ({name: c.name, val: c.churn_reason || '—'})) ]);
+  renderPie('pilotOutcomePie', [inProgress.length, pilotConv.length, exited.length],
+    ['In progress','Converted','Exited during pilot'], OUTCOME_COLORS, 'legend-pilot-outcome',
+    [inProgress.map(c=>({name:c.name,val:fmt$(c.mrr)})), pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)})), exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))]);
 
-  // Active pilots by stage
-  renderBar('pilotStageBar', allStages,
-    allStages.map(st => inProgress.filter(c=>c.stage===st).length), '#378ADD',
-    allStages.map(st => inProgress.filter(c=>c.stage===st).map(c => ({name: c.name, val: fmt$(c.mrr)}))));
+  renderBar('pilotStageBar', allStages, allStages.map(st=>inProgress.filter(c=>c.stage===st).length), '#378ADD',
+    allStages.map(st=>inProgress.filter(c=>c.stage===st).map(c=>({name:c.name,val:fmt$(c.mrr)}))));
 
-  // Exited by stage
-  renderBar('exitedStageBar', allStages,
-    allStages.map(st => exited.filter(c=>c.stage===st).length), '#D85A30',
-    allStages.map(st => exited.filter(c=>c.stage===st).map(c => ({name: c.name, val: c.churn_reason || '—'}))));
+  renderBar('exitedStageBar', allStages, allStages.map(st=>exited.filter(c=>c.stage===st).length), '#D85A30',
+    allStages.map(st=>exited.filter(c=>c.stage===st).map(c=>({name:c.name,val:c.churn_reason||'—'}))));
 
-  // Churn reasons pie
   const reasonMap = {};
-  [...exited, ...churnedPost].filter(c=>c.churn_reason).forEach(c => {
+  [...exited,...churnedPost].filter(c=>c.churn_reason).forEach(c => {
     if (!reasonMap[c.churn_reason]) reasonMap[c.churn_reason] = [];
-    reasonMap[c.churn_reason].push({name: c.name, val: fmt$(c.churned_mrr)});
+    reasonMap[c.churn_reason].push({name:c.name, val:fmt$(c.churned_mrr)});
   });
   const rLabels = Object.keys(reasonMap);
-  renderPie('churnReasonPie',
-    rLabels.map(r => reasonMap[r].length), rLabels,
-    REASON_COLORS.slice(0, rLabels.length), 'legend-churn-reason',
-    rLabels.map(r => reasonMap[r]));
+  renderPie('churnReasonPie', rLabels.map(r=>reasonMap[r].length), rLabels, REASON_COLORS.slice(0,rLabels.length), 'legend-churn-reason', rLabels.map(r=>reasonMap[r]));
 
-  // Post-pilot MRR by stage pie
   const stageMRRMap = {}, stageMRRNames = {};
   everConv.forEach(c => {
-    stageMRRMap[c.stage]   = (stageMRRMap[c.stage] || 0) + c.mrr;
+    stageMRRMap[c.stage] = (stageMRRMap[c.stage]||0) + c.mrr;
     if (!stageMRRNames[c.stage]) stageMRRNames[c.stage] = [];
-    stageMRRNames[c.stage].push({name: c.name, val: fmt$(c.mrr)});
+    stageMRRNames[c.stage].push({name:c.name, val:fmt$(c.mrr)});
   });
   const sLabels = Object.keys(stageMRRMap);
-  renderPie('postMRRPie',
-    sLabels.map(s => stageMRRMap[s]), sLabels,
-    STAGE_COLORS.slice(0, sLabels.length), 'legend-post-mrr',
-    sLabels.map(s => stageMRRNames[s]),
-    sLabels.map(s => fmt$(stageMRRMap[s])));
+  renderPie('postMRRPie', sLabels.map(s=>stageMRRMap[s]), sLabels, STAGE_COLORS.slice(0,sLabels.length), 'legend-post-mrr',
+    sLabels.map(s=>stageMRRNames[s]), sLabels.map(s=>fmt$(stageMRRMap[s])));
 
-  // Converted by stage bar
-  renderBar('convertedStageBar', allStages,
-    allStages.map(st => everConv.filter(c=>c.stage===st).length), '#1D9E75',
-    allStages.map(st => everConv.filter(c=>c.stage===st).map(c => ({name: c.name, val: fmt$(c.mrr)}))));
+  renderBar('convertedStageBar', allStages, allStages.map(st=>everConv.filter(c=>c.stage===st).length), '#1D9E75',
+    allStages.map(st=>everConv.filter(c=>c.stage===st).map(c=>({name:c.name,val:fmt$(c.mrr)}))));
 
   renderTable(cos);
 }
 
-// ── CHART RENDERERS ──────────────────────────────────────────────
+// ── HEALTH SCORE WIDGET ─────────────────────────────────────────
+function renderHealthWidget(rowsId, avgId, companies) {
+  const el = document.getElementById(rowsId);
+  const withData = companies.map(c => ({ c, s: getSheetData(c.name) }));
+  const hasAny = withData.some(x => x.s);
+
+  if (!hasAny) {
+    el.innerHTML = '<div class="no-sheet-data">No health tracker data found for these companies. Check that company names match the sheet exactly.</div>';
+    set(avgId, '—');
+    return;
+  }
+
+  // Compute avg sentiment
+  const sentimentScores = withData
+    .map(x => x.s ? parseFloat(x.s.cs_sentiment) : NaN)
+    .filter(n => !isNaN(n));
+  const avgSentiment = sentimentScores.length
+    ? (sentimentScores.reduce((a,b)=>a+b,0) / sentimentScores.length).toFixed(1)
+    : '—';
+  set(avgId, avgSentiment);
+
+  // Sort by CS sentiment ascending (worst first) so at-risk customers appear at top
+  const sorted = [...withData].sort((a, b) => {
+    const sa = a.s ? parseFloat(a.s.cs_sentiment) || 99 : 99;
+    const sb = b.s ? parseFloat(b.s.cs_sentiment) || 99 : 99;
+    return sa - sb;
+  });
+
+  el.innerHTML = sorted.map(({ c, s }) => {
+    const sentiment = s?.cs_sentiment || '';
+    const content   = s?.content_performance || '';
+    const warm      = s?.warm_outbound || '';
+    const notes     = s?.content_notes || '';
+    const actions   = s?.action_items || '';
+    const sentNum   = parseFloat(sentiment);
+    const barPct    = isNaN(sentNum) ? 0 : (sentNum / 10 * 100);
+    const barCol    = barColor(sentiment);
+    const tipData   = JSON.stringify({ notes, actions, am: s?.account_manager||'' }).replace(/"/g,'&quot;');
+
+    return `<div class="health-row"
+      onmouseenter="showHealthTip(event,'${c.name.replace(/'/g,'&#39;')}','${sentiment}','${content}','${warm}',${JSON.stringify(notes||'').replace(/"/g,'&quot;')},${JSON.stringify(actions||'').replace(/"/g,'&quot;')},${JSON.stringify(s?.account_manager||'').replace(/"/g,'&quot;')})"
+      onmousemove="posTip(event)"
+      onmouseleave="hideTip()">
+      <div class="health-name">${c.name}</div>
+      <div class="health-scores">
+        ${scorePill(sentiment,'CS')}
+        ${scorePill(content,'Cont')}
+        ${scorePill(warm,'WO')}
+      </div>
+      <div class="health-bar-wrap">
+        <div class="health-bar-bg"><div class="health-bar-fill" style="width:${barPct}%;background:${barCol};"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showHealthTip(e, name, sentiment, content, warm, notes, actions, am) {
+  const rows = [
+    { name: 'CS Sentiment', val: sentiment ? sentiment + '/10' : '—' },
+    { name: 'Content Performance', val: content ? content + '/10' : '—' },
+    { name: 'Warm Outbound', val: warm ? warm + '/10' : '—' },
+  ];
+  if (am) rows.push({ name: 'Account Manager', val: am });
+  if (notes) rows.push('---', notes);
+  if (actions) { if (!notes) rows.push('---'); rows.push('Action: ' + actions); }
+  showTip(e, name, rows);
+}
+
+// ── CHART RENDERERS ─────────────────────────────────────────────
 function buildTooltipLines(names) {
   if (!names || !names.length) return ['No data'];
   return names.map(n => typeof n === 'string' ? `  · ${n}` : `  · ${n.name}${n.val ? '  ('+n.val+')' : ''}`);
@@ -524,23 +661,17 @@ function renderPie(id, data, labels, colors, legendId, companyLists, valLabels) 
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const header = valLabels
-                ? ` ${labels[ctx.dataIndex]}: ${valLabels[ctx.dataIndex]}`
-                : ` ${labels[ctx.dataIndex]}: ${ctx.raw}`;
-              const names = companyLists ? companyLists[ctx.dataIndex] : [];
-              return [header, ...buildTooltipLines(names)];
-            }
-          }
-        }
+        tooltip: { callbacks: { label: ctx => {
+          const header = valLabels ? ` ${labels[ctx.dataIndex]}: ${valLabels[ctx.dataIndex]}` : ` ${labels[ctx.dataIndex]}: ${ctx.raw}`;
+          const names = companyLists ? companyLists[ctx.dataIndex] : [];
+          return [header, ...buildTooltipLines(names)];
+        }}}
       }
     }
   });
   const el = document.getElementById(legendId);
   if (el) el.innerHTML = labels.map((l,i) =>
-    `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]};"></span>${l}: ${data[i]}${valLabels ? ' ('+valLabels[i]+')' : ''}</span>`
+    `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]};"></span>${l}: ${data[i]}${valLabels?'  ('+valLabels[i]+')':''}</span>`
   ).join('');
 }
 
@@ -553,38 +684,46 @@ function renderBar(id, labels, data, color, companyLists) {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const count = ctx.raw;
-              const names = companyLists ? companyLists[ctx.dataIndex] : [];
-              const header = ` ${count} customer${count !== 1 ? 's' : ''}:`;
-              return [header, ...buildTooltipLines(names)];
-            }
-          }
-        }
+        tooltip: { callbacks: { label: ctx => {
+          const names = companyLists ? companyLists[ctx.dataIndex] : [];
+          return [` ${ctx.raw} customer${ctx.raw!==1?'s':''}:`, ...buildTooltipLines(names)];
+        }}}
       },
       scales: {
-        x: { ticks: { font: {size:10}, autoSkip: false, maxRotation: 35 }, grid: { display: false } },
-        y: { ticks: { font: {size:10}, stepSize: 1 }, grid: { color: 'rgba(26,25,22,0.06)' } }
+        x: { ticks: { font:{size:10}, autoSkip:false, maxRotation:35 }, grid:{display:false} },
+        y: { ticks: { font:{size:10}, stepSize:1 }, grid:{color:'rgba(26,25,22,0.06)'} }
       }
     }
   });
 }
 
 function renderTable(cos) {
-  const order = { 'In progress':0, 'Converted':1, 'Exited During Pilot':2, 'Churned Post Conversion':3 };
-  const bc    = { 'In progress':'badge-blue', 'Converted':'badge-teal', 'Exited During Pilot':'badge-coral', 'Churned Post Conversion':'badge-amber' };
+  const order = { 'In progress':0,'Converted':1,'Exited During Pilot':2,'Churned Post Conversion':3 };
+  const bc = { 'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber' };
   const f = n => n ? fmt$(n) : '—';
   document.getElementById('roster-body').innerHTML = [...cos]
-    .sort((a,b) => (order[a.pilot_status]??9) - (order[b.pilot_status]??9))
-    .map(c => `<tr>
-      <td>${c.name}</td>
-      <td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
-      <td>${c.stage||'—'}</td><td>${f(c.mrr)}</td>
-      <td>${f(c.expansion_mrr)}</td><td>${f(c.churned_mrr)}</td>
-      <td>${c.churn_reason||'—'}</td>
-    </tr>`).join('');
+    .sort((a,b) => (order[a.pilot_status]??9)-(order[b.pilot_status]??9))
+    .map(c => {
+      const s = getSheetData(c.name);
+      const sentiment = s?.cs_sentiment || '—';
+      const content   = s?.content_performance || '—';
+      const warm      = s?.warm_outbound || '—';
+      const am        = s?.account_manager || '—';
+      const sentCls   = s ? scoreColor(s.cs_sentiment) : 'score-gray';
+      const contCls   = s ? scoreColor(s.content_performance) : 'score-gray';
+      const warmCls   = s ? scoreColor(s.warm_outbound) : 'score-gray';
+      return `<tr>
+        <td>${c.name}</td>
+        <td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td>
+        <td>${c.stage||'—'}</td>
+        <td>${am}</td>
+        <td>${f(c.mrr)}</td>
+        <td><span class="score-pill ${sentCls}">${sentiment}</span></td>
+        <td><span class="score-pill ${contCls}">${content}</span></td>
+        <td><span class="score-pill ${warmCls}">${warm}</span></td>
+        <td>${c.churn_reason||'—'}</td>
+      </tr>`;
+    }).join('');
 }
 
 window.addEventListener('DOMContentLoaded', loadData);
