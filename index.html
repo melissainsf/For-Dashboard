@@ -407,6 +407,7 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
               <th>MRR</th>
               <th>Time to value</th>
               <th>Health</th>
+              <th>Churn reason</th>
             </tr>
           </thead>
           <tbody id="portfolio-roster-body"></tbody>
@@ -1085,6 +1086,7 @@ function renderPortfolioTable(cos) {
         <td>${f(c.mrr)}</td>
         <td style="${ttvStyle}">${ttv}</td>
         <td>${ragBadge(health.score)}</td>
+        <td>${c.churn_reason||'—'}</td>
       </tr>`;
     }).join('');
 }
