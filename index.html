@@ -1119,6 +1119,18 @@ function renderCohortsTab(cos) {
     const stageGRR = sMRR ? ((sMRR-sChrn)/sMRR*100).toFixed(1)+'%' : '—';
     const stageRet = everConvStage.length ? (convertedStage.length/everConvStage.length*100).toFixed(1)+'%' : '—';
     const retClass = parseFloat(stageRet) >= 80 ? 'teal' : parseFloat(stageRet) >= 60 ? 'ink' : 'coral';
+    const activeConverted = convertedStage.length;
+
+    if (activeConverted === 0 && churnedPostStage.length > 0) {
+      return `<div class="cohort-card">
+        <div class="cohort-card-title">${stage}</div>
+        <div class="cohort-card-n">n=${n} ever-converted · ${churnedPostStage.length} churned post-conversion</div>
+        <div class="cohort-na">All converted customers have since churned.</div>
+        <div class="cohort-metric" style="margin-top:8px;"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value coral">${stageNRR}</span></div>
+        <div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value coral">${stageGRR}</span></div>
+        <div class="cohort-metric"><span class="cohort-metric-label">Retention</span><span class="cohort-metric-value coral">${stageRet}</span></div>
+      </div>`;
+    }
 
     return `<div class="cohort-card">
       <div class="cohort-card-title">${stage}</div>
