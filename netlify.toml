@@ -1,4 +1,19 @@
 [[redirects]]
+  from = "/api/hubspot"
+  to = "/.netlify/functions/hubspot"
+  status = 200
+
+[[redirects]]
+  from = "/api/sheets"
+  to = "/.netlify/functions/sheets"
+  status = 200
+
+[[redirects]]
+  from = "/api/ordinal"
+  to = "/.netlify/functions/ordinal"
+  status = 200
+
+[[redirects]]
   from = "/hs-api/*"
   to = "https://api.hubapi.com/:splat"
   status = 200
