@@ -5,7 +5,4 @@
   force = true
 
 [functions]
-  node_bundler = "esbuild"
-
-[functions."ordinal"]
   timeout = 26
