@@ -799,8 +799,41 @@ async function loadData() {
 }
 
 async function loadOrdinalData() {
-  try { const r=await fetch('/api/ordinal',{method:'GET'}); return r.ok?await r.json():null; }
-  catch(e) { return null; }
+  const TOKEN = 'ord_c_dz1eKwjW8NH14WfC2tWKW';
+  const BASE  = 'https://app.tryordinal.com/api/v1/company';
+  const hdrs  = { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+  async function safeFetch(url) {
+    try {
+      const res = await fetch(url, { headers: hdrs });
+      if (!res.ok) return [];
+      const d = await res.json();
+      return d.posts || d.data || [];
+    } catch(e) { return []; }
+  }
+
+  try {
+    const wsRes = await fetch(`${BASE}/workspaces`, { headers: hdrs });
+    if (!wsRes.ok) return null;
+    const wsData = await wsRes.json();
+    const workspaces = wsData.workspaces || wsData.data || wsData || [];
+    const results = [];
+
+    for (const ws of workspaces) {
+      const slug = ws.slug || ws.id;
+      const forReview = await safeFetch(`${BASE}/${slug}/posts?status=ForReview&limit=100`);
+      await sleep(250);
+      const scheduled = await safeFetch(`${BASE}/${slug}/posts?status=Scheduled&limit=100`);
+      await sleep(250);
+      const posted    = await safeFetch(`${BASE}/${slug}/posts?status=Posted&limit=50&created_at_min=${monthStart}`);
+      await sleep(250);
+      results.push({ workspace: slug, workspaceName: ws.name || slug, forReview, scheduled, posted });
+    }
+    return { workspaces: results };
+  } catch(e) { return null; }
 }
 
 // ── MAIN COMPUTE ───────────────────────────────────────────────
