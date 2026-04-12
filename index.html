@@ -207,6 +207,20 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
   font-size: 12px; cursor: pointer; transition: all 0.15s;
 }
 .signout-btn:hover { background: rgba(245,243,238,0.15); color: var(--header-ink); }
+
+.team-table-wrap { overflow-x: auto; }
+.bottleneck-red  { color: var(--red); font-weight: 600; }
+.bottleneck-amber { color: var(--amber); font-weight: 500; }
+.bottleneck-ok   { color: var(--teal); }
+.ce-bar-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ce-bar-label { font-size: 12px; font-weight: 500; min-width: 80px; flex-shrink: 0; }
+.ce-bar-track { flex: 1; height: 10px; background: var(--surface2); border-radius: 5px; overflow: hidden; }
+.ce-bar-fill  { height: 100%; border-radius: 5px; background: var(--teal-mid); transition: width 0.4s ease; }
+.ce-bar-count { font-size: 11px; color: var(--ink2); min-width: 90px; flex-shrink: 0; }
+.cadence-ahead  { color: var(--teal); font-weight: 500; }
+.cadence-behind { color: var(--coral-mid); font-weight: 500; }
+.cadence-ok     { color: var(--blue); }
+.team-loading   { padding: 24px; font-size: 13px; color: var(--ink3); font-style: italic; }
 </style>
 </head>
 <body>
@@ -252,6 +266,7 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
   <button class="tab-btn active" onclick="switchTab(event,'main')">Pilot &amp; Post-Pilot</button>
   <button class="tab-btn" onclick="switchTab(event,'portfolio')">Whole Portfolio</button>
   <button class="tab-btn" onclick="switchTab(event,'cohorts')">Cohorts</button>
+  <button class="tab-btn" onclick="switchTab(event,'team')">Team</button>
 </div>
 
 <main>
@@ -381,15 +396,6 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
           <div class="chart-wrap-sm"><canvas id="convertedStageBar" role="img" aria-label="Converted by stage.">Converted by stage.</canvas></div>
         </div>
 
-        <div class="chart-card">
-          <div class="chart-card-title">AM attribution — post-pilot portfolio</div>
-          <div class="chart-card-sub">Active converted and churned post-conversion per account manager</div>
-          <div class="chart-wrap-md"><canvas id="postAMBar" role="img" aria-label="AM attribution post-pilot.">AM attribution.</canvas></div>
-          <div class="legend">
-            <span class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span>Active converted</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Churned post-conversion</span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -469,7 +475,6 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
         </table>
       </div>
     </div>
-
 
   </div>
 
@@ -565,6 +570,265 @@ footer { text-align: center; padding: 16px 32px 32px; font-size: 11px; color: va
     </div>
 
   </div>
+
+  <!-- ═══ TAB 4: TEAM ═══ -->
+  <div id="tab-team" class="tab-content">
+
+    <div class="section-header" style="margin-top:4px;">
+      <span class="section-title">Content review bottleneck</span>
+      <span class="section-note">ForReview posts · active customers only · days since post created</span>
+    </div>
+    <div class="table-card" style="margin-bottom:20px;">
+      <div class="team-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Post title</th>
+              <th>Customer</th>
+              <th>Content Engineer</th>
+              <th>Days waiting</th>
+              <th>Created</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody id="bottleneck-body"><tr><td colspan="6" class="team-loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">CE content load</span>
+      <span class="section-note">Target posts per month across all owned active customers · from HubSpot</span>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px;">
+      <div class="chart-card-title">Posts per month by Content Engineer</div>
+      <div class="chart-card-sub">Sum of posts_per_month across all active accounts per CE · use for capacity planning when assigning new customers</div>
+      <div id="ce-load-bars" style="padding:8px 0;"><div class="team-loading">Loading...</div></div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Content cadence health by account</span>
+      <span class="section-note">Scheduled posts this month vs. target · cross-referenced with HubSpot</span>
+    </div>
+    <div class="table-card">
+      <div class="team-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Content Engineer</th>
+              <th>Target / month</th>
+              <th>Scheduled this month</th>
+              <th>Posted this month</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="cadence-body"><tr><td colspan="6" class="team-loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+  
+    <div class="section-header">
+      <span class="section-title">Health scores by AM</span>
+      <span class="section-note">Average across all active accounts per AM · from Client Health Tracker</span>
+    </div>
+    <div class="chart-row-3">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">CS Sentiment by AM</div>
+        <div class="chart-card-sub">Avg score across active accounts</div>
+        <div class="chart-wrap-md"><canvas id="amSentimentBar" role="img" aria-label="CS sentiment by AM.">CS sentiment by AM.</canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Content performance by AM</div>
+        <div class="chart-card-sub">Avg score across active accounts</div>
+        <div class="chart-wrap-md"><canvas id="amContentBar" role="img" aria-label="Content performance by AM.">Content performance by AM.</canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Warm outbound by AM</div>
+        <div class="chart-card-sub">Avg score across active accounts</div>
+        <div class="chart-wrap-md"><canvas id="amWarmBar" role="img" aria-label="Warm outbound by AM.">Warm outbound by AM.</canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+</div>
+
+  <!-- ═══ TAB 3: COHORTS ═══ -->
+  <div id="tab-cohorts" class="tab-content">
+
+    <div class="section-header" style="margin-top:4px;">
+      <span class="section-title">Revenue health by stage</span>
+      <span class="section-note">Ever-converted customers · n = sample size per cohort</span>
+    </div>
+    <div class="cohort-grid" id="cohort-revenue-cards"></div>
+
+    <div class="section-header">
+      <span class="section-title">Score averages by stage</span>
+      <span class="section-note">Active customers with sheet data · slice size reflects avg score</span>
+    </div>
+    <div class="chart-row-3">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">CS Sentiment by stage</div>
+        <div class="chart-card-sub">Avg score per stage · active customers</div>
+        <div class="chart-wrap-md"><canvas id="sentimentStagePie" role="img" aria-label="CS sentiment by stage.">CS sentiment by stage.</canvas></div>
+        <div class="legend" id="legend-sentiment-stage"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Content performance by stage</div>
+        <div class="chart-card-sub">Avg score per stage · active customers</div>
+        <div class="chart-wrap-md"><canvas id="contentStagePie" role="img" aria-label="Content performance by stage.">Content performance by stage.</canvas></div>
+        <div class="legend" id="legend-content-stage"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Warm outbound by stage</div>
+        <div class="chart-card-sub">Avg score per stage · active customers</div>
+        <div class="chart-wrap-md"><canvas id="warmStagePie" role="img" aria-label="Warm outbound by stage.">Warm outbound by stage.</canvas></div>
+        <div class="legend" id="legend-warm-stage"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+    <div class="section-header">
+      <span class="section-title">Operational metrics by stage</span>
+      <span class="section-note">All companies</span>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Avg composite health score by stage</div>
+        <div class="chart-card-sub">Active customers · all five signals</div>
+        <div class="chart-wrap-md"><canvas id="healthScoreStageBar" role="img" aria-label="Health score by stage.">Health score by stage.</canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Avg time to value by stage</div>
+        <div class="chart-card-sub">Days from kickoff to first post · all companies with both dates</div>
+        <div class="chart-wrap-md"><canvas id="ttvStageBar" role="img" aria-label="TTV by stage.">TTV by stage.</canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Pilot conversion rate by stage</div>
+        <div class="chart-card-sub">Concluded pilots only</div>
+        <div class="chart-wrap-md"><canvas id="conversionStageBar" role="img" aria-label="Pilot conversion by stage.">Pilot conversion by stage.</canvas></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span>Conversion rate</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Churn rate</span>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Churn reasons by stage</div>
+        <div class="chart-card-sub">All churned companies</div>
+        <div class="chart-wrap-md"><canvas id="churnReasonStageBar" role="img" aria-label="Churn reasons by stage.">Churn reasons by stage.</canvas></div>
+        <div class="legend" id="legend-churn-stage"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+    <div class="section-header">
+      <span class="section-title">Cohort roster</span>
+      <span class="section-note" id="note-cohort-roster"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th><th>Stage</th><th>Status</th><th>AM</th>
+              <th>MRR</th><th>Time to value</th><th>Health</th>
+              <th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th>
+            </tr>
+          </thead>
+          <tbody id="cohort-roster-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ TAB 4: TEAM ═══ -->
+  <div id="tab-team" class="tab-content">
+
+    <div class="section-header" style="margin-top:4px;">
+      <span class="section-title">Content review bottleneck</span>
+      <span class="section-note">ForReview posts · active customers only · days since post created</span>
+    </div>
+    <div class="table-card" style="margin-bottom:20px;">
+      <div class="team-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Post title</th>
+              <th>Customer</th>
+              <th>Content Engineer</th>
+              <th>Days waiting</th>
+              <th>Created</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody id="bottleneck-body"><tr><td colspan="6" class="team-loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">CE content load</span>
+      <span class="section-note">Target posts per month across all owned active customers · from HubSpot</span>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px;">
+      <div class="chart-card-title">Posts per month by Content Engineer</div>
+      <div class="chart-card-sub">Sum of posts_per_month across all active accounts per CE · use for capacity planning when assigning new customers</div>
+      <div id="ce-load-bars" style="padding:8px 0;"><div class="team-loading">Loading...</div></div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Content cadence health by account</span>
+      <span class="section-note">Scheduled posts this month vs. target · cross-referenced with HubSpot</span>
+    </div>
+    <div class="table-card">
+      <div class="team-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Content Engineer</th>
+              <th>Target / month</th>
+              <th>Scheduled this month</th>
+              <th>Posted this month</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="cadence-body"><tr><td colspan="6" class="team-loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  
+    <div class="section-header" style="margin-top:8px;">
+      <span class="section-title">AM performance</span>
+      <span class="section-note">Post-pilot portfolio · active converted + churned post-conversion</span>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">AM attribution — post-pilot portfolio</div>
+        <div class="chart-card-sub">Active converted vs. churned post-conversion per AM</div>
+        <div class="chart-wrap-md"><canvas id="postAMBar" role="img" aria-label="AM attribution post-pilot.">AM attribution.</canvas></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span>Active converted</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Churned post-conversion</span>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0;">
+        <div class="chart-card-title">Active MRR by AM</div>
+        <div class="chart-card-sub">Total MRR across all active accounts per AM · incl. expansion</div>
+        <div class="chart-wrap-md"><canvas id="amMRRBar" role="img" aria-label="MRR by AM.">MRR by AM.</canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"></div>
+
+</div>
   </div>
 </main>
 <footer id="footer-date"></footer>
@@ -590,6 +854,7 @@ function switchTab(e, name) {
   const cos = exclude ? allCompanies.filter(c => c.domain !== 'virio.ai' && c.name !== 'Virio') : allCompanies;
   if (name === 'cohorts')   renderCohortsTab(cos);
   if (name === 'portfolio') renderPortfolioTable(cos);
+  if (name === 'team')      renderTeamTab(cos, ordinalData);
 }
 
 // ── TOOLTIP ────────────────────────────────────────────────────
@@ -752,6 +1017,8 @@ async function loadData() {
       churn_reason:    r.properties.churn_reason || null,
       domain:          r.properties.domain,
       csm:             r.properties.csm || null,
+      content_manager: r.properties.content_manager || null,
+      posts_per_month: r.properties.posts_per_month || null,
       kickoff_date:    r.properties.kickoff_call_date || null,
       first_post_date: r.properties.first_post_date || null,
       vertical:        r.properties.vertical || null,
@@ -771,6 +1038,10 @@ async function loadData() {
     document.getElementById('last-updated').textContent = 'Refreshed ' + now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     document.getElementById('footer-date').textContent = 'Virio CS Dashboard · HubSpot + Client Health Tracker · ' + now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
+    // Fetch ordinal data in background for team tab
+    loadOrdinalData().then(data => {
+      ordinalData = data;
+    });
   } catch(e) {
     setStatus('Failed to load: ' + e.message, 'error');
   } finally { btn.disabled = false; }
@@ -916,12 +1187,8 @@ function recompute() {
      { label:'Exited during pilot', data: allAMs.map(am=>exited.filter(c=>displayAM(c.csm)===am).length),    color:'#D85A30',
        names: allAMs.map(am=>exited.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'}))) }]);
 
-  // AM attribution — post-pilot
-  renderGroupedBar('postAMBar', allAMs,
-    [{ label:'Active converted',       data: allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).length),   color:'#1D9E75',
-       names: allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)}))) },
-     { label:'Churned post-conversion',data: allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).length), color:'#D85A30',
-       names: allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'}))) }]);
+  // postAMBar and AM score charts rendered in renderTeamTab (tab-team)
+
 
   const reasonMap = {};
   [...exited,...churnedPost].filter(c=>c.churn_reason).forEach(c => {
@@ -1407,6 +1674,232 @@ async function checkAuth() {
   showAuthScreen(true);
   return false;
 }
+
+
+// ── ORDINAL DATA + TEAM TAB ─────────────────────────────────────
+let ordinalData = null;
+
+function slugToCompanyKey(slug) {
+  // Take everything before the first hyphen, lowercase, strip non-alphanumeric
+  const prefix = slug.split('-')[0];
+  return prefix.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function parsePostsPerMonth(val) {
+  if (!val) return 0;
+  const m = val.match(/\d+/);
+  return m ? parseInt(m[0]) : 0;
+}
+
+function matchWorkspaceToCompany(slug, companies) {
+  const key = slugToCompanyKey(slug);
+  // Find HubSpot company whose normalized name starts with key or equals key
+  return companies.find(c => {
+    const cKey = c.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return cKey === key || cKey.startsWith(key) || key.startsWith(cKey);
+  }) || null;
+}
+
+async function loadOrdinalData() {
+  try {
+    const res = await fetch('/api/ordinal', { method: 'GET' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
+}
+
+function renderTeamTab(cos, ordinal) {
+  const exclude = document.getElementById('exclude-virio').checked;
+  // Active customers only (lifecyclestage = customer = In progress + Converted)
+  const active = cos.filter(c =>
+    (c.pilot_status === 'In progress' || c.pilot_status === 'Converted') &&
+    (exclude ? c.domain !== 'virio.ai' : true)
+  );
+
+  // Build valid CE/AM set from HubSpot — only people listed as csm or content_manager
+  const validTeam = new Set();
+  active.forEach(c => {
+    if (c.csm) validTeam.add(displayAM(c.csm));
+    if (c.content_manager) validTeam.add(c.content_manager);
+  });
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // ── BOTTLENECK TABLE ──
+  const bottleneckRows = [];
+  if (ordinal && ordinal.workspaces) {
+    ordinal.workspaces.forEach(ws => {
+      const company = matchWorkspaceToCompany(ws.workspace, active);
+      if (!company) return; // skip non-active-customer workspaces
+      const ce = company.content_manager || '—';
+      (ws.forReview || []).forEach(post => {
+        const created = new Date(post.createdAt);
+        const days = Math.round((now - created) / 86400000);
+        bottleneckRows.push({ post, company, ce, days, created });
+      });
+    });
+  }
+  bottleneckRows.sort((a, b) => b.days - a.days);
+
+  const bottleneckEl = document.getElementById('bottleneck-body');
+  if (!bottleneckRows.length) {
+    bottleneckEl.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic;">No posts currently in ForReview for active customers.</td></tr>';
+  } else {
+    bottleneckEl.innerHTML = bottleneckRows.map(({ post, company, ce, days, created }) => {
+      const cls = days >= 14 ? 'bottleneck-red' : days >= 7 ? 'bottleneck-amber' : 'bottleneck-ok';
+      const dateStr = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `<tr>
+        <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${post.title}</td>
+        <td>${company.name}</td>
+        <td>${ce}</td>
+        <td class="${cls}">${days}d</td>
+        <td style="color:var(--ink3);font-size:11px;">${dateStr}</td>
+        <td><a href="${post.url}" target="_blank" style="color:var(--blue);font-size:11px;text-decoration:none;">Open ↗</a></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── CE LOAD BARS ──
+  const ceLoadMap = {};
+  active.forEach(c => {
+    const ce = c.content_manager || 'Unassigned';
+    if (!validTeam.has(ce) && ce !== 'Unassigned') return;
+    const ppm = parsePostsPerMonth(c.posts_per_month);
+    if (!ceLoadMap[ce]) ceLoadMap[ce] = { total: 0, accounts: [] };
+    ceLoadMap[ce].total += ppm;
+    ceLoadMap[ce].accounts.push({ name: c.name, ppm });
+  });
+
+  const maxLoad = Math.max(...Object.values(ceLoadMap).map(v => v.total), 1);
+  const ceLoadEl = document.getElementById('ce-load-bars');
+  const sortedCEs = Object.entries(ceLoadMap).sort((a, b) => b[1].total - a[1].total);
+
+  ceLoadEl.innerHTML = sortedCEs.map(([ce, data]) => {
+    const pct = (data.total / maxLoad * 100).toFixed(1);
+    const accountList = data.accounts.map(a => `${a.name} (${a.ppm}/mo)`).join(', ');
+    return `<div class="ce-bar-wrap" title="${accountList}">
+      <div class="ce-bar-label">${ce}</div>
+      <div class="ce-bar-track"><div class="ce-bar-fill" style="width:${pct}%;"></div></div>
+      <div class="ce-bar-count">${data.total} posts/mo · ${data.accounts.length} account${data.accounts.length !== 1 ? 's' : ''}</div>
+    </div>`;
+  }).join('');
+
+  // ── CADENCE TABLE ──
+  const cadenceEl = document.getElementById('cadence-body');
+  const cadenceRows = active.map(c => {
+    const target = parsePostsPerMonth(c.posts_per_month);
+    const ce = c.content_manager || '—';
+
+    let scheduled = 0, posted = 0;
+    if (ordinal && ordinal.workspaces) {
+      const ws = ordinal.workspaces.find(w => matchWorkspaceToCompany(w.workspace, [c]));
+      if (ws) {
+        scheduled = (ws.scheduled || []).filter(p => {
+          const d = new Date(p.publishAt || p.publishDate);
+          return d >= monthStart && d <= new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        }).length;
+        posted = (ws.posted || []).filter(p => {
+          const d = new Date(p.publishAt || p.publishDate || p.createdAt);
+          return d >= monthStart;
+        }).length;
+      }
+    }
+
+    const total = scheduled + posted;
+    let statusLabel, statusCls;
+    if (target === 0) { statusLabel = '—'; statusCls = ''; }
+    else if (total >= target) { statusLabel = 'On track'; statusCls = 'cadence-ahead'; }
+    else if (total >= target * 0.6) { statusLabel = `${target - total} behind`; statusCls = 'cadence-ok'; }
+    else { statusLabel = `${target - total} behind`; statusCls = 'cadence-behind'; }
+
+    return { c, ce, target, scheduled, posted, total, statusLabel, statusCls };
+  });
+
+  cadenceRows.sort((a, b) => {
+    const aGap = a.target ? (a.target - a.total) / a.target : -1;
+    const bGap = b.target ? (b.target - b.total) / b.target : -1;
+    return bGap - aGap;
+  });
+
+  cadenceEl.innerHTML = cadenceRows.map(({ c, ce, target, scheduled, posted, statusLabel, statusCls }) =>
+    `<tr>
+      <td>${c.name}</td>
+      <td>${ce}</td>
+      <td>${target || '—'}</td>
+      <td>${scheduled}</td>
+      <td>${posted}</td>
+      <td class="${statusCls}">${statusLabel}</td>
+    </tr>`
+  ).join('');
+
+  // ── AM ATTRIBUTION + SCORE CHARTS ──
+  const allAMs    = [...new Set(cos.map(c => displayAM(c.csm)).filter(Boolean))].sort();
+  const converted   = cos.filter(c => c.pilot_status === 'Converted');
+  const churnedPost = cos.filter(c => c.pilot_status === 'Churned Post Conversion');
+
+  renderGroupedBar('postAMBar', allAMs,
+    [{ label:'Active converted',        data: allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).length),   color:'#1D9E75',
+       names: allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)}))) },
+     { label:'Churned post-conversion', data: allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).length), color:'#D85A30',
+       names: allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'}))) }]);
+
+}
+  // ── AM ATTRIBUTION + MRR + SCORE CHARTS ──
+  const allAMs_team = [...new Set(cos.map(c => displayAM(c.csm)).filter(Boolean))].sort();
+  const converted_team   = cos.filter(c => c.pilot_status === 'Converted');
+  const churnedPost_team = cos.filter(c => c.pilot_status === 'Churned Post Conversion');
+
+  renderGroupedBar('postAMBar', allAMs_team,
+    [{ label:'Active converted',        data: allAMs_team.map(am=>converted_team.filter(c=>displayAM(c.csm)===am).length),   color:'#1D9E75',
+       names: allAMs_team.map(am=>converted_team.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)}))) },
+     { label:'Churned post-conversion', data: allAMs_team.map(am=>churnedPost_team.filter(c=>displayAM(c.csm)===am).length), color:'#D85A30',
+       names: allAMs_team.map(am=>churnedPost_team.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'}))) }]);
+
+  const amMRRData = allAMs_team.map(am => {
+    const ams_cos = active.filter(c => displayAM(c.csm) === am);
+    return { total: ams_cos.reduce((s,c) => s+c.mrr+c.expansion_mrr, 0), names: ams_cos.map(c=>({name:c.name,val:fmt$(c.mrr+c.expansion_mrr)})) };
+  });
+  if (charts['amMRRBar']) charts['amMRRBar'].destroy();
+  charts['amMRRBar'] = new Chart(document.getElementById('amMRRBar').getContext('2d'), {
+    type: 'bar',
+    data: { labels: allAMs_team, datasets: [{ data: amMRRData.map(d=>d.total), backgroundColor: '#7F77DD', borderRadius: 4, names: amMRRData.map(d=>d.names) }] },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => {
+        const names = ctx.dataset.names[ctx.dataIndex];
+        return [' ' + fmtBig$(ctx.raw), ...buildLines(names)];
+      }}}},
+      scales:{ x:{ticks:{font:{size:10}},grid:{display:false}}, y:{ticks:{font:{size:10}, callback: v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}} }
+    }
+  });
+
+  const amAvgScore = (field) => allAMs_team.map(am => {
+    const am_cos = active.filter(c => displayAM(c.csm) === am);
+    const vals = am_cos.map(c => { const s = getSheetData(c.name); return s ? parseFloat(s[field]) : NaN; }).filter(n => !isNaN(n));
+    return { avg: vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0, n: vals.length,
+             names: am_cos.map(c=>{ const s=getSheetData(c.name); return {name:c.name, val:s?s[field]||'—':'—'}; }) };
+  });
+
+  const renderAMScoreBar = (id, data) => {
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
+      type: 'bar',
+      data: { labels: allAMs_team, datasets: [{ data: data.map(d=>parseFloat(d.avg.toFixed(1))),
+        backgroundColor: data.map(d=>d.avg>=7?'#1D9E75':d.avg>=4.5?'#BA7517':'#E24B4A'), borderRadius:4, names: data.map(d=>d.names) }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => {
+          const d = data[ctx.dataIndex];
+          return [' Avg: '+ctx.raw+'/10  (n='+d.n+')', ...buildLines(d.names)];
+        }}}},
+        scales:{ x:{ticks:{font:{size:10}},grid:{display:false}}, y:{min:0,max:10,ticks:{font:{size:10},stepSize:2},grid:{color:'rgba(26,25,22,0.06)'}} }
+      }
+    });
+  };
+  renderAMScoreBar('amSentimentBar', amAvgScore('cs_sentiment'));
+  renderAMScoreBar('amContentBar',   amAvgScore('content_performance'));
+  renderAMScoreBar('amWarmBar',      amAvgScore('warm_outbound'));
+
+
 
 window.addEventListener('DOMContentLoaded', async () => {
   // Handle OAuth callback hash
