@@ -9,18 +9,19 @@ exports.handler = async function(event, context) {
     'Content-Type': 'application/json'
   };
 
-  // Ordinal API base - try both common patterns
-  const BASE = 'https://app.tryordinal.com/api/v1';
+  const BASE = 'https://app.tryordinal.com/api/v1/company';
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   try {
-    // Step 1: Get workspaces
+    // Get workspaces list
     const wsRes = await fetch(`${BASE}/workspaces`, { headers });
     if (!wsRes.ok) {
       const errText = await wsRes.text();
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ workspaces: [], debug: `Workspace fetch failed: ${wsRes.status} ${errText.slice(0,200)}` })
+        body: JSON.stringify({ workspaces: [], debug: `Workspace fetch failed: ${wsRes.status} - ${errText.slice(0,300)}` })
       };
     }
 
@@ -31,12 +32,9 @@ exports.handler = async function(event, context) {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ workspaces: [], debug: `No workspaces found. Response: ${JSON.stringify(wsData).slice(0,300)}` })
+        body: JSON.stringify({ workspaces: [], debug: `No workspaces. Raw: ${JSON.stringify(wsData).slice(0,300)}` })
       };
     }
-
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     const results = await Promise.all(workspaces.map(async (ws) => {
       const slug = ws.slug || ws.id;
