@@ -1,7 +1,11 @@
-[build]
-  functions = "netlify/functions"
-
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/hs-api/*"
+  to = "https://api.hubapi.com/:splat"
   status = 200
+  force = true
+
+[functions]
+  node_bundler = "esbuild"
+
+[functions."ordinal"]
+  timeout = 26
