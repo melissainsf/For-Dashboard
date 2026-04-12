@@ -1,3 +1,4 @@
+// Virio CS Dashboard - HubSpot serverless function v2
 exports.handler = async function(event, context) {
   const token = process.env.HUBSPOT_TOKEN;
 
@@ -8,7 +9,7 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const body = {
+  const requestBody = {
     filterGroups: [{
       filters: [{
         propertyName: 'pilot_status',
@@ -25,23 +26,31 @@ exports.handler = async function(event, context) {
     limit: 200
   };
 
-  const res = await fetch('https://api.hubapi.com/crm/v3/objects/companies/search', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(body)
-  });
+  try {
+    const res = await fetch('https://api.hubapi.com/crm/v3/objects/companies/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify(requestBody)
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  return {
-    statusCode: res.status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    },
-    body: JSON.stringify(data)
-  };
+    return {
+      statusCode: res.status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(data)
+    };
+  } catch(e) {
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: e.message })
+    };
+  }
 };
