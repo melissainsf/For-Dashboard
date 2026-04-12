@@ -3,6 +3,3 @@
   to = "https://api.hubapi.com/:splat"
   status = 200
   force = true
-
-[functions]
-  timeout = 26
