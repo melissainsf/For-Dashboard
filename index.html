@@ -1186,13 +1186,20 @@ function renderTeamTab(cos, ordinal) {
 
   // Bottleneck table
   const rows=[];
-  const diag={wsCount:0,matched:0,unmatchedSlugs:[],totalForReview:0,totalScheduled:0,totalPosted:0};
+  const diag={wsCount:0,matched:0,unmatchedSlugs:[],totalForReview:0,totalScheduled:0,totalPosted:0,statusCounts:{}};
   if(ordinal&&ordinal.workspaces) {
     diag.wsCount=ordinal.workspaces.length;
     ordinal.workspaces.forEach(ws=>{
       diag.totalForReview+=(ws.forReview||[]).length;
       diag.totalScheduled+=(ws.scheduled||[]).length;
       diag.totalPosted+=(ws.posted||[]).length;
+      // Tally HTTP status codes returned by the serverless proxy for each sub-request
+      if(ws.debug) {
+        ['forReview','scheduled','posted'].forEach(k=>{
+          const s=ws.debug[k];
+          if(s!==undefined) { const key=k+':'+s; diag.statusCounts[key]=(diag.statusCounts[key]||0)+1; }
+        });
+      }
       const co=matchWorkspaceToCompany(ws.workspace,active);
       if(!co) { diag.unmatchedSlugs.push(ws.workspace); return; }
       diag.matched++;
@@ -1201,9 +1208,10 @@ function renderTeamTab(cos, ordinal) {
         rows.push({post,co,ce:co.content_manager||'—',days:Math.round((now-created)/86400000),created});
       });
     });
-    console.log('[Ordinal diag]', diag, 'active company names:', active.map(c=>c.name));
+    console.log('[Ordinal diag]', diag, 'active company names:', active.map(c=>c.name), 'raw workspaces:', ordinal.workspaces);
     const diagEl=document.getElementById('ordinal-diag');
-    if(diagEl) diagEl.textContent=`diag: ${diag.wsCount} workspaces · ${diag.matched} matched to ${active.length} active customers · ${diag.totalForReview} ForReview / ${diag.totalScheduled} Scheduled / ${diag.totalPosted} Posted total · unmatched: ${diag.unmatchedSlugs.slice(0,8).join(', ')}${diag.unmatchedSlugs.length>8?'…':''}`;
+    const statusParts=Object.entries(diag.statusCounts).map(([k,v])=>`${k}×${v}`).join(' ');
+    if(diagEl) diagEl.textContent=`diag: ${diag.wsCount} workspaces · ${diag.matched} matched to ${active.length} active customers · ${diag.totalForReview} ForReview / ${diag.totalScheduled} Scheduled / ${diag.totalPosted} Posted total · proxy statuses: ${statusParts||'none'} · unmatched: ${diag.unmatchedSlugs.slice(0,8).join(', ')}${diag.unmatchedSlugs.length>8?'…':''}`;
   } else {
     const diagEl=document.getElementById('ordinal-diag');
     if(diagEl) diagEl.textContent=ordinal===null?'diag: ordinal fetch returned null (workspaces endpoint failed — check token/CORS)':'diag: ordinal data not yet loaded';
