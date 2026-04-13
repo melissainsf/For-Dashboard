@@ -1,66 +1,79 @@
-exports.handler = async function(event, context) {
+// Ordinal proxy — two modes to keep each invocation well under the 10s Netlify limit:
+//   GET /api/ordinal              -> { workspaces: [{slug, name}, ...] }
+//   GET /api/ordinal?slug=<slug>  -> { workspace, workspaceName, forReview, scheduled, posted }
+// Token stays server-side; browser avoids CORS and rate-limit exposure.
+
+exports.handler = async function(event) {
   const token = process.env.ORDINAL_TOKEN;
   if (!token) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'ORDINAL_TOKEN not set.' }) };
+    return json(500, { error: 'ORDINAL_TOKEN not set.' });
   }
 
   const headers = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
   };
-
   const BASE = 'https://app.tryordinal.com/api/v1/company';
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   async function safeFetch(url) {
     try {
       const res = await fetch(url, { headers });
-      if (!res.ok) return null;
+      if (!res.ok) return { ok: false, status: res.status, data: [] };
       const d = await res.json();
-      return d.posts || d.data || [];
-    } catch(e) { return null; }
+      return { ok: true, status: 200, data: d.posts || d.data || [] };
+    } catch(e) { return { ok: false, status: 0, data: [], error: e.message }; }
   }
+
+  const slug = event.queryStringParameters && event.queryStringParameters.slug;
 
   try {
-    // 1 request: get workspaces
-    const wsRes = await fetch(`${BASE}/workspaces`, { headers });
-    if (!wsRes.ok) {
-      const t = await wsRes.text();
-      return { statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ workspaces: [], debug: `Workspaces ${wsRes.status}: ${t.slice(0,200)}` }) };
+    // Mode 1: no slug -> return just the workspace list (dedupe by slug)
+    if (!slug) {
+      const wsRes = await fetch(`${BASE}/workspaces`, { headers });
+      if (!wsRes.ok) {
+        const t = await wsRes.text();
+        return json(200, { workspaces: [], debug: `Workspaces ${wsRes.status}: ${t.slice(0,200)}` });
+      }
+      const wsData = await wsRes.json();
+      const raw = wsData.workspaces || wsData.data || wsData || [];
+      const seen = new Set();
+      const workspaces = raw
+        .map(w => ({ slug: w.slug || w.id, name: w.name || w.slug || w.id }))
+        .filter(w => { if (!w.slug || seen.has(w.slug)) return false; seen.add(w.slug); return true; });
+      return json(200, { workspaces });
     }
 
-    const wsData = await wsRes.json();
-    const workspaces = wsData.workspaces || wsData.data || wsData || [];
-    const results = [];
+    // Mode 2: slug provided -> fetch 3 status queries for that workspace
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // Process sequentially with a small gap — avoids rate limiting, avoids parallel timeout
-    for (const ws of workspaces) {
-      const slug = ws.slug || ws.id;
+    const forReview = await safeFetch(`${BASE}/${encodeURIComponent(slug)}/posts?status=ForReview&limit=100`);
+    await sleep(350);
+    const scheduled = await safeFetch(`${BASE}/${encodeURIComponent(slug)}/posts?status=Scheduled&limit=100`);
+    await sleep(350);
+    const posted = await safeFetch(`${BASE}/${encodeURIComponent(slug)}/posts?status=Posted&limit=50&created_at_min=${encodeURIComponent(monthStart)}`);
 
-      const forReview = await safeFetch(`${BASE}/${slug}/posts?status=ForReview&limit=100`) || [];
-      await sleep(300);
-      const scheduled = await safeFetch(`${BASE}/${slug}/posts?status=Scheduled&limit=100`) || [];
-      await sleep(300);
-      const posted = await safeFetch(`${BASE}/${slug}/posts?status=Posted&limit=50&created_at_min=${monthStart}`) || [];
-      await sleep(300);
-
-      results.push({ workspace: slug, workspaceName: ws.name || slug, forReview, scheduled, posted });
-    }
-
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ workspaces: results })
-    };
+    return json(200, {
+      workspace: slug,
+      forReview: forReview.data,
+      scheduled: scheduled.data,
+      posted: posted.data,
+      debug: {
+        forReview: forReview.status,
+        scheduled: scheduled.status,
+        posted: posted.status
+      }
+    });
   } catch(e) {
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ workspaces: [], debug: `Exception: ${e.message}` })
-    };
+    return json(200, { workspaces: [], debug: `Exception: ${e.message}` });
   }
 };
+
+function json(statusCode, body) {
+  return {
+    statusCode,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    body: JSON.stringify(body)
+  };
+}
