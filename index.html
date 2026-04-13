@@ -491,6 +491,7 @@ footer{text-align:center;padding:16px 32px 32px;font-size:11px;color:var(--ink3)
       <span class="section-title">Content review bottleneck</span>
       <span class="section-note">ForReview posts · active customers only · days since created</span>
     </div>
+    <div id="ordinal-diag" style="font-size:11px;color:var(--ink3);margin:-8px 0 8px 0;font-family:ui-monospace,Menlo,monospace"></div>
     <div class="table-card" style="margin-bottom:20px">
       <div class="table-wrap">
         <table>
@@ -1180,15 +1181,27 @@ function renderTeamTab(cos, ordinal) {
 
   // Bottleneck table
   const rows=[];
+  const diag={wsCount:0,matched:0,unmatchedSlugs:[],totalForReview:0,totalScheduled:0,totalPosted:0};
   if(ordinal&&ordinal.workspaces) {
+    diag.wsCount=ordinal.workspaces.length;
     ordinal.workspaces.forEach(ws=>{
+      diag.totalForReview+=(ws.forReview||[]).length;
+      diag.totalScheduled+=(ws.scheduled||[]).length;
+      diag.totalPosted+=(ws.posted||[]).length;
       const co=matchWorkspaceToCompany(ws.workspace,active);
-      if(!co) return;
+      if(!co) { diag.unmatchedSlugs.push(ws.workspace); return; }
+      diag.matched++;
       (ws.forReview||[]).forEach(post=>{
         const created=new Date(post.createdAt);
         rows.push({post,co,ce:co.content_manager||'—',days:Math.round((now-created)/86400000),created});
       });
     });
+    console.log('[Ordinal diag]', diag, 'active company names:', active.map(c=>c.name));
+    const diagEl=document.getElementById('ordinal-diag');
+    if(diagEl) diagEl.textContent=`diag: ${diag.wsCount} workspaces · ${diag.matched} matched to ${active.length} active customers · ${diag.totalForReview} ForReview / ${diag.totalScheduled} Scheduled / ${diag.totalPosted} Posted total · unmatched: ${diag.unmatchedSlugs.slice(0,8).join(', ')}${diag.unmatchedSlugs.length>8?'…':''}`;
+  } else {
+    const diagEl=document.getElementById('ordinal-diag');
+    if(diagEl) diagEl.textContent=ordinal===null?'diag: ordinal fetch returned null (workspaces endpoint failed — check token/CORS)':'diag: ordinal data not yet loaded';
   }
   rows.sort((a,b)=>b.days-a.days);
   const btEl=document.getElementById('bottleneck-body');
