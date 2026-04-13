@@ -491,6 +491,7 @@ footer{text-align:center;padding:16px 32px 32px;font-size:11px;color:var(--ink3)
       <span class="section-title">Content review bottleneck</span>
       <span class="section-note">ForReview posts · active customers only · days since created</span>
     </div>
+    <div id="ordinal-diag" style="font-size:11px;color:var(--ink3);margin:-8px 0 8px 0;font-family:ui-monospace,Menlo,monospace"></div>
     <div class="table-card" style="margin-bottom:20px">
       <div class="table-wrap">
         <table>
@@ -582,7 +583,7 @@ const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D453
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 const JOURNEY_SCORES = {'Kickoff Call Scheduled':2,'Kickoff Call Completed':4,'Content Interview Completed':6,'Awaiting Customer QA':7,'Live':9,'Renewal':10};
 
-let allCompanies = [], sheetMap = {}, charts = {}, ordinalData = null;
+let allCompanies = [], sheetMap = {}, charts = {}, ordinalData = null, ordinalLoading = false;
 
 // ── AUTH ────────────────────────────────────────────────────────
 function showAuthScreen(show) {
@@ -792,48 +793,73 @@ async function loadData() {
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Client Health Tracker · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
-    loadOrdinalData().then(d=>{ ordinalData=d; });
+    if(!ordinalLoading) {
+      ordinalLoading=true;
+      loadOrdinalData().then(d=>{
+        ordinalData=d;
+        ordinalLoading=false;
+        // If the Team tab is currently visible, re-render it now that data arrived.
+        if(document.getElementById('tab-team').classList.contains('active')) {
+          const ex=document.getElementById('exclude-virio').checked;
+          const cs=ex?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+          renderTeamTab(cs, ordinalData);
+        }
+      });
+    }
   } catch(e) {
     setStatus('Failed to load: '+e.message,'error');
   } finally { btn.disabled=false; }
 }
 
 async function loadOrdinalData() {
-  const TOKEN = 'ord_c_dz1eKwjW8NH14WfC2tWKW';
-  const BASE  = 'https://app.tryordinal.com/api/v1/company';
-  const hdrs  = { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+  // Calls the Netlify serverless proxy instead of Ordinal directly.
+  // The proxy keeps the token server-side and avoids browser CORS issues.
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  async function safeFetch(url) {
+  async function safeJson(url) {
     try {
-      const res = await fetch(url, { headers: hdrs });
-      if (!res.ok) return [];
-      const d = await res.json();
-      return d.posts || d.data || [];
-    } catch(e) { return []; }
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch(e) { return null; }
   }
 
   try {
-    const wsRes = await fetch(`${BASE}/workspaces`, { headers: hdrs });
-    if (!wsRes.ok) return null;
-    const wsData = await wsRes.json();
-    const workspaces = wsData.workspaces || wsData.data || wsData || [];
-    const results = [];
+    // Step 1: get workspace list (single fast call).
+    const listData = await safeJson('/api/ordinal');
+    if (!listData || !Array.isArray(listData.workspaces) || !listData.workspaces.length) {
+      console.warn('[Ordinal] workspace list empty or failed', listData);
+      return null;
+    }
+    const workspaces = listData.workspaces;
 
-    for (const ws of workspaces) {
-      const slug = ws.slug || ws.id;
-      const forReview = await safeFetch(`${BASE}/${slug}/posts?status=ForReview&limit=100`);
-      await sleep(250);
-      const scheduled = await safeFetch(`${BASE}/${slug}/posts?status=Scheduled&limit=100`);
-      await sleep(250);
-      const posted    = await safeFetch(`${BASE}/${slug}/posts?status=Posted&limit=50&created_at_min=${monthStart}`);
-      await sleep(250);
-      results.push({ workspace: slug, workspaceName: ws.name || slug, forReview, scheduled, posted });
+    // Step 2: fetch each workspace in concurrent batches of 3, 600ms gap between batches.
+    // Each proxy call does 3 Ordinal requests internally, so 3 concurrent = 9 Ordinal req
+    // in ~1.1s, then 600ms rest = ~5 req/sec, well under 100 req / 60s = 1.67/sec average
+    // only in bursts — token-bucket-friendly.
+    const BATCH = 3;
+    const results = [];
+    for (let i = 0; i < workspaces.length; i += BATCH) {
+      const chunk = workspaces.slice(i, i + BATCH);
+      const chunkResults = await Promise.all(chunk.map(async ws => {
+        const d = await safeJson(`/api/ordinal?slug=${encodeURIComponent(ws.slug)}`);
+        return {
+          workspace: ws.slug,
+          workspaceName: ws.name,
+          forReview: (d && d.forReview) || [],
+          scheduled: (d && d.scheduled) || [],
+          posted: (d && d.posted) || [],
+          debug: d && d.debug
+        };
+      }));
+      results.push(...chunkResults);
+      if (i + BATCH < workspaces.length) await sleep(600);
     }
     return { workspaces: results };
-  } catch(e) { return null; }
+  } catch(e) {
+    console.error('[Ordinal] loadOrdinalData exception', e);
+    return null;
+  }
 }
 
 // ── MAIN COMPUTE ───────────────────────────────────────────────
@@ -1160,19 +1186,33 @@ function renderTeamTab(cos, ordinal) {
 
   // Bottleneck table
   const rows=[];
+  const diag={wsCount:0,matched:0,unmatchedSlugs:[],totalForReview:0,totalScheduled:0,totalPosted:0};
   if(ordinal&&ordinal.workspaces) {
+    diag.wsCount=ordinal.workspaces.length;
     ordinal.workspaces.forEach(ws=>{
+      diag.totalForReview+=(ws.forReview||[]).length;
+      diag.totalScheduled+=(ws.scheduled||[]).length;
+      diag.totalPosted+=(ws.posted||[]).length;
       const co=matchWorkspaceToCompany(ws.workspace,active);
-      if(!co) return;
+      if(!co) { diag.unmatchedSlugs.push(ws.workspace); return; }
+      diag.matched++;
       (ws.forReview||[]).forEach(post=>{
         const created=new Date(post.createdAt);
         rows.push({post,co,ce:co.content_manager||'—',days:Math.round((now-created)/86400000),created});
       });
     });
+    console.log('[Ordinal diag]', diag, 'active company names:', active.map(c=>c.name));
+    const diagEl=document.getElementById('ordinal-diag');
+    if(diagEl) diagEl.textContent=`diag: ${diag.wsCount} workspaces · ${diag.matched} matched to ${active.length} active customers · ${diag.totalForReview} ForReview / ${diag.totalScheduled} Scheduled / ${diag.totalPosted} Posted total · unmatched: ${diag.unmatchedSlugs.slice(0,8).join(', ')}${diag.unmatchedSlugs.length>8?'…':''}`;
+  } else {
+    const diagEl=document.getElementById('ordinal-diag');
+    if(diagEl) diagEl.textContent=ordinal===null?'diag: ordinal fetch returned null (workspaces endpoint failed — check token/CORS)':'diag: ordinal data not yet loaded';
   }
   rows.sort((a,b)=>b.days-a.days);
   const btEl=document.getElementById('bottleneck-body');
-  btEl.innerHTML=!rows.length?'<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">No posts in ForReview for active customers.</td></tr>':rows.map(({post,co,ce,days,created})=>{
+  const loadingMsg='<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">Loading Ordinal data…</td></tr>';
+  const emptyMsg='<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">No posts in ForReview for active customers.</td></tr>';
+  btEl.innerHTML=!ordinal?loadingMsg:!rows.length?emptyMsg:rows.map(({post,co,ce,days,created})=>{
     const cls=days>=14?'bottleneck-red':days>=7?'bottleneck-amber':'bottleneck-ok';
     return `<tr><td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${post.title}</td><td>${co.name}</td><td>${ce}</td><td class="${cls}">${days}d</td><td style="color:var(--ink3);font-size:11px">${created.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</td><td><a href="${post.url}" target="_blank" style="color:var(--blue);font-size:11px;text-decoration:none">Open ↗</a></td></tr>`;
   }).join('');
