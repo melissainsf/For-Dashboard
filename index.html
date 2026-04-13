@@ -582,7 +582,7 @@ const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D453
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 const JOURNEY_SCORES = {'Kickoff Call Scheduled':2,'Kickoff Call Completed':4,'Content Interview Completed':6,'Awaiting Customer QA':7,'Live':9,'Renewal':10};
 
-let allCompanies = [], sheetMap = {}, charts = {}, ordinalData = null;
+let allCompanies = [], sheetMap = {}, charts = {}, ordinalData = null, ordinalLoading = false;
 
 // ── AUTH ────────────────────────────────────────────────────────
 function showAuthScreen(show) {
@@ -792,7 +792,19 @@ async function loadData() {
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Client Health Tracker · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
-    loadOrdinalData().then(d=>{ ordinalData=d; });
+    if(!ordinalLoading) {
+      ordinalLoading=true;
+      loadOrdinalData().then(d=>{
+        ordinalData=d;
+        ordinalLoading=false;
+        // If the Team tab is currently visible, re-render it now that data arrived.
+        if(document.getElementById('tab-team').classList.contains('active')) {
+          const ex=document.getElementById('exclude-virio').checked;
+          const cs=ex?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+          renderTeamTab(cs, ordinalData);
+        }
+      });
+    }
   } catch(e) {
     setStatus('Failed to load: '+e.message,'error');
   } finally { btn.disabled=false; }
@@ -820,17 +832,25 @@ async function loadOrdinalData() {
     if (!wsRes.ok) return null;
     const wsData = await wsRes.json();
     const workspaces = wsData.workspaces || wsData.data || wsData || [];
+    // Dedupe by slug (Ordinal returns "virioai" twice — once per env).
+    const seen = new Set();
+    const uniq = workspaces.filter(w => { const s=w.slug||w.id; if(seen.has(s)) return false; seen.add(s); return true; });
     const results = [];
-
-    for (const ws of workspaces) {
-      const slug = ws.slug || ws.id;
-      const forReview = await safeFetch(`${BASE}/${slug}/posts?status=ForReview&limit=100`);
-      await sleep(250);
-      const scheduled = await safeFetch(`${BASE}/${slug}/posts?status=Scheduled&limit=100`);
-      await sleep(250);
-      const posted    = await safeFetch(`${BASE}/${slug}/posts?status=Posted&limit=50&created_at_min=${monthStart}`);
-      await sleep(250);
-      results.push({ workspace: slug, workspaceName: ws.name || slug, forReview, scheduled, posted });
+    // Rate limit is 100 req/60s. Each workspace = 3 requests. Batch 10 workspaces (30 req) per second.
+    const BATCH = 10;
+    for (let i=0; i<uniq.length; i+=BATCH) {
+      const chunk = uniq.slice(i, i+BATCH);
+      const batchResults = await Promise.all(chunk.map(async ws => {
+        const slug = ws.slug || ws.id;
+        const [forReview, scheduled, posted] = await Promise.all([
+          safeFetch(`${BASE}/${slug}/posts?status=ForReview&limit=100`),
+          safeFetch(`${BASE}/${slug}/posts?status=Scheduled&limit=100`),
+          safeFetch(`${BASE}/${slug}/posts?status=Posted&limit=50&created_at_min=${monthStart}`)
+        ]);
+        return { workspace: slug, workspaceName: ws.name || slug, forReview, scheduled, posted };
+      }));
+      results.push(...batchResults);
+      if (i+BATCH < uniq.length) await sleep(1000);
     }
     return { workspaces: results };
   } catch(e) { return null; }
@@ -1172,7 +1192,9 @@ function renderTeamTab(cos, ordinal) {
   }
   rows.sort((a,b)=>b.days-a.days);
   const btEl=document.getElementById('bottleneck-body');
-  btEl.innerHTML=!rows.length?'<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">No posts in ForReview for active customers.</td></tr>':rows.map(({post,co,ce,days,created})=>{
+  const loadingMsg='<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">Loading Ordinal data…</td></tr>';
+  const emptyMsg='<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">No posts in ForReview for active customers.</td></tr>';
+  btEl.innerHTML=!ordinal?loadingMsg:!rows.length?emptyMsg:rows.map(({post,co,ce,days,created})=>{
     const cls=days>=14?'bottleneck-red':days>=7?'bottleneck-amber':'bottleneck-ok';
     return `<tr><td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${post.title}</td><td>${co.name}</td><td>${ce}</td><td class="${cls}">${days}d</td><td style="color:var(--ink3);font-size:11px">${created.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</td><td><a href="${post.url}" target="_blank" style="color:var(--blue);font-size:11px;text-decoration:none">Open ↗</a></td></tr>`;
   }).join('');
