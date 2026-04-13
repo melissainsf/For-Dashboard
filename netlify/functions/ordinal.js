@@ -26,8 +26,38 @@ exports.handler = async function(event) {
   }
 
   const slug = event.queryStringParameters && event.queryStringParameters.slug;
+  const probe = event.queryStringParameters && event.queryStringParameters.probe;
 
   try {
+    // Probe mode: try multiple candidate URL patterns and report which one works.
+    // Visit /api/ordinal?probe=vendelux-alex to run it.
+    if (probe) {
+      const root = 'https://app.tryordinal.com/api/v1';
+      const candidates = [
+        `${root}/company/${probe}/posts?status=ForReview&limit=1`,
+        `${root}/${probe}/posts?status=ForReview&limit=1`,
+        `${root}/workspace/${probe}/posts?status=ForReview&limit=1`,
+        `${root}/workspaces/${probe}/posts?status=ForReview&limit=1`,
+        `${root}/company/${probe}/posts?status=forreview&limit=1`,
+        `${root}/company/${probe}/posts?limit=1`,
+        `${root}/posts?workspace=${probe}&status=ForReview&limit=1`,
+        `${root}/company/${probe}/post?status=ForReview&limit=1`,
+      ];
+      const probed = [];
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url, { headers });
+          let bodySnippet = '';
+          try { const t = await res.text(); bodySnippet = t.slice(0, 180); } catch(_) {}
+          probed.push({ url, status: res.status, body: bodySnippet });
+        } catch(e) {
+          probed.push({ url, status: 0, error: e.message });
+        }
+        await sleep(200);
+      }
+      return json(200, { probe, results: probed });
+    }
+
     // Mode 1: no slug -> return just the workspace list (dedupe by slug)
     if (!slug) {
       const wsRes = await fetch(`${BASE}/workspaces`, { headers });
