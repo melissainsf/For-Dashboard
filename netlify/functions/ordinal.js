@@ -32,8 +32,21 @@ exports.handler = async function(event) {
   const slug = q.slug;
   const probe = q.probe;
   const mintKeys = q['mint-keys'];
+  const rawWorkspaces = q['raw-workspaces'];
 
   try {
+    // ── RAW WORKSPACES (diagnostic) ──────────────────────────────
+    // Returns the untouched Ordinal /workspaces response so we can see every
+    // field the API gives us (we need to find the UUID field for minting).
+    if (rawWorkspaces) {
+      const wsRes = await fetch(`${COMPANY_BASE}/workspaces`, { headers: companyHeaders });
+      const status = wsRes.status;
+      const text = await wsRes.text();
+      let parsed = null;
+      try { parsed = JSON.parse(text); } catch(_) {}
+      return json(200, { status, raw: parsed || text.slice(0, 1000) });
+    }
+
     // ── MINT MODE ────────────────────────────────────────────────
     if (mintKeys) {
       const wsRes = await fetch(`${COMPANY_BASE}/workspaces`, { headers: companyHeaders });
