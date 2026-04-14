@@ -42,6 +42,15 @@ exports.handler = async function(event) {
         `${root}/company/${probe}/posts?limit=1`,
         `${root}/posts?workspace=${probe}&status=ForReview&limit=1`,
         `${root}/company/${probe}/post?status=ForReview&limit=1`,
+        // Company-scoped endpoints that might accept Company API keys:
+        `${root}/company/posts?workspace=${probe}&status=ForReview&limit=1`,
+        `${root}/company/posts?workspace_slug=${probe}&status=ForReview&limit=1`,
+        `${root}/company/posts?slug=${probe}&status=ForReview&limit=1`,
+        `${root}/company/workspace/${probe}/posts?status=ForReview&limit=1`,
+        `${root}/company/workspaces/${probe}/posts?status=ForReview&limit=1`,
+        // Root endpoints and introspection:
+        `${root}`,
+        `${root}/company`,
       ];
       const probed = [];
       for (const url of candidates) {
