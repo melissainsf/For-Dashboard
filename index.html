@@ -815,20 +815,23 @@ async function loadOrdinalData() {
   // Calls the Netlify serverless proxy instead of Ordinal directly.
   // The proxy keeps the token server-side and avoids browser CORS issues.
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  window.__ordinalLastDebug = null;
 
   async function safeJson(url) {
     try {
       const res = await fetch(url);
-      if (!res.ok) return null;
-      return await res.json();
-    } catch(e) { return null; }
+      const body = await res.json().catch(()=>null);
+      return { ok: res.ok, status: res.status, body };
+    } catch(e) { return { ok: false, status: 0, body: null, error: e.message }; }
   }
 
   try {
     // Step 1: get workspace list (single fast call).
-    const listData = await safeJson('/api/ordinal');
-    if (!listData || !Array.isArray(listData.workspaces) || !listData.workspaces.length) {
-      console.warn('[Ordinal] workspace list empty or failed', listData);
+    const listResp = await safeJson('/api/ordinal');
+    const listData = listResp.body;
+    if (!listResp.ok || !listData || !Array.isArray(listData.workspaces) || !listData.workspaces.length) {
+      console.warn('[Ordinal] workspace list empty or failed', listResp);
+      window.__ordinalLastDebug = { stage: 'workspaces', httpStatus: listResp.status, serverDebug: listData && listData.debug, body: listData };
       return null;
     }
     const workspaces = listData.workspaces;
@@ -842,14 +845,16 @@ async function loadOrdinalData() {
     for (let i = 0; i < workspaces.length; i += BATCH) {
       const chunk = workspaces.slice(i, i + BATCH);
       const chunkResults = await Promise.all(chunk.map(async ws => {
-        const d = await safeJson(`/api/ordinal?slug=${encodeURIComponent(ws.slug)}`);
+        const r = await safeJson(`/api/ordinal?slug=${encodeURIComponent(ws.slug)}`);
+        const b = r.body || {};
         return {
           workspace: ws.slug,
           workspaceName: ws.name,
-          forReview: (d && d.forReview) || [],
-          scheduled: (d && d.scheduled) || [],
-          posted: (d && d.posted) || [],
-          debug: d && d.debug
+          forReview: b.forReview || [],
+          scheduled: b.scheduled || [],
+          posted: b.posted || [],
+          debug: b.debug,
+          httpStatus: r.status
         };
       }));
       results.push(...chunkResults);
@@ -1214,7 +1219,15 @@ function renderTeamTab(cos, ordinal) {
     if(diagEl) diagEl.textContent=`diag: ${diag.wsCount} workspaces · ${diag.matched} matched to ${active.length} active customers · ${diag.totalForReview} ForReview / ${diag.totalScheduled} Scheduled / ${diag.totalPosted} Posted total · proxy statuses: ${statusParts||'none'} · unmatched: ${diag.unmatchedSlugs.slice(0,8).join(', ')}${diag.unmatchedSlugs.length>8?'…':''}`;
   } else {
     const diagEl=document.getElementById('ordinal-diag');
-    if(diagEl) diagEl.textContent=ordinal===null?'diag: ordinal fetch returned null (workspaces endpoint failed — check token/CORS)':'diag: ordinal data not yet loaded';
+    if(diagEl) {
+      if(ordinal===null) {
+        const dbg=window.__ordinalLastDebug;
+        const detail=dbg?` — HTTP ${dbg.httpStatus} · server debug: ${JSON.stringify(dbg.serverDebug)||'(none)'} · raw: ${JSON.stringify(dbg.body).slice(0,200)}`:'';
+        diagEl.textContent=`diag: workspaces endpoint failed${detail}`;
+      } else {
+        diagEl.textContent='diag: ordinal data not yet loaded';
+      }
+    }
   }
   rows.sort((a,b)=>b.days-a.days);
   const btEl=document.getElementById('bottleneck-body');
