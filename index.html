@@ -144,6 +144,11 @@ main{padding:24px 32px;max-width:1600px;margin:0 auto}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead th{font-family:'Syne',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border-strong);white-space:nowrap;background:var(--surface2)}
+thead th.sortable{cursor:pointer;user-select:none;transition:color 0.12s}
+thead th.sortable:hover{color:var(--ink)}
+thead th.sortable .sort-indicator{display:inline-block;margin-left:5px;opacity:0.35;font-size:9px;font-weight:400}
+thead th.sortable.active{color:var(--blue)}
+thead th.sortable.active .sort-indicator{opacity:1}
 tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--surface2)}
@@ -418,7 +423,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th>AM</th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>Churn reason</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th>AM</th><th id="th-portfolio-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>Churn reason</th></tr></thead>
           <tbody id="portfolio-roster-body"></tbody>
         </table>
       </div>
@@ -498,7 +503,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th>AM</th><th>MRR</th><th>Time to value</th><th>Health</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th></tr></thead>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th>AM</th><th id="th-cohort-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Health</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th></tr></thead>
           <tbody id="cohort-roster-body"></tbody>
         </table>
       </div>
@@ -527,7 +532,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card" style="margin-bottom:20px">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Post title</th><th>Customer</th><th>Content Engineer</th><th>Days waiting</th><th>Created</th><th>Link</th></tr></thead>
+          <thead><tr><th>Post title</th><th>Customer</th><th id="th-bottleneck-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>Days waiting</th><th>Created</th><th>Link</th></tr></thead>
           <tbody id="bottleneck-body"><tr><td colspan="6" class="team-loading">Loading...</td></tr></tbody>
         </table>
       </div>
@@ -552,7 +557,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card" style="margin-bottom:20px">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Customer</th><th>Content Engineer</th><th>Target / month</th><th>Scheduled this month</th><th>Posted this month</th><th>Status</th></tr></thead>
+          <thead><tr><th>Customer</th><th id="th-cadence-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>Target / month</th><th>Scheduled this month</th><th>Posted this month</th><th>Status</th></tr></thead>
           <tbody id="cadence-body"><tr><td colspan="6" class="team-loading">Loading...</td></tr></tbody>
         </table>
       </div>
@@ -620,6 +625,33 @@ const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Conte
 const JOURNEY_SCORES = {'Kickoff Call Scheduled':2,'Kickoff Call Completed':4,'Content Interview Completed':6,'Awaiting Customer QA':7,'Live':9,'Renewal':10};
 
 let allCompanies = [], sheetMap = {}, charts = {}, ordinalData = null, ordinalLoading = false;
+
+// ── CE COLUMN SORT STATE ──────────────────────────────────────
+window.__ceSort = window.__ceSort || { portfolio: null, cohort: null, bottleneck: null, cadence: null };
+function nextCeSortDir(cur) { return cur === null ? 'asc' : cur === 'asc' ? 'desc' : null; }
+function applyCeSort(arr, dir, getCe) {
+  if (!dir) return arr;
+  return [...arr].sort((a, b) => {
+    const av = (getCe(a) || '').trim();
+    const bv = (getCe(b) || '').trim();
+    const aMissing = !av || av === '—' || av.toLowerCase() === 'unassigned';
+    const bMissing = !bv || bv === '—' || bv.toLowerCase() === 'unassigned';
+    if (aMissing && !bMissing) return 1;
+    if (!aMissing && bMissing) return -1;
+    if (aMissing && bMissing) return 0;
+    const cmp = av.toLowerCase().localeCompare(bv.toLowerCase());
+    return dir === 'desc' ? -cmp : cmp;
+  });
+}
+function bindCeSortHeader(thId, key, rerender) {
+  const th = document.getElementById(thId);
+  if (!th) return;
+  const cur = window.__ceSort[key];
+  th.classList.toggle('active', !!cur);
+  const ind = th.querySelector('.sort-indicator');
+  if (ind) ind.textContent = cur === 'asc' ? '▲' : cur === 'desc' ? '▼' : '⇅';
+  th.onclick = () => { window.__ceSort[key] = nextCeSortDir(window.__ceSort[key]); rerender(); };
+}
 
 // ── AUTH ────────────────────────────────────────────────────────
 function showAuthScreen(show) {
@@ -1115,13 +1147,16 @@ function renderPortfolioTable(cos) {
   const bc={'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
   const f=n=>n?fmt$(n):'—';
   set('note-portfolio-roster',cos.length+' companies');
-  document.getElementById('portfolio-roster-body').innerHTML=[...cos].sort((a,b)=>(order[a.pilot_status]??9)-(order[b.pilot_status]??9)).map(c=>{
+  let portRows=[...cos].sort((a,b)=>(order[a.pilot_status]??9)-(order[b.pilot_status]??9));
+  portRows=applyCeSort(portRows, window.__ceSort.portfolio, c=>c.content_manager);
+  document.getElementById('portfolio-roster-body').innerHTML=portRows.map(c=>{
     const s=getSheetData(c.name);
     const health=calcCompositeScore(c,s);
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${c.customer_journey||'—'}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td>${c.churn_reason||'—'}</td></tr>`;
+    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.customer_journey||'—'}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td>${c.churn_reason||'—'}</td></tr>`;
   }).join('');
+  bindCeSortHeader('th-portfolio-ce','portfolio',()=>renderPortfolioTable(cos));
 }
 
 // ── COHORTS TAB ────────────────────────────────────────────────
@@ -1210,13 +1245,16 @@ function renderCohortsTab(cos) {
   // Cohort roster
   set('note-cohort-roster',cos.length+' companies · sorted by stage');
   const bc={'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
-  document.getElementById('cohort-roster-body').innerHTML=[...cos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||'')).map(c=>{
+  let cohortRows=[...cos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
+  cohortRows=applyCeSort(cohortRows, window.__ceSort.cohort, c=>c.content_manager);
+  document.getElementById('cohort-roster-body').innerHTML=cohortRows.map(c=>{
     const s=getSheetData(c.name);
     const health=calcCompositeScore(c,s);
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${c.stage||'—'}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${displayAM(c.csm)}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td></tr>`;
+    return `<tr><td>${c.name}</td><td>${c.stage||'—'}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td></tr>`;
   }).join('');
+  bindCeSortHeader('th-cohort-ce','cohort',()=>renderCohortsTab(cos));
 }
 
 // ── TEAM TAB ───────────────────────────────────────────────────
@@ -1352,8 +1390,12 @@ function renderTeamTab(cos, ordinal) {
     const created = new Date(post.createdAt);
     return { post, co: cu.c, ce: cu.c.content_manager || '—', days: Math.round((now-created)/86400000), created };
   }));
-  const visibleBottleneck = view.showAllAges ? allBottleneckRows : allBottleneckRows.filter(r => r.days >= 7);
-  visibleBottleneck.sort((a,b)=>b.days-a.days);
+  let visibleBottleneck = view.showAllAges ? allBottleneckRows : allBottleneckRows.filter(r => r.days >= 7);
+  if (window.__ceSort.bottleneck) {
+    visibleBottleneck = applyCeSort(visibleBottleneck, window.__ceSort.bottleneck, r => r.ce);
+  } else {
+    visibleBottleneck.sort((a,b)=>b.days-a.days);
+  }
   const btEl = document.getElementById('bottleneck-body');
   if (btEl) {
     const hiddenCount = allBottleneckRows.length - visibleBottleneck.length;
@@ -1374,6 +1416,7 @@ function renderTeamTab(cos, ordinal) {
     btToggle.textContent = view.showAllAges ? 'Show only 7+ days' : 'Show all ages';
     btToggle.onclick = () => { window.__teamView.showAllAges = !window.__teamView.showAllAges; renderTeamTab(cos, ordinal); };
   }
+  bindCeSortHeader('th-bottleneck-ce','bottleneck',()=>renderTeamTab(cos, ordinal));
 
   // CE Load with stress signals
   const maxLoad = Math.max(...Object.values(ceMap).map(v=>v.total), 1);
@@ -1408,8 +1451,12 @@ function renderTeamTab(cos, ordinal) {
     else { label=`${behindAmt} behind`; cls='cadence-behind'; }
     return { cu, label, cls };
   });
-  const cadVisible = view.showAllCustomers ? cadAll : cadAll.filter(r => r.cu.behind || r.cu.zeroThisMonth);
-  cadVisible.sort((a,b)=>{ const ag=a.cu.target?(a.cu.target-a.cu.total)/a.cu.target:-1, bg=b.cu.target?(b.cu.target-b.cu.total)/b.cu.target:-1; return bg-ag; });
+  let cadVisible = view.showAllCustomers ? cadAll : cadAll.filter(r => r.cu.behind || r.cu.zeroThisMonth);
+  if (window.__ceSort.cadence) {
+    cadVisible = applyCeSort(cadVisible, window.__ceSort.cadence, r => r.cu.ce);
+  } else {
+    cadVisible.sort((a,b)=>{ const ag=a.cu.target?(a.cu.target-a.cu.total)/a.cu.target:-1, bg=b.cu.target?(b.cu.target-b.cu.total)/b.cu.target:-1; return bg-ag; });
+  }
   const cdEl = document.getElementById('cadence-body');
   if (cdEl) {
     if (loading) {
@@ -1425,6 +1472,7 @@ function renderTeamTab(cos, ordinal) {
     cdToggle.textContent = view.showAllCustomers ? 'Show only behind' : 'Show all customers';
     cdToggle.onclick = () => { window.__teamView.showAllCustomers = !window.__teamView.showAllCustomers; renderTeamTab(cos, ordinal); };
   }
+  bindCeSortHeader('th-cadence-ce','cadence',()=>renderTeamTab(cos, ordinal));
 
   // AM charts
   const allAMs=[...new Set(cos.map(c=>displayAM(c.csm)).filter(Boolean))].sort();
