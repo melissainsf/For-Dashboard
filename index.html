@@ -184,11 +184,6 @@ tbody td:first-child{font-weight:500}
 .ce-bar-fill{height:100%;border-radius:5px;background:var(--teal-mid);transition:width 0.4s ease}
 .ce-bar-count{font-size:11px;color:var(--ink2);min-width:90px;flex-shrink:0}
 .team-loading{padding:16px;font-size:13px;color:var(--ink3);font-style:italic}
-.ce-bar-signals{font-size:11px;color:var(--ink3);margin:2px 0 0 90px;display:flex;gap:10px;flex-wrap:wrap}
-.ce-signal{display:inline-flex;align-items:center;gap:3px}
-.ce-signal.stuck{color:var(--red);font-weight:500}
-.ce-signal.behind{color:var(--amber);font-weight:500}
-.ce-signal.ok{color:var(--teal)}
 .empty-hint{padding:16px;color:var(--ink3);font-style:italic;font-size:13px}
 </style>
 </head>
@@ -491,14 +486,13 @@ tbody td:first-child{font-weight:500}
 
   <!-- TAB 4: TEAM -->
   <div id="tab-team" class="tab-content">
-    <!-- CE LOAD with context signals -->
+    <!-- CE WORKLOAD -->
     <div class="section-header" id="ce-load-section" style="margin-top:4px">
-      <span class="section-title">CE capacity &amp; stress signals</span>
-      <span class="section-note">Target posts per month · stuck reviews · accounts behind cadence</span>
+      <span class="section-title">CE capacity</span>
+      <span class="section-note">Target posts per month per Content Engineer</span>
     </div>
     <div class="chart-card" style="margin-bottom:20px">
       <div class="chart-card-title">Content Engineer workload</div>
-      <div class="chart-card-sub">🔴 stuck = ForReview posts 7+ days old · 🟡 behind = accounts below 80% of monthly target</div>
       <div id="ce-load-bars" style="padding:8px 0"><div class="team-loading">Loading...</div></div>
     </div>
 
@@ -564,7 +558,7 @@ const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D453
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 const JOURNEY_SCORES = {'Kickoff Call Scheduled':2,'Kickoff Call Completed':4,'Content Interview Completed':6,'Awaiting Customer QA':7,'Live':9,'Renewal':10};
 
-let allCompanies = [], sheetMap = {}, charts = {}, ordinalData = null, ordinalLoading = false;
+let allCompanies = [], sheetMap = {}, charts = {};
 
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
@@ -755,13 +749,6 @@ function getSheetData(name) {
   return null;
 }
 
-// ── ORDINAL WORKSPACE MATCH ────────────────────────────────────
-function slugToCompanyKey(slug) { return slug.split('-')[0].toLowerCase().replace(/[^a-z0-9]/g,''); }
-function matchWorkspaceToCompany(slug, companies) {
-  const key=slugToCompanyKey(slug);
-  return companies.find(c => { const ck=c.name.toLowerCase().replace(/[^a-z0-9]/g,''); return ck===key||ck.startsWith(key)||key.startsWith(ck); })||null;
-}
-
 // ── TAB SWITCHING ──────────────────────────────────────────────
 function switchTab(e, name) {
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
@@ -773,7 +760,7 @@ function switchTab(e, name) {
   const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
   if(name==='cohorts')   renderCohortsTab(cos);
   if(name==='portfolio') renderPortfolioTable(cos);
-  if(name==='team')      renderTeamTab(cos, ordinalData);
+  if(name==='team')      renderTeamTab(cos);
 }
 
 // ── DATA FETCH ─────────────────────────────────────────────────
@@ -815,78 +802,9 @@ async function loadData() {
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Client Health Tracker · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
-    if(!ordinalLoading) {
-      ordinalLoading=true;
-      loadOrdinalData().then(d=>{
-        ordinalData=d;
-        ordinalLoading=false;
-        // If the Team tab is currently visible, re-render it now that data arrived.
-        if(document.getElementById('tab-team').classList.contains('active')) {
-          const ex=document.getElementById('exclude-virio').checked;
-          const cs=ex?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
-          renderTeamTab(cs, ordinalData);
-        }
-      });
-    }
   } catch(e) {
     setStatus('Failed to load: '+e.message,'error');
   } finally { btn.disabled=false; }
-}
-
-async function loadOrdinalData() {
-  // Calls the Netlify serverless proxy instead of Ordinal directly.
-  // The proxy keeps the token server-side and avoids browser CORS issues.
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  window.__ordinalLastDebug = null;
-
-  async function safeJson(url) {
-    try {
-      const res = await fetch(url);
-      const body = await res.json().catch(()=>null);
-      return { ok: res.ok, status: res.status, body };
-    } catch(e) { return { ok: false, status: 0, body: null, error: e.message }; }
-  }
-
-  try {
-    // Step 1: get workspace list (single fast call).
-    const listResp = await safeJson('/api/ordinal');
-    const listData = listResp.body;
-    if (!listResp.ok || !listData || !Array.isArray(listData.workspaces) || !listData.workspaces.length) {
-      console.warn('[Ordinal] workspace list empty or failed', listResp);
-      window.__ordinalLastDebug = { stage: 'workspaces', httpStatus: listResp.status, serverDebug: listData && listData.debug, body: listData };
-      return null;
-    }
-    const workspaces = listData.workspaces;
-
-    // Step 2: fetch each workspace in concurrent batches of 3, 600ms gap between batches.
-    // Each proxy call does 3 Ordinal requests internally, so 3 concurrent = 9 Ordinal req
-    // in ~1.1s, then 600ms rest = ~5 req/sec, well under 100 req / 60s = 1.67/sec average
-    // only in bursts — token-bucket-friendly.
-    const BATCH = 3;
-    const results = [];
-    for (let i = 0; i < workspaces.length; i += BATCH) {
-      const chunk = workspaces.slice(i, i + BATCH);
-      const chunkResults = await Promise.all(chunk.map(async ws => {
-        const r = await safeJson(`/api/ordinal?slug=${encodeURIComponent(ws.slug)}`);
-        const b = r.body || {};
-        return {
-          workspace: ws.slug,
-          workspaceName: ws.name,
-          forReview: b.forReview || [],
-          scheduled: b.scheduled || [],
-          posted: b.posted || [],
-          debug: b.debug,
-          httpStatus: r.status
-        };
-      }));
-      results.push(...chunkResults);
-      if (i + BATCH < workspaces.length) await sleep(600);
-    }
-    return { workspaces: results };
-  } catch(e) {
-    console.error('[Ordinal] loadOrdinalData exception', e);
-    return null;
-  }
 }
 
 // ── MAIN COMPUTE ───────────────────────────────────────────────
@@ -1220,57 +1138,33 @@ function renderCohortsTab(cos) {
 }
 
 // ── TEAM TAB ───────────────────────────────────────────────────
-function renderTeamTab(cos, ordinal) {
+function renderTeamTab(cos) {
   const exclude=document.getElementById('exclude-virio').checked;
   const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
-  const now=new Date(),monthStart=new Date(now.getFullYear(),now.getMonth(),1),monthEnd=new Date(now.getFullYear(),now.getMonth()+1,0);
 
-  // Per-customer summary with review/cadence signals (feeds CE workload chart)
-  const customers = active.map(c => {
-    const ws = ordinal && ordinal.workspaces ? ordinal.workspaces.find(w=>matchWorkspaceToCompany(w.workspace,[c])) : null;
-    const target = parsePostsPerMonth(c.posts_per_month);
-    const ce = c.content_manager || 'Unassigned';
-    const forReview = (ws && ws.forReview) || [];
-    const scheduled = ((ws && ws.scheduled) || []).filter(p=>{ const d=new Date(p.publishAt||p.publishDate); return d>=monthStart&&d<=monthEnd; });
-    const posted = ((ws && ws.posted) || []).filter(p=>{ const d=new Date(p.publishAt||p.publishDate||p.createdAt); return d>=monthStart; });
-    const total = scheduled.length + posted.length;
-    const stuck = forReview.filter(p => (now - new Date(p.createdAt))/86400000 >= 7);
-    const behind = target > 0 && total < target * 0.8;
-    const zeroThisMonth = target > 0 && total === 0;
-    return { c, ce, target, forReview, scheduled, posted, total, stuck, behind, zeroThisMonth, ws };
-  });
-
-  // CE aggregates with stress signals
+  // CE aggregates by post target
   const ceMap = {};
-  customers.forEach(cu => {
-    if (!ceMap[cu.ce]) ceMap[cu.ce] = { total:0, accounts:[], stuck:0, behind:0, zero:0 };
-    ceMap[cu.ce].total += cu.target;
-    ceMap[cu.ce].accounts.push({ name: cu.c.name, ppm: cu.target });
-    ceMap[cu.ce].stuck += cu.stuck.length;
-    if (cu.behind) ceMap[cu.ce].behind++;
-    if (cu.zeroThisMonth) ceMap[cu.ce].zero++;
+  active.forEach(c => {
+    const ce = c.content_manager || 'Unassigned';
+    const target = parsePostsPerMonth(c.posts_per_month);
+    if (!ceMap[ce]) ceMap[ce] = { total:0, accounts:[] };
+    ceMap[ce].total += target;
+    ceMap[ce].accounts.push({ name: c.name, ppm: target });
   });
-  const ceStressed = d => (d.stuck >= 5 || d.behind >= 2);
 
-  // CE Load with stress signals
+  // CE workload chart
   const maxLoad = Math.max(...Object.values(ceMap).map(v=>v.total), 1);
   const ceBars = document.getElementById('ce-load-bars');
   if (ceBars) {
-    const sorted = Object.entries(ceMap).sort((a,b)=> (ceStressed(b[1])?1:0) - (ceStressed(a[1])?1:0) || b[1].total - a[1].total);
+    const sorted = Object.entries(ceMap).sort((a,b)=> b[1].total - a[1].total);
     ceBars.innerHTML = sorted.length ? sorted.map(([ce, data])=>{
-      const fillColor = ceStressed(data) ? 'var(--red)' : data.total >= 25 ? 'var(--amber)' : 'var(--teal-mid)';
-      const chips = [];
-      if (data.stuck>0) chips.push(`<span class="ce-signal stuck">🔴 ${data.stuck} stuck</span>`);
-      if (data.behind>0) chips.push(`<span class="ce-signal behind">🟡 ${data.behind} behind cadence</span>`);
-      if (data.zero>0) chips.push(`<span class="ce-signal behind">⚠ ${data.zero} with zero posts</span>`);
-      if (!chips.length) chips.push(`<span class="ce-signal ok">✓ healthy</span>`);
+      const fillColor = data.total >= 50 ? 'var(--red)' : data.total >= 25 ? 'var(--amber)' : 'var(--teal-mid)';
       return `<div style="margin-bottom:12px">
         <div class="ce-bar-wrap" title="${data.accounts.map(a=>a.name+' ('+a.ppm+'/mo)').join(', ')}">
           <div class="ce-bar-label">${ce}</div>
           <div class="ce-bar-track"><div class="ce-bar-fill" style="width:${(data.total/maxLoad*100).toFixed(1)}%;background:${fillColor}"></div></div>
           <div class="ce-bar-count">${data.total} posts/mo · ${data.accounts.length} account${data.accounts.length!==1?'s':''}</div>
         </div>
-        <div class="ce-bar-signals">${chips.join('')}</div>
       </div>`;
     }).join('') : '<div class="empty-hint">No active customers assigned to a Content Engineer.</div>';
   }
