@@ -144,6 +144,11 @@ main{padding:24px 32px;max-width:1600px;margin:0 auto}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead th{font-family:'Syne',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border-strong);white-space:nowrap;background:var(--surface2)}
+thead th.sortable{cursor:pointer;user-select:none;transition:color 0.12s}
+thead th.sortable:hover{color:var(--ink)}
+thead th.sortable .sort-indicator{display:inline-block;margin-left:5px;opacity:0.35;font-size:9px;font-weight:400}
+thead th.sortable.active{color:var(--blue)}
+thead th.sortable.active .sort-indicator{opacity:1}
 tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--surface2)}
@@ -418,7 +423,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th>AM</th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>Churn reason</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-portfolio-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>Churn reason</th></tr></thead>
           <tbody id="portfolio-roster-body"></tbody>
         </table>
       </div>
@@ -498,7 +503,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th>AM</th><th>MRR</th><th>Time to value</th><th>Health</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th></tr></thead>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-cohort-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Health</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th></tr></thead>
           <tbody id="cohort-roster-body"></tbody>
         </table>
       </div>
@@ -527,8 +532,8 @@ tbody td:first-child{font-weight:500}
     <div class="table-card" style="margin-bottom:20px">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Post title</th><th>Customer</th><th>Content Engineer</th><th>Days waiting</th><th>Created</th><th>Link</th></tr></thead>
-          <tbody id="bottleneck-body"><tr><td colspan="6" class="team-loading">Loading...</td></tr></tbody>
+          <thead><tr><th>Post title</th><th>Customer</th><th id="th-bottleneck-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th id="th-bottleneck-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Days waiting</th><th>Created</th><th>Link</th></tr></thead>
+          <tbody id="bottleneck-body"><tr><td colspan="7" class="team-loading">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -552,8 +557,8 @@ tbody td:first-child{font-weight:500}
     <div class="table-card" style="margin-bottom:20px">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Customer</th><th>Content Engineer</th><th>Target / month</th><th>Scheduled this month</th><th>Posted this month</th><th>Status</th></tr></thead>
-          <tbody id="cadence-body"><tr><td colspan="6" class="team-loading">Loading...</td></tr></tbody>
+          <thead><tr><th>Customer</th><th id="th-cadence-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th id="th-cadence-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Target / month</th><th>Scheduled this month</th><th>Posted this month</th><th>Status</th></tr></thead>
+          <tbody id="cadence-body"><tr><td colspan="7" class="team-loading">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -620,6 +625,49 @@ const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Conte
 const JOURNEY_SCORES = {'Kickoff Call Scheduled':2,'Kickoff Call Completed':4,'Content Interview Completed':6,'Awaiting Customer QA':7,'Live':9,'Renewal':10};
 
 let allCompanies = [], sheetMap = {}, charts = {}, ordinalData = null, ordinalLoading = false;
+
+// ── LIST WIDGET SORT STATE ────────────────────────────────────
+window.__listSort = window.__listSort || {
+  portfolio: { col: null, dir: null },
+  cohort:    { col: null, dir: null },
+  bottleneck:{ col: null, dir: null },
+  cadence:   { col: null, dir: null }
+};
+function nextSortDir(cur) { return cur === null ? 'asc' : cur === 'asc' ? 'desc' : null; }
+function applyListSort(arr, state, getters) {
+  if (!state.col || !state.dir) return arr;
+  const get = getters[state.col];
+  if (!get) return arr;
+  return [...arr].sort((a, b) => {
+    const av = (get(a) || '').trim();
+    const bv = (get(b) || '').trim();
+    const aMissing = !av || av === '—' || av.toLowerCase() === 'unassigned';
+    const bMissing = !bv || bv === '—' || bv.toLowerCase() === 'unassigned';
+    if (aMissing && !bMissing) return 1;
+    if (!aMissing && bMissing) return -1;
+    if (aMissing && bMissing) return 0;
+    const cmp = av.toLowerCase().localeCompare(bv.toLowerCase());
+    return state.dir === 'desc' ? -cmp : cmp;
+  });
+}
+function bindSortHeader(thId, key, col, rerender) {
+  const th = document.getElementById(thId);
+  if (!th) return;
+  const state = window.__listSort[key];
+  const active = state.col === col && state.dir !== null;
+  th.classList.toggle('active', active);
+  const ind = th.querySelector('.sort-indicator');
+  if (ind) ind.textContent = !active ? '⇅' : state.dir === 'asc' ? '▲' : '▼';
+  th.onclick = () => {
+    const s = window.__listSort[key];
+    if (s.col !== col) { s.col = col; s.dir = 'asc'; }
+    else {
+      s.dir = nextSortDir(s.dir);
+      if (s.dir === null) s.col = null;
+    }
+    rerender();
+  };
+}
 
 // ── AUTH ────────────────────────────────────────────────────────
 function showAuthScreen(show) {
@@ -1115,13 +1163,20 @@ function renderPortfolioTable(cos) {
   const bc={'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
   const f=n=>n?fmt$(n):'—';
   set('note-portfolio-roster',cos.length+' companies');
-  document.getElementById('portfolio-roster-body').innerHTML=[...cos].sort((a,b)=>(order[a.pilot_status]??9)-(order[b.pilot_status]??9)).map(c=>{
+  let portRows=[...cos].sort((a,b)=>(order[a.pilot_status]??9)-(order[b.pilot_status]??9));
+  portRows=applyListSort(portRows, window.__listSort.portfolio, {
+    ce: c => c.content_manager,
+    am: c => displayAM(c.csm)
+  });
+  document.getElementById('portfolio-roster-body').innerHTML=portRows.map(c=>{
     const s=getSheetData(c.name);
     const health=calcCompositeScore(c,s);
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${c.customer_journey||'—'}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td>${c.churn_reason||'—'}</td></tr>`;
+    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.customer_journey||'—'}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td>${c.churn_reason||'—'}</td></tr>`;
   }).join('');
+  bindSortHeader('th-portfolio-ce','portfolio','ce',()=>renderPortfolioTable(cos));
+  bindSortHeader('th-portfolio-am','portfolio','am',()=>renderPortfolioTable(cos));
 }
 
 // ── COHORTS TAB ────────────────────────────────────────────────
@@ -1210,13 +1265,20 @@ function renderCohortsTab(cos) {
   // Cohort roster
   set('note-cohort-roster',cos.length+' companies · sorted by stage');
   const bc={'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
-  document.getElementById('cohort-roster-body').innerHTML=[...cos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||'')).map(c=>{
+  let cohortRows=[...cos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
+  cohortRows=applyListSort(cohortRows, window.__listSort.cohort, {
+    ce: c => c.content_manager,
+    am: c => displayAM(c.csm)
+  });
+  document.getElementById('cohort-roster-body').innerHTML=cohortRows.map(c=>{
     const s=getSheetData(c.name);
     const health=calcCompositeScore(c,s);
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${c.stage||'—'}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${displayAM(c.csm)}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td></tr>`;
+    return `<tr><td>${c.name}</td><td>${c.stage||'—'}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td></tr>`;
   }).join('');
+  bindSortHeader('th-cohort-ce','cohort','ce',()=>renderCohortsTab(cos));
+  bindSortHeader('th-cohort-am','cohort','am',()=>renderCohortsTab(cos));
 }
 
 // ── TEAM TAB ───────────────────────────────────────────────────
@@ -1350,22 +1412,27 @@ function renderTeamTab(cos, ordinal) {
   // Critical review bottleneck (default: 7+ days)
   const allBottleneckRows = customers.flatMap(cu => (cu.forReview||[]).map(post => {
     const created = new Date(post.createdAt);
-    return { post, co: cu.c, ce: cu.c.content_manager || '—', days: Math.round((now-created)/86400000), created };
+    return { post, co: cu.c, ce: cu.c.content_manager || '—', am: displayAM(cu.c.csm), days: Math.round((now-created)/86400000), created };
   }));
-  const visibleBottleneck = view.showAllAges ? allBottleneckRows : allBottleneckRows.filter(r => r.days >= 7);
-  visibleBottleneck.sort((a,b)=>b.days-a.days);
+  let visibleBottleneck = view.showAllAges ? allBottleneckRows : allBottleneckRows.filter(r => r.days >= 7);
+  const btState = window.__listSort.bottleneck;
+  if (btState.col && btState.dir) {
+    visibleBottleneck = applyListSort(visibleBottleneck, btState, { ce: r => r.ce, am: r => r.am });
+  } else {
+    visibleBottleneck.sort((a,b)=>b.days-a.days);
+  }
   const btEl = document.getElementById('bottleneck-body');
   if (btEl) {
     const hiddenCount = allBottleneckRows.length - visibleBottleneck.length;
     if (loading) {
-      btEl.innerHTML = '<tr><td colspan="6" class="empty-hint">Loading Ordinal data…</td></tr>';
+      btEl.innerHTML = '<tr><td colspan="7" class="empty-hint">Loading Ordinal data…</td></tr>';
     } else if (!visibleBottleneck.length) {
-      btEl.innerHTML = `<tr><td colspan="6" class="empty-hint">${view.showAllAges ? 'No posts in ForReview for active customers.' : '🎉 No posts stuck 7+ days. '+(hiddenCount?`(${hiddenCount} under 7 days — click "Show all ages")`:'')}</td></tr>`;
+      btEl.innerHTML = `<tr><td colspan="7" class="empty-hint">${view.showAllAges ? 'No posts in ForReview for active customers.' : '🎉 No posts stuck 7+ days. '+(hiddenCount?`(${hiddenCount} under 7 days — click "Show all ages")`:'')}</td></tr>`;
     } else {
-      const extraNote = !view.showAllAges && hiddenCount ? `<tr><td colspan="6" style="padding:10px 16px;color:var(--ink3);font-size:11px;font-style:italic;background:var(--surface2)">+ ${hiddenCount} more posts under 7 days old (normal review cycle — hidden)</td></tr>` : '';
-      btEl.innerHTML = visibleBottleneck.map(({post,co,ce,days,created})=>{
+      const extraNote = !view.showAllAges && hiddenCount ? `<tr><td colspan="7" style="padding:10px 16px;color:var(--ink3);font-size:11px;font-style:italic;background:var(--surface2)">+ ${hiddenCount} more posts under 7 days old (normal review cycle — hidden)</td></tr>` : '';
+      btEl.innerHTML = visibleBottleneck.map(({post,co,ce,am,days,created})=>{
         const cls=days>=14?'bottleneck-red':days>=7?'bottleneck-amber':'bottleneck-ok';
-        return `<tr><td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${post.title}</td><td>${co.name}</td><td>${ce}</td><td class="${cls}">${days}d</td><td style="color:var(--ink3);font-size:11px">${created.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</td><td><a href="${post.url}" target="_blank" style="color:var(--blue);font-size:11px;text-decoration:none">Open ↗</a></td></tr>`;
+        return `<tr><td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${post.title}</td><td>${co.name}</td><td>${ce}</td><td>${am}</td><td class="${cls}">${days}d</td><td style="color:var(--ink3);font-size:11px">${created.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</td><td><a href="${post.url}" target="_blank" style="color:var(--blue);font-size:11px;text-decoration:none">Open ↗</a></td></tr>`;
       }).join('') + extraNote;
     }
   }
@@ -1374,6 +1441,8 @@ function renderTeamTab(cos, ordinal) {
     btToggle.textContent = view.showAllAges ? 'Show only 7+ days' : 'Show all ages';
     btToggle.onclick = () => { window.__teamView.showAllAges = !window.__teamView.showAllAges; renderTeamTab(cos, ordinal); };
   }
+  bindSortHeader('th-bottleneck-ce','bottleneck','ce',()=>renderTeamTab(cos, ordinal));
+  bindSortHeader('th-bottleneck-am','bottleneck','am',()=>renderTeamTab(cos, ordinal));
 
   // CE Load with stress signals
   const maxLoad = Math.max(...Object.values(ceMap).map(v=>v.total), 1);
@@ -1406,18 +1475,23 @@ function renderTeamTab(cos, ordinal) {
     else if (cu.total >= cu.target) { label='On track'; cls='cadence-ahead'; }
     else if (cu.total >= cu.target*0.8) { label=`${behindAmt} behind`; cls='cadence-ok'; }
     else { label=`${behindAmt} behind`; cls='cadence-behind'; }
-    return { cu, label, cls };
+    return { cu, label, cls, am: displayAM(cu.c.csm) };
   });
-  const cadVisible = view.showAllCustomers ? cadAll : cadAll.filter(r => r.cu.behind || r.cu.zeroThisMonth);
-  cadVisible.sort((a,b)=>{ const ag=a.cu.target?(a.cu.target-a.cu.total)/a.cu.target:-1, bg=b.cu.target?(b.cu.target-b.cu.total)/b.cu.target:-1; return bg-ag; });
+  let cadVisible = view.showAllCustomers ? cadAll : cadAll.filter(r => r.cu.behind || r.cu.zeroThisMonth);
+  const cdState = window.__listSort.cadence;
+  if (cdState.col && cdState.dir) {
+    cadVisible = applyListSort(cadVisible, cdState, { ce: r => r.cu.ce, am: r => r.am });
+  } else {
+    cadVisible.sort((a,b)=>{ const ag=a.cu.target?(a.cu.target-a.cu.total)/a.cu.target:-1, bg=b.cu.target?(b.cu.target-b.cu.total)/b.cu.target:-1; return bg-ag; });
+  }
   const cdEl = document.getElementById('cadence-body');
   if (cdEl) {
     if (loading) {
-      cdEl.innerHTML = '<tr><td colspan="6" class="empty-hint">Loading Ordinal data…</td></tr>';
+      cdEl.innerHTML = '<tr><td colspan="7" class="empty-hint">Loading Ordinal data…</td></tr>';
     } else if (!cadVisible.length) {
-      cdEl.innerHTML = `<tr><td colspan="6" class="empty-hint">${view.showAllCustomers ? 'No active customers.' : '🎉 All active customers on track. Click "Show all customers" to see everyone.'}</td></tr>`;
+      cdEl.innerHTML = `<tr><td colspan="7" class="empty-hint">${view.showAllCustomers ? 'No active customers.' : '🎉 All active customers on track. Click "Show all customers" to see everyone.'}</td></tr>`;
     } else {
-      cdEl.innerHTML = cadVisible.map(({cu,label,cls})=>`<tr><td>${cu.c.name}</td><td>${cu.ce}</td><td>${cu.target||'—'}</td><td>${cu.scheduled.length}</td><td>${cu.posted.length}</td><td class="${cls}">${label}</td></tr>`).join('');
+      cdEl.innerHTML = cadVisible.map(({cu,label,cls,am})=>`<tr><td>${cu.c.name}</td><td>${cu.ce}</td><td>${am}</td><td>${cu.target||'—'}</td><td>${cu.scheduled.length}</td><td>${cu.posted.length}</td><td class="${cls}">${label}</td></tr>`).join('');
     }
   }
   const cdToggle = document.getElementById('cd-toggle');
@@ -1425,6 +1499,8 @@ function renderTeamTab(cos, ordinal) {
     cdToggle.textContent = view.showAllCustomers ? 'Show only behind' : 'Show all customers';
     cdToggle.onclick = () => { window.__teamView.showAllCustomers = !window.__teamView.showAllCustomers; renderTeamTab(cos, ordinal); };
   }
+  bindSortHeader('th-cadence-ce','cadence','ce',()=>renderTeamTab(cos, ordinal));
+  bindSortHeader('th-cadence-am','cadence','am',()=>renderTeamTab(cos, ordinal));
 
   // AM charts
   const allAMs=[...new Set(cos.map(c=>displayAM(c.csm)).filter(Boolean))].sort();
