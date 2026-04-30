@@ -183,33 +183,12 @@ tbody td:first-child{font-weight:500}
 .ce-bar-track{flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden}
 .ce-bar-fill{height:100%;border-radius:5px;background:var(--teal-mid);transition:width 0.4s ease}
 .ce-bar-count{font-size:11px;color:var(--ink2);min-width:90px;flex-shrink:0}
-.bottleneck-red{color:var(--red);font-weight:600}
-.bottleneck-amber{color:var(--amber);font-weight:500}
-.bottleneck-ok{color:var(--teal)}
-.cadence-ahead{color:var(--teal);font-weight:500}
-.cadence-behind{color:var(--coral-mid);font-weight:500}
-.cadence-ok{color:var(--blue)}
 .team-loading{padding:16px;font-size:13px;color:var(--ink3);font-style:italic}
-/* Team tab: triage view */
-.punch-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:4px 0 20px}
-.punch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);border-left-width:3px;border-left-style:solid;border-left-color:var(--border);cursor:default;transition:transform .12s ease}
-.punch-card.is-alert{border-left-color:var(--red)}
-.punch-card.is-warn{border-left-color:var(--amber)}
-.punch-card.is-ok{border-left-color:var(--teal)}
-.punch-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink2)}
-.punch-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:600;line-height:1.1;margin-top:6px;color:var(--ink)}
-.punch-sub{font-size:11px;color:var(--ink3);margin-top:4px}
-.punch-delta{font-size:11px;margin-top:6px;display:inline-flex;align-items:center;gap:4px}
-.punch-delta.up{color:var(--red)}
-.punch-delta.down{color:var(--teal)}
-.punch-delta.flat{color:var(--ink3)}
 .ce-bar-signals{font-size:11px;color:var(--ink3);margin:2px 0 0 90px;display:flex;gap:10px;flex-wrap:wrap}
 .ce-signal{display:inline-flex;align-items:center;gap:3px}
 .ce-signal.stuck{color:var(--red);font-weight:500}
 .ce-signal.behind{color:var(--amber);font-weight:500}
 .ce-signal.ok{color:var(--teal)}
-.filter-toggle{cursor:pointer;color:var(--blue);text-decoration:underline;font-size:11px;background:none;border:none;padding:0;font-family:inherit}
-.filter-toggle:hover{color:var(--blue-mid)}
 .empty-hint{padding:16px;color:var(--ink3);font-style:italic;font-size:13px}
 </style>
 </head>
@@ -512,34 +491,8 @@ tbody td:first-child{font-weight:500}
 
   <!-- TAB 4: TEAM -->
   <div id="tab-team" class="tab-content">
-    <!-- PUNCH LIST: what needs attention right now -->
-    <div class="section-header" style="margin-top:4px">
-      <span class="section-title">Needs attention today</span>
-      <span class="section-note" id="punch-note">Click a card to jump to details · deltas compare to ~7 days ago</span>
-    </div>
-    <div class="punch-strip" id="team-punch-list">
-      <div class="punch-card"><div class="punch-label">Stuck reviews</div><div class="punch-value">—</div><div class="punch-sub">Loading…</div></div>
-      <div class="punch-card"><div class="punch-label">Customers behind cadence</div><div class="punch-value">—</div><div class="punch-sub">Loading…</div></div>
-      <div class="punch-card"><div class="punch-label">Customers with zero posts</div><div class="punch-value">—</div><div class="punch-sub">Loading…</div></div>
-      <div class="punch-card"><div class="punch-label">CEs under stress</div><div class="punch-value">—</div><div class="punch-sub">Loading…</div></div>
-    </div>
-
-    <!-- CRITICAL REVIEW BOTTLENECK — only posts 7+ days old -->
-    <div class="section-header" id="bottleneck-section">
-      <span class="section-title">Critical review bottleneck</span>
-      <span class="section-note">ForReview posts 7+ days old · active customers · <button class="filter-toggle" id="bt-toggle" type="button">Show all ages</button></span>
-    </div>
-    <div class="table-card" style="margin-bottom:20px">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Post title</th><th>Customer</th><th id="th-bottleneck-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th id="th-bottleneck-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Days waiting</th><th>Created</th><th>Link</th></tr></thead>
-          <tbody id="bottleneck-body"><tr><td colspan="7" class="team-loading">Loading...</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
     <!-- CE LOAD with context signals -->
-    <div class="section-header" id="ce-load-section">
+    <div class="section-header" id="ce-load-section" style="margin-top:4px">
       <span class="section-title">CE capacity &amp; stress signals</span>
       <span class="section-note">Target posts per month · stuck reviews · accounts behind cadence</span>
     </div>
@@ -549,19 +502,6 @@ tbody td:first-child{font-weight:500}
       <div id="ce-load-bars" style="padding:8px 0"><div class="team-loading">Loading...</div></div>
     </div>
 
-    <!-- CADENCE — only customers behind, toggle to show all -->
-    <div class="section-header" id="cadence-section">
-      <span class="section-title">Customers behind cadence</span>
-      <span class="section-note">Below 80% of monthly target · <button class="filter-toggle" id="cd-toggle" type="button">Show all customers</button></span>
-    </div>
-    <div class="table-card" style="margin-bottom:20px">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Customer</th><th id="th-cadence-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th id="th-cadence-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Target / month</th><th>Scheduled this month</th><th>Posted this month</th><th>Status</th></tr></thead>
-          <tbody id="cadence-body"><tr><td colspan="7" class="team-loading">Loading...</td></tr></tbody>
-        </table>
-      </div>
-    </div>
     <div class="section-header">
       <span class="section-title">AM performance</span>
       <span class="section-note">Post-pilot portfolio · active converted + churned post-conversion</span>
@@ -629,9 +569,7 @@ let allCompanies = [], sheetMap = {}, charts = {}, ordinalData = null, ordinalLo
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
   portfolio: { col: null, dir: null },
-  cohort:    { col: null, dir: null },
-  bottleneck:{ col: null, dir: null },
-  cadence:   { col: null, dir: null }
+  cohort:    { col: null, dir: null }
 };
 function nextSortDir(cur) { return cur === null ? 'asc' : cur === 'asc' ? 'desc' : null; }
 function applyListSort(arr, state, getters) {
@@ -1282,37 +1220,12 @@ function renderCohortsTab(cos) {
 }
 
 // ── TEAM TAB ───────────────────────────────────────────────────
-// ── TRIAGE STATE (view filters that persist across renders) ──
-window.__teamView = window.__teamView || { showAllAges: false, showAllCustomers: false };
-
-// ── TREND SNAPSHOTS (localStorage, per-browser) ──────────────
-function loadTeamSnapshots() {
-  try { return JSON.parse(localStorage.getItem('virio-team-snaps')||'[]'); } catch(_) { return []; }
-}
-function saveTeamSnapshot(snap) {
-  const existing = loadTeamSnapshots().filter(s => s.date !== snap.date);
-  const next = [...existing, snap].sort((a,b)=>a.date.localeCompare(b.date)).slice(-30);
-  try { localStorage.setItem('virio-team-snaps', JSON.stringify(next)); } catch(_) {}
-}
-function findBaselineSnapshot(snaps, todayIso) {
-  const today = new Date(todayIso+'T00:00:00');
-  const candidates = snaps.filter(s => s.date !== todayIso).map(s => ({
-    snap: s, ageDays: Math.round((today - new Date(s.date+'T00:00:00'))/86400000)
-  }));
-  const ideal = candidates.filter(c => c.ageDays >= 5 && c.ageDays <= 9);
-  if (ideal.length) return ideal.sort((a,b)=>Math.abs(7-a.ageDays)-Math.abs(7-b.ageDays))[0].snap;
-  const anyPast = candidates.filter(c => c.ageDays >= 1);
-  return anyPast.length ? anyPast.sort((a,b)=>b.ageDays-a.ageDays)[0].snap : null;
-}
-
 function renderTeamTab(cos, ordinal) {
   const exclude=document.getElementById('exclude-virio').checked;
   const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
   const now=new Date(),monthStart=new Date(now.getFullYear(),now.getMonth(),1),monthEnd=new Date(now.getFullYear(),now.getMonth()+1,0);
-  const view = window.__teamView;
-  const loading = !ordinal;
 
-  // Per-customer summary with review/cadence signals
+  // Per-customer summary with review/cadence signals (feeds CE workload chart)
   const customers = active.map(c => {
     const ws = ordinal && ordinal.workspaces ? ordinal.workspaces.find(w=>matchWorkspaceToCompany(w.workspace,[c])) : null;
     const target = parsePostsPerMonth(c.posts_per_month);
@@ -1339,111 +1252,6 @@ function renderTeamTab(cos, ordinal) {
   });
   const ceStressed = d => (d.stuck >= 5 || d.behind >= 2);
 
-  // Top-level punch-list metrics
-  const stats = {
-    stuckReviews: customers.reduce((s,cu)=>s+cu.stuck.length, 0),
-    behindCadence: customers.filter(cu=>cu.behind).length,
-    zeroThisMonth: customers.filter(cu=>cu.zeroThisMonth).length,
-    overCapacityCEs: Object.values(ceMap).filter(ceStressed).length
-  };
-
-  // Trend: save today's snapshot, compare to ~7d old baseline
-  let deltas = null;
-  if (ordinal && ordinal.workspaces) {
-    const todayIso = now.toISOString().slice(0,10);
-    const snaps = loadTeamSnapshots();
-    const baseline = findBaselineSnapshot(snaps, todayIso);
-    saveTeamSnapshot({ date: todayIso, ...stats });
-    if (baseline) {
-      deltas = {
-        stuckReviews: stats.stuckReviews - (baseline.stuckReviews||0),
-        behindCadence: stats.behindCadence - (baseline.behindCadence||0),
-        zeroThisMonth: stats.zeroThisMonth - (baseline.zeroThisMonth||0),
-        overCapacityCEs: stats.overCapacityCEs - (baseline.overCapacityCEs||0),
-        ageDays: Math.round((new Date(todayIso+'T00:00:00') - new Date(baseline.date+'T00:00:00'))/86400000)
-      };
-    }
-  }
-
-  // Punch list render
-  const renderDelta = (n) => {
-    if (!deltas || n === undefined || n === null) return '';
-    if (n === 0) return `<div class="punch-delta flat">→ no change vs ${deltas.ageDays}d ago</div>`;
-    const arrow = n > 0 ? '↑' : '↓';
-    const cls = n > 0 ? 'up' : 'down';
-    return `<div class="punch-delta ${cls}">${arrow} ${Math.abs(n)} vs ${deltas.ageDays}d ago</div>`;
-  };
-  const severity = (n, warnAt, alertAt) => n >= alertAt ? 'is-alert' : n >= warnAt ? 'is-warn' : 'is-ok';
-  const pl = document.getElementById('team-punch-list');
-  if (pl) {
-    pl.innerHTML = loading
-      ? ['Stuck reviews','Customers behind cadence','Customers with zero posts','CEs under stress'].map(l=>`<div class="punch-card"><div class="punch-label">${l}</div><div class="punch-value">—</div><div class="punch-sub">Loading Ordinal data…</div></div>`).join('')
-      : `
-      <div class="punch-card ${severity(stats.stuckReviews,3,7)}" data-jump="bottleneck-section">
-        <div class="punch-label">Stuck reviews (7+ days)</div>
-        <div class="punch-value">${stats.stuckReviews}</div>
-        <div class="punch-sub">${stats.stuckReviews?'across '+new Set(customers.filter(cu=>cu.stuck.length).map(cu=>cu.c.name)).size+' customers':'no critical backlog'}</div>
-        ${renderDelta(deltas && deltas.stuckReviews)}
-      </div>
-      <div class="punch-card ${severity(stats.behindCadence,2,4)}" data-jump="cadence-section">
-        <div class="punch-label">Customers behind cadence</div>
-        <div class="punch-value">${stats.behindCadence}</div>
-        <div class="punch-sub">below 80% of monthly target</div>
-        ${renderDelta(deltas && deltas.behindCadence)}
-      </div>
-      <div class="punch-card ${severity(stats.zeroThisMonth,1,3)}" data-jump="cadence-section">
-        <div class="punch-label">Customers with zero posts</div>
-        <div class="punch-value">${stats.zeroThisMonth}</div>
-        <div class="punch-sub">no scheduled or posted content this month</div>
-        ${renderDelta(deltas && deltas.zeroThisMonth)}
-      </div>
-      <div class="punch-card ${severity(stats.overCapacityCEs,1,3)}" data-jump="ce-load-section">
-        <div class="punch-label">CEs under stress</div>
-        <div class="punch-value">${stats.overCapacityCEs}</div>
-        <div class="punch-sub">5+ stuck reviews or 2+ accounts behind</div>
-        ${renderDelta(deltas && deltas.overCapacityCEs)}
-      </div>`;
-    pl.querySelectorAll('.punch-card[data-jump]').forEach(el => {
-      el.style.cursor = 'pointer';
-      el.onclick = () => { const t = document.getElementById(el.dataset.jump); if (t) t.scrollIntoView({ behavior:'smooth', block:'start' }); };
-    });
-  }
-
-  // Critical review bottleneck (default: 7+ days)
-  const allBottleneckRows = customers.flatMap(cu => (cu.forReview||[]).map(post => {
-    const created = new Date(post.createdAt);
-    return { post, co: cu.c, ce: cu.c.content_manager || '—', am: displayAM(cu.c.csm), days: Math.round((now-created)/86400000), created };
-  }));
-  let visibleBottleneck = view.showAllAges ? allBottleneckRows : allBottleneckRows.filter(r => r.days >= 7);
-  const btState = window.__listSort.bottleneck;
-  if (btState.col && btState.dir) {
-    visibleBottleneck = applyListSort(visibleBottleneck, btState, { ce: r => r.ce, am: r => r.am });
-  } else {
-    visibleBottleneck.sort((a,b)=>b.days-a.days);
-  }
-  const btEl = document.getElementById('bottleneck-body');
-  if (btEl) {
-    const hiddenCount = allBottleneckRows.length - visibleBottleneck.length;
-    if (loading) {
-      btEl.innerHTML = '<tr><td colspan="7" class="empty-hint">Loading Ordinal data…</td></tr>';
-    } else if (!visibleBottleneck.length) {
-      btEl.innerHTML = `<tr><td colspan="7" class="empty-hint">${view.showAllAges ? 'No posts in ForReview for active customers.' : '🎉 No posts stuck 7+ days. '+(hiddenCount?`(${hiddenCount} under 7 days — click "Show all ages")`:'')}</td></tr>`;
-    } else {
-      const extraNote = !view.showAllAges && hiddenCount ? `<tr><td colspan="7" style="padding:10px 16px;color:var(--ink3);font-size:11px;font-style:italic;background:var(--surface2)">+ ${hiddenCount} more posts under 7 days old (normal review cycle — hidden)</td></tr>` : '';
-      btEl.innerHTML = visibleBottleneck.map(({post,co,ce,am,days,created})=>{
-        const cls=days>=14?'bottleneck-red':days>=7?'bottleneck-amber':'bottleneck-ok';
-        return `<tr><td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${post.title}</td><td>${co.name}</td><td>${ce}</td><td>${am}</td><td class="${cls}">${days}d</td><td style="color:var(--ink3);font-size:11px">${created.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</td><td><a href="${post.url}" target="_blank" style="color:var(--blue);font-size:11px;text-decoration:none">Open ↗</a></td></tr>`;
-      }).join('') + extraNote;
-    }
-  }
-  const btToggle = document.getElementById('bt-toggle');
-  if (btToggle) {
-    btToggle.textContent = view.showAllAges ? 'Show only 7+ days' : 'Show all ages';
-    btToggle.onclick = () => { window.__teamView.showAllAges = !window.__teamView.showAllAges; renderTeamTab(cos, ordinal); };
-  }
-  bindSortHeader('th-bottleneck-ce','bottleneck','ce',()=>renderTeamTab(cos, ordinal));
-  bindSortHeader('th-bottleneck-am','bottleneck','am',()=>renderTeamTab(cos, ordinal));
-
   // CE Load with stress signals
   const maxLoad = Math.max(...Object.values(ceMap).map(v=>v.total), 1);
   const ceBars = document.getElementById('ce-load-bars');
@@ -1466,41 +1274,6 @@ function renderTeamTab(cos, ordinal) {
       </div>`;
     }).join('') : '<div class="empty-hint">No active customers assigned to a Content Engineer.</div>';
   }
-
-  // Cadence — default: behind only
-  const cadAll = customers.map(cu => {
-    const behindAmt = cu.target ? cu.target - cu.total : 0;
-    let label, cls;
-    if (!cu.target) { label='—'; cls=''; }
-    else if (cu.total >= cu.target) { label='On track'; cls='cadence-ahead'; }
-    else if (cu.total >= cu.target*0.8) { label=`${behindAmt} behind`; cls='cadence-ok'; }
-    else { label=`${behindAmt} behind`; cls='cadence-behind'; }
-    return { cu, label, cls, am: displayAM(cu.c.csm) };
-  });
-  let cadVisible = view.showAllCustomers ? cadAll : cadAll.filter(r => r.cu.behind || r.cu.zeroThisMonth);
-  const cdState = window.__listSort.cadence;
-  if (cdState.col && cdState.dir) {
-    cadVisible = applyListSort(cadVisible, cdState, { ce: r => r.cu.ce, am: r => r.am });
-  } else {
-    cadVisible.sort((a,b)=>{ const ag=a.cu.target?(a.cu.target-a.cu.total)/a.cu.target:-1, bg=b.cu.target?(b.cu.target-b.cu.total)/b.cu.target:-1; return bg-ag; });
-  }
-  const cdEl = document.getElementById('cadence-body');
-  if (cdEl) {
-    if (loading) {
-      cdEl.innerHTML = '<tr><td colspan="7" class="empty-hint">Loading Ordinal data…</td></tr>';
-    } else if (!cadVisible.length) {
-      cdEl.innerHTML = `<tr><td colspan="7" class="empty-hint">${view.showAllCustomers ? 'No active customers.' : '🎉 All active customers on track. Click "Show all customers" to see everyone.'}</td></tr>`;
-    } else {
-      cdEl.innerHTML = cadVisible.map(({cu,label,cls,am})=>`<tr><td>${cu.c.name}</td><td>${cu.ce}</td><td>${am}</td><td>${cu.target||'—'}</td><td>${cu.scheduled.length}</td><td>${cu.posted.length}</td><td class="${cls}">${label}</td></tr>`).join('');
-    }
-  }
-  const cdToggle = document.getElementById('cd-toggle');
-  if (cdToggle) {
-    cdToggle.textContent = view.showAllCustomers ? 'Show only behind' : 'Show all customers';
-    cdToggle.onclick = () => { window.__teamView.showAllCustomers = !window.__teamView.showAllCustomers; renderTeamTab(cos, ordinal); };
-  }
-  bindSortHeader('th-cadence-ce','cadence','ce',()=>renderTeamTab(cos, ordinal));
-  bindSortHeader('th-cadence-am','cadence','am',()=>renderTeamTab(cos, ordinal));
 
   // AM charts
   const allAMs=[...new Set(cos.map(c=>displayAM(c.csm)).filter(Boolean))].sort();
