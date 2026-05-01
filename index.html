@@ -482,6 +482,19 @@ tbody td:first-child{font-weight:500}
         </table>
       </div>
     </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Churned accounts cohort roster</span>
+      <span class="section-note" id="note-cohort-churned-roster"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-cohort-churned-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Health</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th></tr></thead>
+          <tbody id="cohort-churned-roster-body"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- TAB 4: TEAM -->
@@ -562,8 +575,9 @@ let allCompanies = [], sheetMap = {}, charts = {};
 
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
-  portfolio: { col: null, dir: null },
-  cohort:    { col: null, dir: null }
+  portfolio:     { col: null, dir: null },
+  cohort:        { col: null, dir: null },
+  cohortChurned: { col: null, dir: null }
 };
 function nextSortDir(cur) { return cur === null ? 'asc' : cur === 'asc' ? 'desc' : null; }
 function applyListSort(arr, state, getters) {
@@ -1118,23 +1132,38 @@ function renderCohortsTab(cos) {
     if(el) el.innerHTML=allReasons.map((r,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${REASON_COLORS[i%REASON_COLORS.length]}"></span>${r}</span>`).join('');
   }
 
-  // Cohort roster
-  set('note-cohort-roster',cos.length+' companies · sorted by stage');
+  // Cohort roster — split into active vs churned
   const bc={'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
-  let cohortRows=[...cos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
-  cohortRows=applyListSort(cohortRows, window.__listSort.cohort, {
-    ce: c => c.content_manager,
-    am: c => displayAM(c.csm)
-  });
-  document.getElementById('cohort-roster-body').innerHTML=cohortRows.map(c=>{
+  const isChurned = c => c.pilot_status==='Exited During Pilot' || c.pilot_status==='Churned Post Conversion';
+  const renderCohortRow = c => {
     const s=getSheetData(c.name);
     const health=calcCompositeScore(c,s);
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
     return `<tr><td>${c.name}</td><td>${c.stage||'—'}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td></tr>`;
-  }).join('');
+  };
+  const sortGetters = { ce: c => c.content_manager, am: c => displayAM(c.csm) };
+
+  const activeCos = cos.filter(c => !isChurned(c));
+  const churnedCos = cos.filter(isChurned);
+
+  set('note-cohort-roster', activeCos.length + ' active companies · sorted by stage');
+  let activeRows=[...activeCos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
+  activeRows=applyListSort(activeRows, window.__listSort.cohort, sortGetters);
+  document.getElementById('cohort-roster-body').innerHTML = activeRows.length
+    ? activeRows.map(renderCohortRow).join('')
+    : '<tr><td colspan="11" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-cohort-ce','cohort','ce',()=>renderCohortsTab(cos));
   bindSortHeader('th-cohort-am','cohort','am',()=>renderCohortsTab(cos));
+
+  set('note-cohort-churned-roster', churnedCos.length + ' churned companies · sorted by stage');
+  let churnedRows=[...churnedCos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
+  churnedRows=applyListSort(churnedRows, window.__listSort.cohortChurned, sortGetters);
+  document.getElementById('cohort-churned-roster-body').innerHTML = churnedRows.length
+    ? churnedRows.map(renderCohortRow).join('')
+    : '<tr><td colspan="11" class="empty-hint">No churned customers.</td></tr>';
+  bindSortHeader('th-cohort-churned-ce','cohortChurned','ce',()=>renderCohortsTab(cos));
+  bindSortHeader('th-cohort-churned-am','cohortChurned','am',()=>renderCohortsTab(cos));
 }
 
 // ── TEAM TAB ───────────────────────────────────────────────────
