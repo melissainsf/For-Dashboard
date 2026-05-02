@@ -1182,9 +1182,10 @@ function renderTeamTab(cos) {
   const exclude=document.getElementById('exclude-virio').checked;
   const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
 
-  // CE aggregates by post target
+  // CE aggregates by post target — always include Virio so internal workload is reflected
+  const ceSource=allCompanies.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
   const ceMap = {};
-  active.forEach(c => {
+  ceSource.forEach(c => {
     const ce = c.content_manager || 'Unassigned';
     const target = parsePostsPerMonth(c.posts_per_month);
     if (!ceMap[ce]) ceMap[ce] = { total:0, accounts:[] };
