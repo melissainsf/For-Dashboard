@@ -178,11 +178,21 @@ tbody td:first-child{font-weight:500}
 .cohort-metric-value.ink{color:var(--ink)}
 .cohort-na{font-size:11px;color:var(--ink3);font-style:italic}
 /* TEAM TAB */
-.ce-bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.ce-bar-row{position:relative;margin-bottom:12px}
+.ce-bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:6px;cursor:default}
 .ce-bar-label{font-size:12px;font-weight:500;min-width:80px;flex-shrink:0}
 .ce-bar-track{flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden}
 .ce-bar-fill{height:100%;border-radius:5px;background:var(--teal-mid);transition:width 0.4s ease}
 .ce-bar-count{font-size:11px;color:var(--ink2);min-width:90px;flex-shrink:0}
+.ce-bar-tooltip{position:absolute;left:90px;top:calc(100% - 2px);z-index:50;min-width:220px;max-width:320px;background:var(--header-bg);color:var(--header-ink);border-radius:var(--radius-sm);padding:10px 12px;box-shadow:0 6px 20px rgba(26,25,22,0.18);opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity 0.12s ease,transform 0.12s ease,visibility 0.12s ease;pointer-events:none}
+.ce-bar-row:hover .ce-bar-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
+.ce-bar-tooltip-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:rgba(245,243,238,0.6);margin-bottom:6px}
+.ce-bar-tooltip-list{list-style:none;margin:0;padding:0;max-height:240px;overflow-y:auto}
+.ce-bar-tooltip-list li{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(245,243,238,0.08)}
+.ce-bar-tooltip-list li:last-child{border-bottom:none}
+.ce-bar-tooltip-name{color:var(--header-ink)}
+.ce-bar-tooltip-ppm{color:rgba(245,243,238,0.65);flex-shrink:0}
+.ce-bar-tooltip-empty{font-size:12px;color:rgba(245,243,238,0.65);font-style:italic}
 .team-loading{padding:16px;font-size:13px;color:var(--ink3);font-style:italic}
 .empty-hint{padding:16px;color:var(--ink3);font-style:italic;font-size:13px}
 </style>
@@ -694,6 +704,7 @@ function fmtBig$(n) {
   return '$'+Math.round(n);
 }
 function set(id,v) { const el=document.getElementById(id); if(el) el.textContent=v; }
+function escapeHtml(s) { return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function normalizeName(n) { return (n||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
 function displayAM(csm) { return csm==='CSM 2'?'David':(csm||'Unassigned'); }
 function calcTTV(k,f) { if(!k||!f) return null; const d=Math.round((new Date(f)-new Date(k))/86400000); return d>=0?d:null; }
@@ -1188,11 +1199,19 @@ function renderTeamTab(cos) {
     const sorted = Object.entries(ceMap).sort((a,b)=> b[1].total - a[1].total);
     ceBars.innerHTML = sorted.length ? sorted.map(([ce, data])=>{
       const fillColor = data.total >= 50 ? 'var(--red)' : data.total >= 25 ? 'var(--amber)' : 'var(--teal-mid)';
-      return `<div style="margin-bottom:12px">
-        <div class="ce-bar-wrap" title="${data.accounts.map(a=>a.name+' ('+a.ppm+'/mo)').join(', ')}">
-          <div class="ce-bar-label">${ce}</div>
+      const accountsSorted = [...data.accounts].sort((a,b)=>b.ppm-a.ppm);
+      const tooltipBody = accountsSorted.length
+        ? `<ul class="ce-bar-tooltip-list">${accountsSorted.map(a=>`<li><span class="ce-bar-tooltip-name">${escapeHtml(a.name)}</span><span class="ce-bar-tooltip-ppm">${a.ppm}/mo</span></li>`).join('')}</ul>`
+        : `<div class="ce-bar-tooltip-empty">No customers assigned</div>`;
+      return `<div class="ce-bar-row">
+        <div class="ce-bar-wrap">
+          <div class="ce-bar-label">${escapeHtml(ce)}</div>
           <div class="ce-bar-track"><div class="ce-bar-fill" style="width:${(data.total/maxLoad*100).toFixed(1)}%;background:${fillColor}"></div></div>
           <div class="ce-bar-count">${data.total} posts/mo · ${data.accounts.length} account${data.accounts.length!==1?'s':''}</div>
+        </div>
+        <div class="ce-bar-tooltip">
+          <div class="ce-bar-tooltip-title">${escapeHtml(ce)} · ${data.accounts.length} account${data.accounts.length!==1?'s':''}</div>
+          ${tooltipBody}
         </div>
       </div>`;
     }).join('') : '<div class="empty-hint">No active customers assigned to a Content Engineer.</div>';
