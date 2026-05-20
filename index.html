@@ -425,15 +425,7 @@ tbody td:first-child{font-weight:500}
       <span class="section-title">GRR and NRR by segment</span>
       <span class="section-note">Ever-converted customers · gross vs. net revenue retention</span>
     </div>
-    <div class="chart-card">
-      <div class="chart-card-title">Revenue retention by segment</div>
-      <div class="chart-card-sub">GRR and NRR per segment</div>
-      <div class="chart-wrap-md"><canvas id="grrNrrSegmentBar"></canvas></div>
-      <div class="legend">
-        <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>GRR</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>NRR</span>
-      </div>
-    </div>
+    <div class="cohort-grid" id="grr-nrr-segment-cards"></div>
     <div class="section-header">
       <span class="section-title">Score averages by stage</span>
       <span class="section-note">Active customers · slice size reflects avg score</span>
@@ -1102,21 +1094,15 @@ function renderCohortsTab(cos) {
   // GRR / NRR by segment
   const isEverConv=c=>c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion';
   const grrNrrSegs=allStages.filter(stage=>cos.some(c=>c.stage===stage&&isEverConv(c)));
-  const segRetention=grrNrrSegs.map(stage=>{
+  document.getElementById('grr-nrr-segment-cards').innerHTML=grrNrrSegs.map(stage=>{
     const ever=cos.filter(c=>c.stage===stage&&isEverConv(c));
     const sMRR=ever.reduce((s,c)=>s+c.mrr,0);
     const sExp=ever.reduce((s,c)=>s+c.expansion_mrr,0);
     const sChrn=ever.filter(c=>c.pilot_status==='Churned Post Conversion').reduce((s,c)=>s+c.churned_mrr,0);
-    return {
-      grr:sMRR?parseFloat(((sMRR-sChrn)/sMRR*100).toFixed(1)):0,
-      nrr:sMRR?parseFloat(((sMRR+sExp-sChrn)/sMRR*100).toFixed(1)):0,
-      names:ever.map(c=>({name:c.name,val:fmt$(c.mrr)}))
-    };
-  });
-  renderGroupedBar('grrNrrSegmentBar',grrNrrSegs,[
-    {label:'GRR',data:segRetention.map(s=>s.grr),color:'#378ADD',names:segRetention.map(s=>s.names)},
-    {label:'NRR',data:segRetention.map(s=>s.nrr),color:'#1D9E75',names:segRetention.map(s=>s.names)}
-  ]);
+    const grr=sMRR?((sMRR-sChrn)/sMRR*100).toFixed(1)+'%':'—';
+    const nrr=sMRR?((sMRR+sExp-sChrn)/sMRR*100).toFixed(1)+'%':'—';
+    return `<div class="cohort-card"><div class="cohort-card-title">${stage}</div><div class="cohort-card-n">n=${ever.length} ever-converted</div><div class="metric-grid-2" style="margin-bottom:0"><div><div class="mcard-label">GRR</div><div class="mcard-value blue">${grr}</div></div><div><div class="mcard-label">NRR</div><div class="mcard-value blue">${nrr}</div></div></div></div>`;
+  }).join('');
 
   // Score pies
   function scoreAvgByStage(field) {
