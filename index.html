@@ -452,6 +452,29 @@ tbody td:first-child{font-weight:500}
     </div>
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
+      <span class="section-title">Industry/vertical</span>
+    </div>
+    <div class="chart-row-3">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Pilot vs converted by vertical</div>
+        <div class="chart-card-sub">Active customers · in progress or converted</div>
+        <div class="chart-wrap-md"><canvas id="pilotConvVerticalPie"></canvas></div>
+        <div class="legend" id="legend-pilot-conv-vertical"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Exited pilots by vertical</div>
+        <div class="chart-card-sub">Pilots that exited before converting</div>
+        <div class="chart-wrap-md"><canvas id="exitedVerticalBar"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Churn reasons by vertical</div>
+        <div class="chart-card-sub">All churns · stacked by reason</div>
+        <div class="chart-wrap-md"><canvas id="churnReasonVerticalBar"></canvas></div>
+        <div class="legend" id="legend-churn-vertical"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
       <span class="section-title">Operational metrics by stage</span>
     </div>
     <div class="chart-row">
@@ -1161,6 +1184,46 @@ function renderCohortsTab(cos) {
     });
     const el=document.getElementById('legend-churn-stage');
     if(el) el.innerHTML=allReasons.map((r,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${REASON_COLORS[i%REASON_COLORS.length]}"></span>${r}</span>`).join('');
+  }
+
+  // Industry / vertical
+  const allVerticals=[...new Set(cos.map(c=>c.vertical).filter(Boolean))].sort();
+
+  // 1. Pilot vs converted by vertical (pie of active customers per vertical)
+  const pcByVert=allVerticals.map(v=>{
+    const pilot=cos.filter(c=>c.vertical===v&&c.pilot_status==='In progress');
+    const conv=cos.filter(c=>c.vertical===v&&c.pilot_status==='Converted');
+    return {vertical:v,pilot,conv,total:pilot.length+conv.length};
+  }).filter(x=>x.total>0);
+  if(charts['pilotConvVerticalPie']) charts['pilotConvVerticalPie'].destroy();
+  if(pcByVert.length) {
+    const pcLabels=pcByVert.map(x=>x.vertical);
+    const pcColors=STAGE_COLORS.slice(0,pcLabels.length);
+    charts['pilotConvVerticalPie']=new Chart(document.getElementById('pilotConvVerticalPie').getContext('2d'),{
+      type:'pie',
+      data:{labels:pcLabels,datasets:[{data:pcByVert.map(x=>x.total),backgroundColor:pcColors,borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+        const x=pcByVert[ctx.dataIndex];
+        return [` ${x.vertical}: ${x.total}  (pilot ${x.pilot.length} · converted ${x.conv.length})`,...buildLines([...x.pilot,...x.conv].map(c=>({name:c.name,val:c.pilot_status})))];
+      }}}}}
+    });
+    const pcLegend=document.getElementById('legend-pilot-conv-vertical');
+    if(pcLegend) pcLegend.innerHTML=pcByVert.map((x,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${pcColors[i]}"></span>${x.vertical}: ${x.pilot.length}p / ${x.conv.length}c</span>`).join('');
+  }
+
+  // 2. Exited pilots by vertical (bar)
+  const exitedByVert=allVerticals.map(v=>cos.filter(c=>c.vertical===v&&c.pilot_status==='Exited During Pilot'));
+  renderBar('exitedVerticalBar',allVerticals,exitedByVert.map(g=>g.length),'#D85A30',exitedByVert.map(g=>g.map(c=>({name:c.name,val:c.churn_reason||'—'}))));
+
+  // 3. Churn reasons by vertical (stacked bar)
+  if(charts['churnReasonVerticalBar']) charts['churnReasonVerticalBar'].destroy();
+  if(allReasons.length&&allVerticals.length) {
+    charts['churnReasonVerticalBar']=new Chart(document.getElementById('churnReasonVerticalBar').getContext('2d'),{
+      type:'bar',data:{labels:allVerticals,datasets:allReasons.map((r,i)=>({label:r,data:allVerticals.map(v=>allChurnedCos.filter(c=>c.vertical===v&&c.churn_reason===r).length),backgroundColor:REASON_COLORS[i%REASON_COLORS.length],borderRadius:3}))},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10},autoSkip:false,maxRotation:35},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    });
+    const cvLegend=document.getElementById('legend-churn-vertical');
+    if(cvLegend) cvLegend.innerHTML=allReasons.map((r,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${REASON_COLORS[i%REASON_COLORS.length]}"></span>${r}</span>`).join('');
   }
 
   // Cohort roster — split into active vs churned
