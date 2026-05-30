@@ -1,23 +1,19 @@
 // Virio CS Dashboard - Lineage health serverless function.
 //
 // Configure in Netlify env vars:
-//   LINEAGE_API_KEY  - the API key from Lineage
-//   LINEAGE_API_URL  - the full endpoint URL that returns the per-account health list
-//                      (e.g. https://app.virio.ai/api/health). If unset, defaults to
-//                      https://app.virio.ai/api/health.
+//   LINEAGE_API_KEY   - the API key from Lineage
+//   LINEAGE_API_URL   - full endpoint URL (default https://app.virio.ai/api/health)
+//   LINEAGE_DEBUG=1   - include a raw_sample of the upstream response (for parser tuning)
 //
 // Expected client-side shape: { results: [{ name, account_health }, ...] }.
 // On any error, returns { results: [] } so the dashboard renders "—" chips.
 exports.handler = async function() {
   const key = process.env.LINEAGE_API_KEY;
   const url = process.env.LINEAGE_API_URL || 'https://app.virio.ai/api/health';
+  const debug = process.env.LINEAGE_DEBUG === '1';
 
   if (!key) {
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ results: [], error: 'LINEAGE_API_KEY not configured' })
-    };
+    return reply({ results: [], error: 'LINEAGE_API_KEY not configured' });
   }
 
   try {
@@ -29,32 +25,37 @@ exports.handler = async function() {
       }
     });
 
+    const txt = await res.text();
     if (!res.ok) {
-      const txt = await res.text().catch(() => '');
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ results: [], error: `Lineage ${res.status}: ${txt.slice(0, 200)}` })
-      };
+      return reply({ results: [], error: `Lineage ${res.status}: ${txt.slice(0, 200)}` });
     }
 
-    const data = await res.json();
-    const raw = Array.isArray(data) ? data : (data.results || data.accounts || data.data || []);
+    let data;
+    try { data = JSON.parse(txt); }
+    catch { return reply({ results: [], error: 'Non-JSON response', raw_sample: txt.slice(0, 400) }); }
+
+    const raw = Array.isArray(data) ? data : (data.results || data.accounts || data.data || data.items || []);
     const results = raw.map(r => ({
       name: r.name || r.company || r.account_name || r.account || '',
       account_health: r.account_health || r.health || r.status || r.color || null
     })).filter(r => r.name);
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ results })
-    };
+    const payload = { results };
+    if (debug || results.length === 0) {
+      payload.raw_sample = txt.slice(0, 800);
+      payload.top_keys = data && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data) : null;
+    }
+    return reply(payload);
   } catch (e) {
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ results: [], error: e.message })
-    };
+    return reply({ results: [], error: e.message });
   }
 };
+
+function reply(body) {
+  return {
+    statusCode: 200,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    body: JSON.stringify(body)
+  };
+}
+
