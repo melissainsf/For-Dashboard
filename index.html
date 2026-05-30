@@ -563,6 +563,24 @@ tbody td:first-child{font-weight:500}
       </div>
     </div>
     <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">ROI calculator</span>
+      <span class="section-note">Closed-deal targets per customer at break-even (1× MRR)</span>
+    </div>
+    <div class="metric-grid-3">
+      <div class="mcard"><div class="mcard-label">Monthly target</div><div class="mcard-value ink" id="m-roi-monthly">—</div><div class="mcard-sub">Sum of active MRR</div></div>
+      <div class="mcard"><div class="mcard-label">Quarterly target</div><div class="mcard-value ink" id="m-roi-quarterly">—</div><div class="mcard-sub">3× monthly</div></div>
+      <div class="mcard"><div class="mcard-label">Annual target</div><div class="mcard-value ink" id="m-roi-annual">—</div><div class="mcard-sub">12× monthly</div></div>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>MRR</th><th>Monthly target</th><th>Quarterly target</th><th>Annual target</th></tr></thead>
+          <tbody id="roi-calculator-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
   </div>
 
 </main>
@@ -1257,6 +1275,16 @@ function renderTeamTab(cos) {
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
     });
   }
+
+  // ROI calculator — closed-deal targets per active customer at 1× MRR
+  const roiRows=[...active].filter(c=>c.mrr>0).sort((a,b)=>b.mrr-a.mrr);
+  const totalMRR=roiRows.reduce((s,c)=>s+c.mrr,0);
+  set('m-roi-monthly',fmtBig$(totalMRR));
+  set('m-roi-quarterly',fmtBig$(totalMRR*3));
+  set('m-roi-annual',fmtBig$(totalMRR*12));
+  document.getElementById('roi-calculator-body').innerHTML=roiRows.length
+    ? roiRows.map(c=>`<tr><td>${c.name}</td><td>${fmt$(c.mrr)}</td><td>${fmt$(c.mrr)}</td><td>${fmt$(c.mrr*3)}</td><td>${fmt$(c.mrr*12)}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="empty-hint">No active customers with MRR.</td></tr>';
 }
 
 // ── INIT ────────────────────────────────────────────────────────
