@@ -34,10 +34,10 @@ exports.handler = async function() {
     try { data = JSON.parse(txt); }
     catch { return reply({ results: [], error: 'Non-JSON response', raw_sample: txt.slice(0, 400) }); }
 
-    const raw = Array.isArray(data) ? data : (data.results || data.accounts || data.data || data.items || []);
+    const raw = Array.isArray(data) ? data : (data.rows || data.results || data.accounts || data.data || data.items || []);
     const results = raw.map(r => ({
-      name: r.name || r.company || r.account_name || r.account || '',
-      account_health: r.account_health || r.health || r.status || r.color || null
+      name: r.co || r.name || r.company || r.account_name || r.account || '',
+      account_health: r.humanHealth || r.agentHealth || r.account_health || r.health || r.status || r.color || null
     })).filter(r => r.name);
 
     const payload = { results };
