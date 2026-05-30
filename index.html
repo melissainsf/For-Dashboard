@@ -580,6 +580,8 @@ const STAGE_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D453
 const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
+const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha']);
+const scrubFormer = v => (v && FORMER_TEAM_MEMBERS.has(v)) ? null : v;
 
 let allCompanies = [], lineageMap = {}, charts = {};
 
@@ -768,8 +770,8 @@ async function loadData() {
         churned_mrr:parseFloat(r.properties.churned_mrr_value)||0,
         churn_reason:r.properties.churn_reason||null,
         domain:r.properties.domain,
-        csm:r.properties.csm||null,
-        content_manager:r.properties.content_manager||null,
+        csm:scrubFormer(r.properties.csm)||null,
+        content_manager:scrubFormer(r.properties.content_manager)||null,
         posts_per_month:r.properties.posts_per_month||null,
         kickoff_date:r.properties.kickoff_call_date||null,
         first_post_date:r.properties.first_post_date||null,
