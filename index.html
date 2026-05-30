@@ -112,33 +112,28 @@ main{padding:24px 32px;max-width:1600px;margin:0 auto}
 .health-widget-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
 .health-widget-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:600}
 .health-widget-sub{font-size:10px;color:var(--ink3)}
-.health-avg-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:600}
-.health-avg-label{font-size:11px;color:var(--ink3)}
 .health-row{display:flex;align-items:center;gap:10px;padding:5px 6px;margin:0 -6px;border-bottom:1px solid var(--border);border-radius:4px;cursor:default;transition:background 0.1s}
 .health-row:last-child{border-bottom:none}
 .health-row:hover{background:var(--surface2)}
 .health-name{font-size:12px;font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.health-scores{display:flex;gap:5px;flex-shrink:0}
-.score-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500}
-.score-pill .pill-label{opacity:0.6;font-size:9px}
-.score-red{background:var(--red-light);color:var(--red)}
-.score-amber{background:var(--yellow-light);color:var(--yellow)}
-.score-blue{background:var(--blue-light);color:var(--blue)}
-.score-teal{background:var(--teal-light);color:var(--teal)}
-.score-gray{background:var(--surface2);color:var(--ink3)}
-.health-bar-wrap{width:60px;flex-shrink:0}
-.health-bar-bg{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
-.health-bar-fill{height:100%;border-radius:2px;transition:width 0.3s ease}
-.health-legend{display:flex;gap:12px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);flex-wrap:wrap}
-.health-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink3)}
-.health-legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.health-scores{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.health-ttv{font-size:10px;color:var(--ink3)}
 .no-sheet-data{font-size:11px;color:var(--ink3);font-style:italic;padding:8px 0}
-/* RAG BADGES */
-.rag-badge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:20px;border-radius:10px;font-size:10px;font-weight:600;flex-shrink:0;padding:0 5px}
-.rag-green{background:#E1F5EE;color:#085041}
-.rag-yellow{background:#FAEEDA;color:#633806}
-.rag-red{background:#FCEBEB;color:#791F1F}
-.rag-gray{background:var(--surface2);color:var(--ink3)}
+.health-summary{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.health-summary-item{display:inline-flex;align-items:center;gap:4px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--ink)}
+.health-summary-empty{font-family:inherit;font-size:10px;font-weight:400;color:var(--ink3)}
+.health-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:var(--surface2);color:var(--ink)}
+.health-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--ink3)}
+.health-chip.health-red{background:#FCEBEB;color:#791F1F}
+.health-chip.health-red .health-dot{background:#E24B4A}
+.health-chip.health-yellow{background:#FAEEDA;color:#633806}
+.health-chip.health-yellow .health-dot{background:#BA7517}
+.health-chip.health-green{background:#E1F5EE;color:#085041}
+.health-chip.health-green .health-dot{background:#1D9E75}
+.health-chip.health-blue{background:#E1ECF7;color:#0C3A6E}
+.health-chip.health-blue .health-dot{background:#378ADD}
+.health-chip.health-empty{background:var(--surface2);color:var(--ink3)}
+.health-chip.health-empty .health-dot{background:var(--ink3);opacity:0.4}
 /* TABLE */
 .table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
 .table-wrap{overflow-x:auto}
@@ -269,16 +264,10 @@ tbody td:first-child{font-weight:500}
         </div>
         <div class="health-widget">
           <div class="health-widget-header">
-            <div><div class="health-widget-title">Pilot health scores</div><div class="health-widget-sub">Composite · CS · Content · Warm Outbound · TTV</div></div>
-            <div style="text-align:right"><div class="health-avg-num" id="pilot-avg-sentiment">—</div><div class="health-avg-label">/10 avg</div></div>
+            <div><div class="health-widget-title">Pilot account health</div><div class="health-widget-sub">From Lineage · Red / Yellow / Green / Blue</div></div>
+            <div class="health-summary" id="pilot-health-summary"></div>
           </div>
           <div id="pilot-health-rows"><div class="no-sheet-data">Loading...</div></div>
-          <div class="health-legend">
-            <span class="health-legend-item"><span class="health-legend-dot" style="background:#E24B4A"></span>At risk (1–4)</span>
-            <span class="health-legend-item"><span class="health-legend-dot" style="background:#BA7517"></span>Watch (5–6)</span>
-            <span class="health-legend-item"><span class="health-legend-dot" style="background:#378ADD"></span>Stable (7–8)</span>
-            <span class="health-legend-item"><span class="health-legend-dot" style="background:#1D9E75"></span>Healthy (9–10)</span>
-          </div>
         </div>
         <div class="chart-card">
           <div class="chart-card-title">Pilot outcomes</div>
@@ -332,16 +321,10 @@ tbody td:first-child{font-weight:500}
         </div>
         <div class="health-widget">
           <div class="health-widget-header">
-            <div><div class="health-widget-title">Post-pilot health scores</div><div class="health-widget-sub">Composite · CS · Content · Warm Outbound · TTV</div></div>
-            <div style="text-align:right"><div class="health-avg-num" id="post-avg-sentiment">—</div><div class="health-avg-label">/10 avg</div></div>
+            <div><div class="health-widget-title">Post-pilot account health</div><div class="health-widget-sub">From Lineage · Red / Yellow / Green / Blue</div></div>
+            <div class="health-summary" id="post-health-summary"></div>
           </div>
           <div id="post-health-rows"><div class="no-sheet-data">Loading...</div></div>
-          <div class="health-legend">
-            <span class="health-legend-item"><span class="health-legend-dot" style="background:#E24B4A"></span>At risk</span>
-            <span class="health-legend-item"><span class="health-legend-dot" style="background:#BA7517"></span>Watch</span>
-            <span class="health-legend-item"><span class="health-legend-dot" style="background:#378ADD"></span>Stable</span>
-            <span class="health-legend-item"><span class="health-legend-dot" style="background:#1D9E75"></span>Healthy</span>
-          </div>
         </div>
         <div class="chart-card">
           <div class="chart-card-title">MRR breakdown by stage</div>
@@ -425,37 +408,27 @@ tbody td:first-child{font-weight:500}
       <span class="section-title">GRR and NRR by segment</span>
       <span class="section-note">Ever-converted customers · gross vs. net revenue retention</span>
     </div>
-    <div class="chart-card">
-      <div class="chart-card-title">Revenue retention by segment</div>
-      <div class="chart-card-sub">GRR and NRR per segment</div>
-      <div class="chart-wrap-md"><canvas id="grrNrrSegmentBar"></canvas></div>
-      <div class="legend">
-        <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>GRR</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>NRR</span>
-      </div>
-    </div>
+    <div class="cohort-grid" id="grr-nrr-segment-cards"></div>
     <div class="section-header">
-      <span class="section-title">Score averages by stage</span>
-      <span class="section-note">Active customers · slice size reflects avg score</span>
+      <span class="section-title">Industry/vertical</span>
     </div>
     <div class="chart-row-3">
       <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">CS Sentiment by stage</div>
-        <div class="chart-card-sub">Avg score per stage</div>
-        <div class="chart-wrap-md"><canvas id="sentimentStagePie"></canvas></div>
-        <div class="legend" id="legend-sentiment-stage"></div>
+        <div class="chart-card-title">Pilot vs converted by vertical</div>
+        <div class="chart-card-sub">Active customers · in progress or converted</div>
+        <div class="chart-wrap-md"><canvas id="pilotConvVerticalPie"></canvas></div>
+        <div class="legend" id="legend-pilot-conv-vertical"></div>
       </div>
       <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">Content performance by stage</div>
-        <div class="chart-card-sub">Avg score per stage</div>
-        <div class="chart-wrap-md"><canvas id="contentStagePie"></canvas></div>
-        <div class="legend" id="legend-content-stage"></div>
+        <div class="chart-card-title">Exited pilots by vertical</div>
+        <div class="chart-card-sub">Pilots that exited before converting</div>
+        <div class="chart-wrap-md"><canvas id="exitedVerticalBar"></canvas></div>
       </div>
       <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">Warm outbound by stage</div>
-        <div class="chart-card-sub">Avg score per stage</div>
-        <div class="chart-wrap-md"><canvas id="warmStagePie"></canvas></div>
-        <div class="legend" id="legend-warm-stage"></div>
+        <div class="chart-card-title">Churn reasons by vertical</div>
+        <div class="chart-card-sub">All churns · stacked by reason</div>
+        <div class="chart-wrap-md"><canvas id="churnReasonVerticalBar"></canvas></div>
+        <div class="legend" id="legend-churn-vertical"></div>
       </div>
     </div>
     <div style="margin-bottom:12px"></div>
@@ -464,9 +437,15 @@ tbody td:first-child{font-weight:500}
     </div>
     <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">Avg composite health score by stage</div>
-        <div class="chart-card-sub">Active customers · all five signals</div>
-        <div class="chart-wrap-md"><canvas id="healthScoreStageBar"></canvas></div>
+        <div class="chart-card-title">Account health by stage</div>
+        <div class="chart-card-sub">Active customers · count of Red / Yellow / Green / Blue</div>
+        <div class="chart-wrap-md"><canvas id="healthByStageBar"></canvas></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#E24B4A"></span>Red</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>Yellow</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Green</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Blue</span>
+        </div>
       </div>
       <div class="chart-card" style="margin-bottom:0">
         <div class="chart-card-title">Avg time to value by stage</div>
@@ -500,7 +479,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-cohort-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Health</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th></tr></thead>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-cohort-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Account health</th></tr></thead>
           <tbody id="cohort-roster-body"></tbody>
         </table>
       </div>
@@ -513,7 +492,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-cohort-churned-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Health</th><th>CS Sentiment</th><th>Content Perf.</th><th>Warm Outbound</th></tr></thead>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-cohort-churned-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Account health</th></tr></thead>
           <tbody id="cohort-churned-roster-body"></tbody>
         </table>
       </div>
@@ -554,24 +533,16 @@ tbody td:first-child{font-weight:500}
     </div>
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
-      <span class="section-title">Health scores by AM</span>
-      <span class="section-note">Average across all active accounts · from Client Health Tracker</span>
+      <span class="section-title">Account health by AM</span>
+      <span class="section-note">Active accounts · count of Red / Yellow / Green / Blue from Lineage</span>
     </div>
-    <div class="chart-row-3">
-      <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">CS Sentiment by AM</div>
-        <div class="chart-card-sub">Avg score across active accounts</div>
-        <div class="chart-wrap-md"><canvas id="amSentimentBar"></canvas></div>
-      </div>
-      <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">Content performance by AM</div>
-        <div class="chart-card-sub">Avg score across active accounts</div>
-        <div class="chart-wrap-md"><canvas id="amContentBar"></canvas></div>
-      </div>
-      <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">Warm outbound by AM</div>
-        <div class="chart-card-sub">Avg score across active accounts</div>
-        <div class="chart-wrap-md"><canvas id="amWarmBar"></canvas></div>
+    <div class="chart-card">
+      <div class="chart-wrap-md"><canvas id="healthByAMBar"></canvas></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#E24B4A"></span>Red</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>Yellow</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Green</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Blue</span>
       </div>
     </div>
     <div style="margin-bottom:12px"></div>
@@ -592,9 +563,8 @@ const STAGE_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D453
 const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
-const JOURNEY_SCORES = {'Kickoff Call Scheduled':2,'Kickoff Call Completed':4,'Content Interview Completed':6,'Awaiting Customer QA':7,'Live':9,'Renewal':10};
 
-let allCompanies = [], sheetMap = {}, charts = {};
+let allCompanies = [], lineageMap = {}, charts = {};
 
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
@@ -674,7 +644,7 @@ async function signInWithGoogle() {
 async function signOut() {
   await sb.auth.signOut();
   showAuthScreen(true);
-  allCompanies = []; sheetMap = {};
+  allCompanies = []; lineageMap = {};
 }
 
 // ── TOOLTIP ────────────────────────────────────────────────────
@@ -723,68 +693,18 @@ function displayAM(csm) { return csm==='CSM 2'?'David':(csm||'Unassigned'); }
 function calcTTV(k,f) { if(!k||!f) return null; const d=Math.round((new Date(f)-new Date(k))/86400000); return d>=0?d:null; }
 function fmtTTV(k,f) { const d=calcTTV(k,f); return d!==null?d+' days':'—'; }
 function parsePostsPerMonth(val) { if(!val) return 0; const m=val.match(/\d+/); return m?parseInt(m[0]):0; }
-function scoreColor(val) {
-  const n=parseFloat(val);
-  if(isNaN(n)) return 'score-gray';
-  if(n<=4) return 'score-red';
-  if(n<=6) return 'score-amber';
-  if(n<=8) return 'score-blue';
-  return 'score-teal';
+const HEALTH_VALUES=['red','yellow','green','blue'];
+const HEALTH_COLORS={red:'#E24B4A',yellow:'#BA7517',green:'#1D9E75',blue:'#378ADD'};
+const HEALTH_LABEL={red:'Red',yellow:'Yellow',green:'Green',blue:'Blue'};
+function normalizeHealth(v) { if(!v) return null; const s=String(v).trim().toLowerCase(); return HEALTH_VALUES.includes(s)?s:null; }
+function healthChip(value,{withLabel=true}={}) {
+  const v=normalizeHealth(value);
+  if(!v) return `<span class="health-chip health-empty"><span class="health-dot"></span>${withLabel?'—':''}</span>`;
+  return `<span class="health-chip health-${v}"><span class="health-dot"></span>${withLabel?HEALTH_LABEL[v]:''}</span>`;
 }
-function barColor(val) {
-  const n=parseFloat(val);
-  if(isNaN(n)) return '#D3D1C7';
-  if(n<=4) return '#E24B4A';
-  if(n<=6) return '#BA7517';
-  if(n<=8) return '#378ADD';
-  return '#1D9E75';
-}
-function scorePill(val,label) {
-  if(!val||val===''||val==='N/A') return `<span class="score-pill score-gray"><span class="pill-label">${label}</span> —</span>`;
-  return `<span class="score-pill ${scoreColor(val)}"><span class="pill-label">${label}</span> ${val}</span>`;
-}
-function ragClass(s) { if(s===null||s===undefined) return 'rag-gray'; if(s>=7) return 'rag-green'; if(s>=4.5) return 'rag-yellow'; return 'rag-red'; }
-function ragBadge(s) { if(s===null) return `<span class="rag-badge rag-gray">—</span>`; return `<span class="rag-badge ${ragClass(s)}">${s.toFixed(1)}</span>`; }
-function ragLabel(s) { if(s===null) return 'No data'; if(s>=7) return 'Healthy'; if(s>=4.5) return 'Watch'; return 'At risk'; }
 function buildLines(names) {
   if(!names||!names.length) return ['No data'];
   return names.map(n => typeof n==='string'?`  · ${n}`:`  · ${n.name}${n.val?'  ('+n.val+')':''}`);
-}
-
-// ── COMPOSITE HEALTH SCORE ─────────────────────────────────────
-function calcCompositeScore(c, s) {
-  const sentRaw=s?parseFloat(s.cs_sentiment):NaN;
-  const contRaw=s?parseFloat(s.content_performance):NaN;
-  const warmRaw=s?parseFloat(s.warm_outbound):NaN;
-  const sentScore=isNaN(sentRaw)?5:sentRaw;
-  const contScore=isNaN(contRaw)?5:contRaw;
-  const warmScore=isNaN(warmRaw)?5:warmRaw;
-  const journeyScore=c.customer_journey?(JOURNEY_SCORES[c.customer_journey]||5):5;
-  let timeScore=7;
-  const ttv=calcTTV(c.kickoff_date,c.first_post_date);
-  if(c.pilot_status==='In progress') {
-    if(ttv!==null) timeScore=ttv<=14?10:ttv<=21?8:ttv<=35?6:4;
-    else if(c.kickoff_date) { const d=Math.round((new Date()-new Date(c.kickoff_date))/86400000); timeScore=d<30?9:d<60?7:d<80?5:d<90?3:1; }
-  } else if(ttv!==null) timeScore=ttv<=14?10:ttv<=21?8:ttv<=30?7:ttv<=45?5:3;
-  const score=(sentScore*0.30)+(contScore*0.20)+(warmScore*0.15)+(journeyScore*0.20)+(timeScore*0.15);
-  return {
-    score:Math.round(score*10)/10,
-    breakdown:{
-      sentiment:{val:sentScore,missing:isNaN(sentRaw),weight:'30%'},
-      content:{val:contScore,missing:isNaN(contRaw),weight:'20%'},
-      journey:{val:journeyScore,missing:false,weight:'20%'},
-      warm:{val:warmScore,missing:isNaN(warmRaw),weight:'15%'},
-      time:{val:timeScore,missing:false,weight:'15%'}
-    }
-  };
-}
-
-// ── SHEET DATA LOOKUP ──────────────────────────────────────────
-function getSheetData(name) {
-  const key=normalizeName(name);
-  if(sheetMap[key]) return sheetMap[key];
-  for(const k of Object.keys(sheetMap)) { if(k.includes(key)||key.includes(k)) return sheetMap[k]; }
-  return null;
 }
 
 // ── TAB SWITCHING ──────────────────────────────────────────────
@@ -805,40 +725,44 @@ function switchTab(e, name) {
 async function loadData() {
   const btn=document.getElementById('refresh-btn');
   btn.disabled=true;
-  setStatus('Loading data from HubSpot + Client Health Tracker...','loading');
+  setStatus('Loading data from HubSpot + Lineage...','loading');
   try {
-    const [hsRes,sheetRes]=await Promise.all([
+    const [hsRes,lineageRes]=await Promise.all([
       fetch('/api/hubspot',{method:'POST'}),
-      fetch('/api/sheets',{method:'GET'})
+      fetch('/api/lineage',{method:'GET'})
     ]);
     if(!hsRes.ok) { const e=await hsRes.json().catch(()=>({})); throw new Error(e.error||`HubSpot ${hsRes.status}`); }
     const hsData=await hsRes.json();
-    allCompanies=(hsData.results||[]).map(r=>({
-      name:r.properties.name||r.properties.domain||r.id,
-      pilot_status:r.properties.pilot_status,
-      stage:r.properties.stage||'Unknown',
-      mrr:parseFloat(r.properties.mrr)||0,
-      expansion_mrr:parseFloat(r.properties.expansion_mrr)||0,
-      churned_mrr:parseFloat(r.properties.churned_mrr_value)||0,
-      churn_reason:r.properties.churn_reason||null,
-      domain:r.properties.domain,
-      csm:r.properties.csm||null,
-      content_manager:r.properties.content_manager||null,
-      posts_per_month:r.properties.posts_per_month||null,
-      kickoff_date:r.properties.kickoff_call_date||null,
-      first_post_date:r.properties.first_post_date||null,
-      vertical:r.properties.vertical||null,
-      customer_journey:r.properties.customer_journey||null
-    }));
-    sheetMap={};
-    if(sheetRes.ok) {
-      const sd=await sheetRes.json();
-      sd.forEach(row=>{ if(row.client) sheetMap[normalizeName(row.client)]=row; });
+    lineageMap={};
+    if(lineageRes.ok) {
+      const ld=await lineageRes.json();
+      (ld.results||ld||[]).forEach(row=>{ const n=row.name||row.company||row.account_name; if(n) lineageMap[normalizeName(n)]=normalizeHealth(row.account_health||row.health||row.status||row.color); });
     }
+    allCompanies=(hsData.results||[]).map(r=>{
+      const name=r.properties.name||r.properties.domain||r.id;
+      return {
+        name,
+        pilot_status:r.properties.pilot_status,
+        stage:r.properties.stage||'Unknown',
+        mrr:parseFloat(r.properties.mrr)||0,
+        expansion_mrr:parseFloat(r.properties.expansion_mrr)||0,
+        churned_mrr:parseFloat(r.properties.churned_mrr_value)||0,
+        churn_reason:r.properties.churn_reason||null,
+        domain:r.properties.domain,
+        csm:r.properties.csm||null,
+        content_manager:r.properties.content_manager||null,
+        posts_per_month:r.properties.posts_per_month||null,
+        kickoff_date:r.properties.kickoff_call_date||null,
+        first_post_date:r.properties.first_post_date||null,
+        vertical:r.properties.vertical||null,
+        customer_journey:r.properties.customer_journey||null,
+        account_health:lineageMap[normalizeName(name)]||null
+      };
+    });
     setStatus('');
     const now=new Date();
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Client Health Tracker · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Lineage · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
   } catch(e) {
     setStatus('Failed to load: '+e.message,'error');
@@ -935,8 +859,8 @@ function recompute() {
     return {title:'TTV by customer',rows};
   });
 
-  renderHealthWidget('pilot-health-rows','pilot-avg-sentiment',inProgress);
-  renderHealthWidget('post-health-rows','post-avg-sentiment',converted);
+  renderHealthWidget('pilot-health-rows','pilot-health-summary',inProgress);
+  renderHealthWidget('post-health-rows','post-health-summary',converted);
 
   const allStages=[...new Set(cos.map(c=>c.stage).filter(Boolean))].sort();
   const allAMs=[...new Set(cos.map(c=>displayAM(c.csm)).filter(Boolean))].sort();
@@ -977,42 +901,23 @@ function recompute() {
   renderPortfolioTable(cos);
 }
 
-// ── HEALTH WIDGET ──────────────────────────────────────────────
-function renderHealthWidget(rowsId, avgId, companies) {
+// ── ACCOUNT HEALTH WIDGET ──────────────────────────────────────
+function renderHealthWidget(rowsId, summaryId, companies) {
   const el=document.getElementById(rowsId);
-  const withData=companies.map(c=>({c,s:getSheetData(c.name)}));
-  const scores=withData.map(x=>x.s?parseFloat(x.s.cs_sentiment):NaN).filter(n=>!isNaN(n));
-  set(avgId,scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'—');
-  const withScores=withData.map(({c,s})=>({c,s,result:calcCompositeScore(c,s)}));
-  withScores.sort((a,b)=>(a.result?.score??99)-(b.result?.score??99));
-  el.innerHTML=withScores.map(({c,s,result})=>{
-    const sent=s?.cs_sentiment||'',cont=s?.content_performance||'',warm=s?.warm_outbound||'';
-    const n=parseFloat(sent),barPct=isNaN(n)?0:(n/10*100);
+  const counts={red:0,yellow:0,green:0,blue:0,empty:0};
+  companies.forEach(c=>{ const v=normalizeHealth(c.account_health); counts[v||'empty']++; });
+  const summaryEl=document.getElementById(summaryId);
+  if(summaryEl) summaryEl.innerHTML=HEALTH_VALUES.map(v=>`<span class="health-summary-item"><span class="health-dot" style="background:${HEALTH_COLORS[v]}"></span>${counts[v]}</span>`).join('')+(counts.empty?`<span class="health-summary-item health-summary-empty">· ${counts.empty} no data</span>`:'');
+  const order={red:0,yellow:1,green:2,blue:3,empty:4};
+  const sorted=[...companies].sort((a,b)=>(order[normalizeHealth(a.account_health)||'empty']??9)-(order[normalizeHealth(b.account_health)||'empty']??9)||(b.mrr-a.mrr));
+  el.innerHTML=sorted.map(c=>{
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
-    const ttvCls=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'score-gray'; if(d<=14) return 'score-teal'; if(d<=30) return 'score-blue'; return 'score-amber'; })();
-    const bd=result.breakdown;
-    return `<div class="health-row" onmouseenter="showHealthTip(event,'${c.name.replace(/'/g,"&#39;")}',${JSON.stringify(bd).replace(/"/g,'&quot;')},${JSON.stringify(c.customer_journey||'Unknown').replace(/"/g,'&quot;')},${calcTTV(c.kickoff_date,c.first_post_date)},${JSON.stringify(s?.content_notes||'').replace(/"/g,'&quot;')},${JSON.stringify(s?.action_items||'').replace(/"/g,'&quot;')},${result.score})" onmousemove="posTip(event)" onmouseleave="hideTip()">
-      ${ragBadge(result.score)}
+    return `<div class="health-row">
+      ${healthChip(c.account_health,{withLabel:false})}
       <div class="health-name">${c.name}</div>
-      <div class="health-scores">${scorePill(sent,'CS')}${scorePill(cont,'Cont')}${scorePill(warm,'WO')}<span class="score-pill ${ttvCls}"><span class="pill-label">TTV</span> ${ttv}</span></div>
-      <div class="health-bar-wrap"><div class="health-bar-bg"><div class="health-bar-fill" style="width:${barPct}%;background:${barColor(sent)}"></div></div></div>
+      <div class="health-scores">${healthChip(c.account_health)}<span class="health-ttv">TTV ${ttv}</span></div>
     </div>`;
-  }).join('');
-}
-
-function showHealthTip(e, name, bd, journey, ttv, notes, actions, score) {
-  const rows=[
-    {name:'Composite health score',val:ragLabel(score)+'  '+score.toFixed(1)+'/10'},
-    '---',
-    {name:'CS Sentiment (30%)',val:bd.sentiment.missing?'5.0 (default)':bd.sentiment.val.toFixed(1)+'/10'},
-    {name:'Content Perf. (20%)',val:bd.content.missing?'5.0 (default)':bd.content.val.toFixed(1)+'/10'},
-    {name:'Journey stage (20%)',val:(journey||'Unknown')+'  →  '+bd.journey.val+'/10'},
-    {name:'Warm Outbound (15%)',val:bd.warm.missing?'5.0 (default)':bd.warm.val.toFixed(1)+'/10'},
-    {name:'Time performance (15%)',val:(ttv!==null?'TTV '+ttv+' days':'No date')+'  →  '+bd.time.val+'/10'}
-  ];
-  if(notes) rows.push('---',notes);
-  if(actions) { if(!notes) rows.push('---'); rows.push('Action: '+actions); }
-  showTip(e, name, rows);
+  }).join('')||'<div class="no-sheet-data">No customers in this bucket.</div>';
 }
 
 // ── CHART RENDERERS ────────────────────────────────────────────
@@ -1063,11 +968,9 @@ function renderPortfolioTable(cos) {
     am: c => displayAM(c.csm)
   });
   document.getElementById('portfolio-roster-body').innerHTML=portRows.map(c=>{
-    const s=getSheetData(c.name);
-    const health=calcCompositeScore(c,s);
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.customer_journey||'—'}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td>${c.churn_reason||'—'}</td></tr>`;
+    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.customer_journey||'—'}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td></tr>`;
   }).join('');
   bindSortHeader('th-portfolio-ce','portfolio','ce',()=>renderPortfolioTable(cos));
   bindSortHeader('th-portfolio-am','portfolio','am',()=>renderPortfolioTable(cos));
@@ -1102,50 +1005,24 @@ function renderCohortsTab(cos) {
   // GRR / NRR by segment
   const isEverConv=c=>c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion';
   const grrNrrSegs=allStages.filter(stage=>cos.some(c=>c.stage===stage&&isEverConv(c)));
-  const segRetention=grrNrrSegs.map(stage=>{
+  document.getElementById('grr-nrr-segment-cards').innerHTML=grrNrrSegs.map(stage=>{
     const ever=cos.filter(c=>c.stage===stage&&isEverConv(c));
     const sMRR=ever.reduce((s,c)=>s+c.mrr,0);
     const sExp=ever.reduce((s,c)=>s+c.expansion_mrr,0);
     const sChrn=ever.filter(c=>c.pilot_status==='Churned Post Conversion').reduce((s,c)=>s+c.churned_mrr,0);
-    return {
-      grr:sMRR?parseFloat(((sMRR-sChrn)/sMRR*100).toFixed(1)):0,
-      nrr:sMRR?parseFloat(((sMRR+sExp-sChrn)/sMRR*100).toFixed(1)):0,
-      names:ever.map(c=>({name:c.name,val:fmt$(c.mrr)}))
-    };
-  });
-  renderGroupedBar('grrNrrSegmentBar',grrNrrSegs,[
-    {label:'GRR',data:segRetention.map(s=>s.grr),color:'#378ADD',names:segRetention.map(s=>s.names)},
-    {label:'NRR',data:segRetention.map(s=>s.nrr),color:'#1D9E75',names:segRetention.map(s=>s.names)}
-  ]);
+    const grr=sMRR?((sMRR-sChrn)/sMRR*100).toFixed(1):'0.0';
+    const nrr=sMRR?((sMRR+sExp-sChrn)/sMRR*100).toFixed(1):'0.0';
+    const grrCls=parseFloat(grr)>=90?'teal':parseFloat(grr)>=75?'ink':'coral';
+    const nrrCls=parseFloat(nrr)>=100?'teal':parseFloat(nrr)>=85?'ink':'coral';
+    return `<div class="cohort-card"><div class="cohort-card-title">${stage}</div><div class="cohort-card-n">n=${ever.length} ever-converted</div><div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value ${grrCls}">${grr}%</span></div><div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value ${nrrCls}">${nrr}%</span></div></div>`;
+  }).join('');
 
   // Score pies
-  function scoreAvgByStage(field) {
-    return allStages.map(stage=>{
-      const cos_s=active.filter(c=>c.stage===stage);
-      const vals=cos_s.map(c=>{ const s=getSheetData(c.name); return s?parseFloat(s[field]):NaN; }).filter(n=>!isNaN(n));
-      return {stage,avg:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0,n:vals.length,total:cos_s.length};
-    }).filter(x=>x.avg>0);
-  }
-  function renderScorePie(canvasId, legendId, data) {
-    if(charts[canvasId]) charts[canvasId].destroy();
-    const labels=data.map(d=>d.stage),values=data.map(d=>parseFloat(d.avg.toFixed(1)));
-    charts[canvasId]=new Chart(document.getElementById(canvasId).getContext('2d'),{
-      type:'pie',data:{labels,datasets:[{data:values,backgroundColor:STAGE_COLORS.slice(0,labels.length),borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: avg ${ctx.raw.toFixed(1)}/10  (n=${data[ctx.dataIndex].n})`}}}}
-    });
-    const el=document.getElementById(legendId);
-    if(el) el.innerHTML=data.map((d,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${STAGE_COLORS[i]}"></span>${d.stage}: ${d.avg.toFixed(1)}/10</span>`).join('');
-  }
-  renderScorePie('sentimentStagePie','legend-sentiment-stage',scoreAvgByStage('cs_sentiment'));
-  renderScorePie('contentStagePie','legend-content-stage',scoreAvgByStage('content_performance'));
-  renderScorePie('warmStagePie','legend-warm-stage',scoreAvgByStage('warm_outbound'));
-
-  // Health score bar
-  const healthByStage=allStages.map(stage=>{ const cs=active.filter(c=>c.stage===stage); const sc=cs.map(c=>calcCompositeScore(c,getSheetData(c.name)).score); return sc.length?sc.reduce((a,b)=>a+b,0)/sc.length:0; });
-  if(charts['healthScoreStageBar']) charts['healthScoreStageBar'].destroy();
-  charts['healthScoreStageBar']=new Chart(document.getElementById('healthScoreStageBar').getContext('2d'),{
-    type:'bar',data:{labels:allStages,datasets:[{data:healthByStage.map(v=>parseFloat(v.toFixed(1))),backgroundColor:healthByStage.map(v=>v>=7?'#1D9E75':v>=4.5?'#BA7517':'#E24B4A'),borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Avg health: ${ctx.raw}/10`}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{min:0,max:10,ticks:{font:{size:10},stepSize:2},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  // Account health distribution by stage (stacked)
+  if(charts['healthByStageBar']) charts['healthByStageBar'].destroy();
+  charts['healthByStageBar']=new Chart(document.getElementById('healthByStageBar').getContext('2d'),{
+    type:'bar',data:{labels:allStages,datasets:HEALTH_VALUES.map(v=>({label:HEALTH_LABEL[v],data:allStages.map(s=>active.filter(c=>c.stage===s&&normalizeHealth(c.account_health)===v).length),backgroundColor:HEALTH_COLORS[v],borderRadius:3}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
   });
 
   // TTV bar
@@ -1175,15 +1052,53 @@ function renderCohortsTab(cos) {
     if(el) el.innerHTML=allReasons.map((r,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${REASON_COLORS[i%REASON_COLORS.length]}"></span>${r}</span>`).join('');
   }
 
+  // Industry / vertical
+  const allVerticals=[...new Set(cos.map(c=>c.vertical).filter(Boolean))].sort();
+
+  // 1. Pilot vs converted by vertical (pie of active customers per vertical)
+  const pcByVert=allVerticals.map(v=>{
+    const pilot=cos.filter(c=>c.vertical===v&&c.pilot_status==='In progress');
+    const conv=cos.filter(c=>c.vertical===v&&c.pilot_status==='Converted');
+    return {vertical:v,pilot,conv,total:pilot.length+conv.length};
+  }).filter(x=>x.total>0);
+  if(charts['pilotConvVerticalPie']) charts['pilotConvVerticalPie'].destroy();
+  if(pcByVert.length) {
+    const pcLabels=pcByVert.map(x=>x.vertical);
+    const pcColors=STAGE_COLORS.slice(0,pcLabels.length);
+    charts['pilotConvVerticalPie']=new Chart(document.getElementById('pilotConvVerticalPie').getContext('2d'),{
+      type:'pie',
+      data:{labels:pcLabels,datasets:[{data:pcByVert.map(x=>x.total),backgroundColor:pcColors,borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+        const x=pcByVert[ctx.dataIndex];
+        return [` ${x.vertical}: ${x.total}  (pilot ${x.pilot.length} · converted ${x.conv.length})`,...buildLines([...x.pilot,...x.conv].map(c=>({name:c.name,val:c.pilot_status})))];
+      }}}}}
+    });
+    const pcLegend=document.getElementById('legend-pilot-conv-vertical');
+    if(pcLegend) pcLegend.innerHTML=pcByVert.map((x,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${pcColors[i]}"></span>${x.vertical}: ${x.pilot.length}p / ${x.conv.length}c</span>`).join('');
+  }
+
+  // 2. Exited pilots by vertical (bar)
+  const exitedByVert=allVerticals.map(v=>cos.filter(c=>c.vertical===v&&c.pilot_status==='Exited During Pilot'));
+  renderBar('exitedVerticalBar',allVerticals,exitedByVert.map(g=>g.length),'#D85A30',exitedByVert.map(g=>g.map(c=>({name:c.name,val:c.churn_reason||'—'}))));
+
+  // 3. Churn reasons by vertical (stacked bar)
+  if(charts['churnReasonVerticalBar']) charts['churnReasonVerticalBar'].destroy();
+  if(allReasons.length&&allVerticals.length) {
+    charts['churnReasonVerticalBar']=new Chart(document.getElementById('churnReasonVerticalBar').getContext('2d'),{
+      type:'bar',data:{labels:allVerticals,datasets:allReasons.map((r,i)=>({label:r,data:allVerticals.map(v=>allChurnedCos.filter(c=>c.vertical===v&&c.churn_reason===r).length),backgroundColor:REASON_COLORS[i%REASON_COLORS.length],borderRadius:3}))},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10},autoSkip:false,maxRotation:35},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    });
+    const cvLegend=document.getElementById('legend-churn-vertical');
+    if(cvLegend) cvLegend.innerHTML=allReasons.map((r,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${REASON_COLORS[i%REASON_COLORS.length]}"></span>${r}</span>`).join('');
+  }
+
   // Cohort roster — split into active vs churned
   const bc={'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
   const isChurned = c => c.pilot_status==='Exited During Pilot' || c.pilot_status==='Churned Post Conversion';
   const renderCohortRow = c => {
-    const s=getSheetData(c.name);
-    const health=calcCompositeScore(c,s);
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${c.stage||'—'}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td style="${ttvStyle}">${ttv}</td><td>${ragBadge(health.score)}</td><td><span class="score-pill ${scoreColor(s?.cs_sentiment||'')}">${s?.cs_sentiment||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.content_performance||'')}">${s?.content_performance||'—'}</span></td><td><span class="score-pill ${scoreColor(s?.warm_outbound||'')}">${s?.warm_outbound||'—'}</span></td></tr>`;
+    return `<tr><td>${c.name}</td><td>${c.stage||'—'}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
   };
   const sortGetters = { ce: c => c.content_manager, am: c => displayAM(c.csm) };
 
@@ -1195,7 +1110,7 @@ function renderCohortsTab(cos) {
   activeRows=applyListSort(activeRows, window.__listSort.cohort, sortGetters);
   document.getElementById('cohort-roster-body').innerHTML = activeRows.length
     ? activeRows.map(renderCohortRow).join('')
-    : '<tr><td colspan="11" class="empty-hint">No active customers.</td></tr>';
+    : '<tr><td colspan="8" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-cohort-ce','cohort','ce',()=>renderCohortsTab(cos));
   bindSortHeader('th-cohort-am','cohort','am',()=>renderCohortsTab(cos));
 
@@ -1204,7 +1119,7 @@ function renderCohortsTab(cos) {
   churnedRows=applyListSort(churnedRows, window.__listSort.cohortChurned, sortGetters);
   document.getElementById('cohort-churned-roster-body').innerHTML = churnedRows.length
     ? churnedRows.map(renderCohortRow).join('')
-    : '<tr><td colspan="11" class="empty-hint">No churned customers.</td></tr>';
+    : '<tr><td colspan="8" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-cohort-churned-ce','cohortChurned','ce',()=>renderCohortsTab(cos));
   bindSortHeader('th-cohort-churned-am','cohortChurned','am',()=>renderCohortsTab(cos));
 }
@@ -1263,11 +1178,15 @@ function renderTeamTab(cos) {
     type:'bar',data:{labels:allAMs,datasets:[{data:amMRRData.map(d=>d.total),backgroundColor:'#7F77DD',borderRadius:4,names:amMRRData.map(d=>d.names)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[' '+fmtBig$(ctx.raw),...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
   });
-  const amAvgScore=field=>allAMs.map(am=>{ const ac=active.filter(c=>displayAM(c.csm)===am); const vals=ac.map(c=>{ const s=getSheetData(c.name); return s?parseFloat(s[field]):NaN; }).filter(n=>!isNaN(n)); return {avg:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0,n:vals.length,names:ac.map(c=>{ const s=getSheetData(c.name); return {name:c.name,val:s?s[field]||'—':'—'}; })}; });
-  const renderAMBar=(id,data)=>{ if(charts[id]) charts[id].destroy(); charts[id]=new Chart(document.getElementById(id).getContext('2d'),{type:'bar',data:{labels:allAMs,datasets:[{data:data.map(d=>parseFloat(d.avg.toFixed(1))),backgroundColor:data.map(d=>d.avg>=7?'#1D9E75':d.avg>=4.5?'#BA7517':'#E24B4A'),borderRadius:4,names:data.map(d=>d.names)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{ const d=data[ctx.dataIndex]; return [' Avg: '+ctx.raw+'/10  (n='+d.n+')',...buildLines(d.names)]; }}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{min:0,max:10,ticks:{font:{size:10},stepSize:2},grid:{color:'rgba(26,25,22,0.06)'}}}}}); };
-  renderAMBar('amSentimentBar',amAvgScore('cs_sentiment'));
-  renderAMBar('amContentBar',amAvgScore('content_performance'));
-  renderAMBar('amWarmBar',amAvgScore('warm_outbound'));
+  // Account health distribution by AM (stacked)
+  if(charts['healthByAMBar']) charts['healthByAMBar'].destroy();
+  const healthByAMEl=document.getElementById('healthByAMBar');
+  if(healthByAMEl) {
+    charts['healthByAMBar']=new Chart(healthByAMEl.getContext('2d'),{
+      type:'bar',data:{labels:allAMs,datasets:HEALTH_VALUES.map(v=>({label:HEALTH_LABEL[v],data:allAMs.map(am=>active.filter(c=>displayAM(c.csm)===am&&normalizeHealth(c.account_health)===v).length),backgroundColor:HEALTH_COLORS[v],borderRadius:3}))},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    });
+  }
 }
 
 // ── INIT ────────────────────────────────────────────────────────
@@ -1276,7 +1195,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if(event==='SIGNED_IN'&&session) {
       if(handleValidSession(session)) { if(!allCompanies.length) loadData(); }
     }
-    if(event==='SIGNED_OUT') { showAuthScreen(true); allCompanies=[]; sheetMap={}; }
+    if(event==='SIGNED_OUT') { showAuthScreen(true); allCompanies=[]; lineageMap={}; }
   });
   const { data: { session } } = await sb.auth.getSession();
   if(session) {

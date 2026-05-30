@@ -4,8 +4,8 @@
   status = 200
 
 [[redirects]]
-  from = "/api/sheets"
-  to = "/.netlify/functions/sheets"
+  from = "/api/lineage"
+  to = "/.netlify/functions/lineage"
   status = 200
 
 [[redirects]]
