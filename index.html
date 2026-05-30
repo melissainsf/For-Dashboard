@@ -172,6 +172,8 @@ tbody td:first-child{font-weight:500}
 .cohort-metric-value.blue{color:var(--blue)}
 .cohort-metric-value.ink{color:var(--ink)}
 .cohort-na{font-size:11px;color:var(--ink3);font-style:italic}
+.cohort-subgroup-label{font-size:10px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;margin:6px 0 2px}
+.cohort-subgroup-divider{height:1px;background:var(--border);margin:10px 0}
 /* TEAM TAB */
 .ce-bar-row{position:relative;margin-bottom:12px}
 .ce-bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:6px;cursor:default}
@@ -424,7 +426,6 @@ tbody td:first-child{font-weight:500}
     <div class="cohort-grid" id="cohort-revenue-cards"></div>
     <div class="section-header">
       <span class="section-title">GRR and NRR by segment</span>
-      <span class="section-note">Ever-converted customers · gross vs. net revenue retention</span>
     </div>
     <div class="cohort-grid" id="grr-nrr-segment-cards"></div>
     <div class="section-header">
@@ -1140,19 +1141,32 @@ function renderCohortsTab(cos) {
     return `<div class="cohort-card"><div class="cohort-card-title">${stage}</div><div class="cohort-card-n">n=${n} ever-converted · ${churnedPostStage.length} churned post-conversion</div><div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value blue">${stageNRR}</span></div><div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value blue">${stageGRR}</span></div><div class="cohort-metric"><span class="cohort-metric-label">Retention</span><span class="cohort-metric-value ${retClass}">${stageRet}</span></div></div>`;
   }).join('');
 
-  // GRR / NRR by segment
+  // GRR / NRR by segment — split into Pre Conversion (pilots) and Post Conversion (ever-converted)
+  const isPilotPop=c=>c.pilot_status==='In progress'||c.pilot_status==='Exited During Pilot';
   const isEverConv=c=>c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion';
-  const grrNrrSegs=allStages.filter(stage=>cos.some(c=>c.stage===stage&&isEverConv(c)));
+  const grrCls=v=>v>=90?'teal':v>=75?'ink':'coral';
+  const nrrCls=v=>v>=100?'teal':v>=85?'ink':'coral';
+  function retentionBlock(label, pop, churnFilter) {
+    if(!pop.length) return `<div class="cohort-subgroup-label">${label}</div><div class="cohort-na">No customers</div>`;
+    const sMRR=pop.reduce((s,c)=>s+c.mrr,0);
+    const sExp=pop.reduce((s,c)=>s+c.expansion_mrr,0);
+    const sChrn=pop.filter(churnFilter).reduce((s,c)=>s+c.churned_mrr,0);
+    const grr=sMRR?((sMRR-sChrn)/sMRR*100).toFixed(1):'—';
+    const nrr=sMRR?((sMRR+sExp-sChrn)/sMRR*100).toFixed(1):'—';
+    return `<div class="cohort-subgroup-label">${label} · n=${pop.length}</div>
+      <div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value ${grr==='—'?'ink':grrCls(parseFloat(grr))}">${grr==='—'?'—':grr+'%'}</span></div>
+      <div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value ${nrr==='—'?'ink':nrrCls(parseFloat(nrr))}">${nrr==='—'?'—':nrr+'%'}</span></div>`;
+  }
+  const grrNrrSegs=allStages.filter(stage=>cos.some(c=>c.stage===stage&&(isPilotPop(c)||isEverConv(c))));
   document.getElementById('grr-nrr-segment-cards').innerHTML=grrNrrSegs.map(stage=>{
+    const pilots=cos.filter(c=>c.stage===stage&&isPilotPop(c));
     const ever=cos.filter(c=>c.stage===stage&&isEverConv(c));
-    const sMRR=ever.reduce((s,c)=>s+c.mrr,0);
-    const sExp=ever.reduce((s,c)=>s+c.expansion_mrr,0);
-    const sChrn=ever.filter(c=>c.pilot_status==='Churned Post Conversion').reduce((s,c)=>s+c.churned_mrr,0);
-    const grr=sMRR?((sMRR-sChrn)/sMRR*100).toFixed(1):'0.0';
-    const nrr=sMRR?((sMRR+sExp-sChrn)/sMRR*100).toFixed(1):'0.0';
-    const grrCls=parseFloat(grr)>=90?'teal':parseFloat(grr)>=75?'ink':'coral';
-    const nrrCls=parseFloat(nrr)>=100?'teal':parseFloat(nrr)>=85?'ink':'coral';
-    return `<div class="cohort-card"><div class="cohort-card-title">${stage}</div><div class="cohort-card-n">n=${ever.length} ever-converted</div><div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value ${grrCls}">${grr}%</span></div><div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value ${nrrCls}">${nrr}%</span></div></div>`;
+    return `<div class="cohort-card">
+      <div class="cohort-card-title">${stage}</div>
+      ${retentionBlock('Pre Conversion', pilots, c=>c.pilot_status==='Exited During Pilot')}
+      <div class="cohort-subgroup-divider"></div>
+      ${retentionBlock('Post Conversion', ever, c=>c.pilot_status==='Churned Post Conversion')}
+    </div>`;
   }).join('');
 
   // Score pies
