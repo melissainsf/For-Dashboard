@@ -190,10 +190,10 @@ tbody td:first-child{font-weight:500}
 .ce-bar-tooltip-empty{font-size:12px;color:rgba(245,243,238,0.65);font-style:italic}
 .team-loading{padding:16px;font-size:13px;color:var(--ink3);font-style:italic}
 .empty-hint{padding:16px;color:var(--ink3);font-style:italic;font-size:13px}
-.journey-select{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;max-width:200px}
-.journey-select:hover{border-color:var(--ink3)}
-.journey-select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
-.journey-select:disabled{opacity:0.5;cursor:wait}
+.hs-select{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;max-width:200px}
+.hs-select:hover{border-color:var(--ink3)}
+.hs-select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.hs-select:disabled{opacity:0.5;cursor:wait}
 </style>
 </head>
 <body>
@@ -980,29 +980,35 @@ function journeySelect(c) {
   const cur=c.customer_journey||'';
   const opts=[...JOURNEY_ORDER];
   if(cur&&!opts.includes(cur)) opts.unshift(cur);
-  const id='js-'+(c.id||'');
   const options=['<option value="">—</option>',...opts.map(j=>`<option value="${escapeHtml(j)}"${j===cur?' selected':''}>${escapeHtml(j)}</option>`)].join('');
-  return `<select id="${id}" class="journey-select" data-cid="${escapeHtml(c.id||'')}" data-prev="${escapeHtml(cur)}" onchange="updateJourneyStage(this)">${options}</select>`;
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="customer_journey" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
 }
-async function updateJourneyStage(sel) {
-  const id=sel.dataset.cid, prev=sel.dataset.prev, next=sel.value;
+function amSelect(c, allCsms) {
+  const cur=c.csm||'';
+  const opts=[...allCsms];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=['<option value="">Unassigned</option>',...opts.map(v=>`<option value="${escapeHtml(v)}"${v===cur?' selected':''}>${escapeHtml(displayAM(v))}</option>`)].join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="csm" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+async function updateHubspotField(sel) {
+  const id=sel.dataset.cid, prop=sel.dataset.prop, prev=sel.dataset.prev, next=sel.value;
   if(!id||next===prev) return;
   sel.disabled=true;
   try {
     const res=await fetch('/api/hubspot-update',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id,property:'customer_journey',value:next})
+      body:JSON.stringify({id,property:prop,value:next})
     });
     if(!res.ok) {
       const e=await res.json().catch(()=>({}));
       throw new Error(e.error||('HubSpot '+res.status));
     }
     const c=allCompanies.find(x=>x.id===id);
-    if(c) c.customer_journey=next;
+    if(c) c[prop]=next||null;
     sel.dataset.prev=next;
   } catch(e) {
-    alert('Could not save journey stage: '+e.message);
+    alert('Could not save '+prop+': '+e.message);
     sel.value=prev;
   } finally {
     sel.disabled=false;
@@ -1015,6 +1021,8 @@ function renderPortfolioTable(cos) {
   const active=cos.filter(c=>!isChurned(c));
   const churned=cos.filter(isChurned);
 
+  const allCsms=[...new Set(allCompanies.map(c=>c.csm).filter(Boolean))].sort((a,b)=>displayAM(a).localeCompare(displayAM(b)));
+
   set('note-portfolio-roster',active.length+' active companies');
   const activeOrder={'In progress':0,'Converted':1};
   let portRows=[...active].sort((a,b)=>(activeOrder[a.pilot_status]??9)-(activeOrder[b.pilot_status]??9));
@@ -1022,7 +1030,7 @@ function renderPortfolioTable(cos) {
   document.getElementById('portfolio-roster-body').innerHTML=portRows.map(c=>{
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
+    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
   }).join('')||'<tr><td colspan="9" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-portfolio-am','portfolio','am',()=>renderPortfolioTable(cos));
 

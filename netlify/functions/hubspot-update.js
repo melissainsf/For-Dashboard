@@ -1,7 +1,7 @@
 // Virio CS Dashboard - HubSpot company property updater.
 // POST { id, property, value } -> PATCH /crm/v3/objects/companies/{id}
 // Requires HUBSPOT_TOKEN with `crm.objects.companies.write` scope.
-const ALLOWED_PROPERTIES = new Set(['customer_journey']);
+const ALLOWED_PROPERTIES = new Set(['customer_journey', 'csm']);
 
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') {
