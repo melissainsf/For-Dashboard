@@ -190,6 +190,7 @@ tbody td:first-child{font-weight:500}
 .ce-bar-tooltip-empty{font-size:12px;color:rgba(245,243,238,0.65);font-style:italic}
 .team-loading{padding:16px;font-size:13px;color:var(--ink3);font-style:italic}
 .empty-hint{padding:16px;color:var(--ink3);font-style:italic;font-size:13px}
+.roi-group-header td{background:var(--surface2);font-family:'Syne',sans-serif;font-weight:600;font-size:11px;color:var(--ink);text-transform:uppercase;letter-spacing:0.04em;padding-top:10px;padding-bottom:10px}
 .hs-select{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;max-width:200px}
 .hs-select:hover{border-color:var(--ink3)}
 .hs-select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
@@ -560,6 +561,24 @@ tbody td:first-child{font-weight:500}
         <span class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>Yellow</span>
         <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Green</span>
         <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Blue</span>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">ROI calculator</span>
+      <span class="section-note">Closed-deal targets per customer at break-even (1× MRR)</span>
+    </div>
+    <div class="metric-grid-3">
+      <div class="mcard"><div class="mcard-label">Monthly target</div><div class="mcard-value ink" id="m-roi-monthly">—</div><div class="mcard-sub">Sum of active MRR</div></div>
+      <div class="mcard"><div class="mcard-label">Quarterly target</div><div class="mcard-value ink" id="m-roi-quarterly">—</div><div class="mcard-sub">3× monthly</div></div>
+      <div class="mcard"><div class="mcard-label">Annual target</div><div class="mcard-value ink" id="m-roi-annual">—</div><div class="mcard-sub">12× monthly</div></div>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>MRR</th><th>Monthly target</th><th>Quarterly target</th><th>Annual target</th></tr></thead>
+          <tbody id="roi-calculator-body"></tbody>
+        </table>
       </div>
     </div>
     <div style="margin-bottom:12px"></div>
@@ -1257,6 +1276,30 @@ function renderTeamTab(cos) {
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
     });
   }
+
+  // ROI calculator — closed-deal targets per active customer at 1× MRR, grouped by AM
+  const roiRows=[...active].filter(c=>c.mrr>0);
+  const totalMRR=roiRows.reduce((s,c)=>s+c.mrr,0);
+  set('m-roi-monthly',fmtBig$(totalMRR));
+  set('m-roi-quarterly',fmtBig$(totalMRR*3));
+  set('m-roi-annual',fmtBig$(totalMRR*12));
+  const roiGroups={};
+  roiRows.forEach(c=>{ const am=displayAM(c.csm); (roiGroups[am]=roiGroups[am]||[]).push(c); });
+  const sortedAMs=Object.keys(roiGroups).sort((a,b)=>{
+    const aUn=a.toLowerCase()==='unassigned', bUn=b.toLowerCase()==='unassigned';
+    if(aUn!==bUn) return aUn?1:-1;
+    const aMRR=roiGroups[a].reduce((s,c)=>s+c.mrr,0);
+    const bMRR=roiGroups[b].reduce((s,c)=>s+c.mrr,0);
+    return bMRR-aMRR;
+  });
+  document.getElementById('roi-calculator-body').innerHTML=roiRows.length
+    ? sortedAMs.map(am=>{
+        const list=[...roiGroups[am]].sort((a,b)=>b.mrr-a.mrr);
+        const sub=list.reduce((s,c)=>s+c.mrr,0);
+        const header=`<tr class="roi-group-header"><td>${am} · ${list.length} account${list.length!==1?'s':''}</td><td>${fmt$(sub)}</td><td>${fmt$(sub)}</td><td>${fmt$(sub*3)}</td><td>${fmt$(sub*12)}</td></tr>`;
+        return header+list.map(c=>`<tr><td style="padding-left:24px">${c.name}</td><td>${fmt$(c.mrr)}</td><td>${fmt$(c.mrr)}</td><td>${fmt$(c.mrr*3)}</td><td>${fmt$(c.mrr*12)}</td></tr>`).join('');
+      }).join('')
+    : '<tr><td colspan="5" class="empty-hint">No active customers with MRR.</td></tr>';
 }
 
 // ── INIT ────────────────────────────────────────────────────────
