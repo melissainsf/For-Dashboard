@@ -420,11 +420,6 @@ tbody td:first-child{font-weight:500}
   <!-- TAB 3: COHORTS -->
   <div id="tab-cohorts" class="tab-content">
     <div class="section-header" style="margin-top:4px">
-      <span class="section-title">Revenue health by stage</span>
-      <span class="section-note">Ever-converted customers · n = sample size per cohort</span>
-    </div>
-    <div class="cohort-grid" id="cohort-revenue-cards"></div>
-    <div class="section-header">
       <span class="section-title">GRR and NRR by segment</span>
     </div>
     <div class="cohort-grid" id="grr-nrr-segment-cards"></div>
@@ -1121,41 +1116,25 @@ function renderCohortsTab(cos) {
   const allChurnedCos=cos.filter(c=>c.pilot_status==='Exited During Pilot'||c.pilot_status==='Churned Post Conversion');
   const allStages=[...new Set(cos.map(c=>c.stage).filter(Boolean))].sort();
 
-  // Revenue cohort cards
-  document.getElementById('cohort-revenue-cards').innerHTML=allStages.map(stage=>{
-    const everConvStage=cos.filter(c=>c.stage===stage&&(c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion'));
-    const convertedStage=cos.filter(c=>c.stage===stage&&c.pilot_status==='Converted');
-    const churnedPostStage=cos.filter(c=>c.stage===stage&&c.pilot_status==='Churned Post Conversion');
-    const n=everConvStage.length;
-    if(n===0) return `<div class="cohort-card"><div class="cohort-card-title">${stage}</div><div class="cohort-card-n">n=0 converted</div><div class="cohort-na">No converted customers in this stage yet.</div></div>`;
-    const sMRR=everConvStage.reduce((s,c)=>s+c.mrr,0);
-    const sExp=everConvStage.reduce((s,c)=>s+c.expansion_mrr,0);
-    const sChrn=churnedPostStage.reduce((s,c)=>s+c.churned_mrr,0);
-    const stageNRR=sMRR?((sMRR+sExp-sChrn)/sMRR*100).toFixed(1)+'%':'—';
-    const stageGRR=sMRR?((sMRR-sChrn)/sMRR*100).toFixed(1)+'%':'—';
-    const stageRet=everConvStage.length?(convertedStage.length/everConvStage.length*100).toFixed(1)+'%':'—';
-    const retClass=parseFloat(stageRet)>=80?'teal':parseFloat(stageRet)>=60?'ink':'coral';
-    if(convertedStage.length===0&&churnedPostStage.length>0) {
-      return `<div class="cohort-card"><div class="cohort-card-title">${stage}</div><div class="cohort-card-n">n=${n} ever-converted · ${churnedPostStage.length} churned post-conversion</div><div class="cohort-na">All converted customers have since churned.</div><div class="cohort-metric" style="margin-top:8px"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value coral">${stageNRR}</span></div><div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value coral">${stageGRR}</span></div><div class="cohort-metric"><span class="cohort-metric-label">Retention</span><span class="cohort-metric-value coral">${stageRet}</span></div></div>`;
-    }
-    return `<div class="cohort-card"><div class="cohort-card-title">${stage}</div><div class="cohort-card-n">n=${n} ever-converted · ${churnedPostStage.length} churned post-conversion</div><div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value blue">${stageNRR}</span></div><div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value blue">${stageGRR}</span></div><div class="cohort-metric"><span class="cohort-metric-label">Retention</span><span class="cohort-metric-value ${retClass}">${stageRet}</span></div></div>`;
-  }).join('');
-
   // GRR / NRR by segment — split into Pre Conversion (pilots) and Post Conversion (ever-converted)
   const isPilotPop=c=>c.pilot_status==='In progress'||c.pilot_status==='Exited During Pilot';
   const isEverConv=c=>c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion';
   const grrCls=v=>v>=90?'teal':v>=75?'ink':'coral';
   const nrrCls=v=>v>=100?'teal':v>=85?'ink':'coral';
+  const retCls=v=>v>=80?'teal':v>=60?'ink':'coral';
   function retentionBlock(label, pop, churnFilter) {
     if(!pop.length) return `<div class="cohort-subgroup-label">${label}</div><div class="cohort-na">No customers</div>`;
+    const churned=pop.filter(churnFilter);
     const sMRR=pop.reduce((s,c)=>s+c.mrr,0);
     const sExp=pop.reduce((s,c)=>s+c.expansion_mrr,0);
-    const sChrn=pop.filter(churnFilter).reduce((s,c)=>s+c.churned_mrr,0);
+    const sChrn=churned.reduce((s,c)=>s+c.churned_mrr,0);
     const grr=sMRR?((sMRR-sChrn)/sMRR*100).toFixed(1):'—';
     const nrr=sMRR?((sMRR+sExp-sChrn)/sMRR*100).toFixed(1):'—';
+    const ret=((pop.length-churned.length)/pop.length*100).toFixed(1);
     return `<div class="cohort-subgroup-label">${label} · n=${pop.length}</div>
       <div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value ${grr==='—'?'ink':grrCls(parseFloat(grr))}">${grr==='—'?'—':grr+'%'}</span></div>
-      <div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value ${nrr==='—'?'ink':nrrCls(parseFloat(nrr))}">${nrr==='—'?'—':nrr+'%'}</span></div>`;
+      <div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value ${nrr==='—'?'ink':nrrCls(parseFloat(nrr))}">${nrr==='—'?'—':nrr+'%'}</span></div>
+      <div class="cohort-metric"><span class="cohort-metric-label">Retention</span><span class="cohort-metric-value ${retCls(parseFloat(ret))}">${ret}%</span></div>`;
   }
   const grrNrrSegs=allStages.filter(stage=>cos.some(c=>c.stage===stage&&(isPilotPop(c)||isEverConv(c))));
   document.getElementById('grr-nrr-segment-cards').innerHTML=grrNrrSegs.map(stage=>{
