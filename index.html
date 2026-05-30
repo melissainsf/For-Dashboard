@@ -190,6 +190,10 @@ tbody td:first-child{font-weight:500}
 .ce-bar-tooltip-empty{font-size:12px;color:rgba(245,243,238,0.65);font-style:italic}
 .team-loading{padding:16px;font-size:13px;color:var(--ink3);font-style:italic}
 .empty-hint{padding:16px;color:var(--ink3);font-style:italic;font-size:13px}
+.journey-select{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;max-width:200px}
+.journey-select:hover{border-color:var(--ink3)}
+.journey-select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.journey-select:disabled{opacity:0.5;cursor:wait}
 </style>
 </head>
 <body>
@@ -390,8 +394,21 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-portfolio-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>Churn reason</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th></tr></thead>
           <tbody id="portfolio-roster-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Churned customers</span>
+      <span class="section-note" id="note-portfolio-churned-roster"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Health</th><th>Churn reason</th></tr></thead>
+          <tbody id="portfolio-churned-roster-body"></tbody>
         </table>
       </div>
     </div>
@@ -568,9 +585,10 @@ let allCompanies = [], lineageMap = {}, charts = {};
 
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
-  portfolio:     { col: null, dir: null },
-  cohort:        { col: null, dir: null },
-  cohortChurned: { col: null, dir: null }
+  portfolio:        { col: null, dir: null },
+  portfolioChurned: { col: null, dir: null },
+  cohort:           { col: null, dir: null },
+  cohortChurned:    { col: null, dir: null }
 };
 function nextSortDir(cur) { return cur === null ? 'asc' : cur === 'asc' ? 'desc' : null; }
 function applyListSort(arr, state, getters) {
@@ -741,6 +759,7 @@ async function loadData() {
     allCompanies=(hsData.results||[]).map(r=>{
       const name=r.properties.name||r.properties.domain||r.id;
       return {
+        id:r.id,
         name,
         pilot_status:r.properties.pilot_status,
         stage:r.properties.stage||'Unknown',
@@ -957,23 +976,64 @@ function renderGroupedBar(id, labels, datasets) {
 }
 
 // ── PORTFOLIO TABLE ────────────────────────────────────────────
+function journeySelect(c) {
+  const cur=c.customer_journey||'';
+  const opts=[...JOURNEY_ORDER];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const id='js-'+(c.id||'');
+  const options=['<option value="">—</option>',...opts.map(j=>`<option value="${escapeHtml(j)}"${j===cur?' selected':''}>${escapeHtml(j)}</option>`)].join('');
+  return `<select id="${id}" class="journey-select" data-cid="${escapeHtml(c.id||'')}" data-prev="${escapeHtml(cur)}" onchange="updateJourneyStage(this)">${options}</select>`;
+}
+async function updateJourneyStage(sel) {
+  const id=sel.dataset.cid, prev=sel.dataset.prev, next=sel.value;
+  if(!id||next===prev) return;
+  sel.disabled=true;
+  try {
+    const res=await fetch('/api/hubspot-update',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id,property:'customer_journey',value:next})
+    });
+    if(!res.ok) {
+      const e=await res.json().catch(()=>({}));
+      throw new Error(e.error||('HubSpot '+res.status));
+    }
+    const c=allCompanies.find(x=>x.id===id);
+    if(c) c.customer_journey=next;
+    sel.dataset.prev=next;
+  } catch(e) {
+    alert('Could not save journey stage: '+e.message);
+    sel.value=prev;
+  } finally {
+    sel.disabled=false;
+  }
+}
 function renderPortfolioTable(cos) {
-  const order={'In progress':0,'Converted':1,'Exited During Pilot':2,'Churned Post Conversion':3};
   const bc={'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
   const f=n=>n?fmt$(n):'—';
-  set('note-portfolio-roster',cos.length+' companies');
-  let portRows=[...cos].sort((a,b)=>(order[a.pilot_status]??9)-(order[b.pilot_status]??9));
-  portRows=applyListSort(portRows, window.__listSort.portfolio, {
-    ce: c => c.content_manager,
-    am: c => displayAM(c.csm)
-  });
+  const isChurned=c=>c.pilot_status==='Exited During Pilot'||c.pilot_status==='Churned Post Conversion';
+  const active=cos.filter(c=>!isChurned(c));
+  const churned=cos.filter(isChurned);
+
+  set('note-portfolio-roster',active.length+' active companies');
+  const activeOrder={'In progress':0,'Converted':1};
+  let portRows=[...active].sort((a,b)=>(activeOrder[a.pilot_status]??9)-(activeOrder[b.pilot_status]??9));
+  portRows=applyListSort(portRows, window.__listSort.portfolio, { am: c => displayAM(c.csm) });
   document.getElementById('portfolio-roster-body').innerHTML=portRows.map(c=>{
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.customer_journey||'—'}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td></tr>`;
-  }).join('');
-  bindSortHeader('th-portfolio-ce','portfolio','ce',()=>renderPortfolioTable(cos));
+    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
+  }).join('')||'<tr><td colspan="9" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-portfolio-am','portfolio','am',()=>renderPortfolioTable(cos));
+
+  set('note-portfolio-churned-roster',churned.length+' churned companies');
+  const churnedOrder={'Exited During Pilot':0,'Churned Post Conversion':1};
+  let churnRows=[...churned].sort((a,b)=>(churnedOrder[a.pilot_status]??9)-(churnedOrder[b.pilot_status]??9));
+  churnRows=applyListSort(churnRows, window.__listSort.portfolioChurned||(window.__listSort.portfolioChurned={}), { am: c => displayAM(c.csm) });
+  document.getElementById('portfolio-churned-roster-body').innerHTML=churnRows.map(c=>{
+    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td></tr>`;
+  }).join('')||'<tr><td colspan="8" class="empty-hint">No churned customers.</td></tr>';
+  bindSortHeader('th-portfolio-churned-am','portfolioChurned','am',()=>renderPortfolioTable(cos));
 }
 
 // ── COHORTS TAB ────────────────────────────────────────────────
