@@ -9,11 +9,6 @@
   status = 200
 
 [[redirects]]
-  from = "/api/ordinal"
-  to = "/.netlify/functions/ordinal"
-  status = 200
-
-[[redirects]]
   from = "/hs-api/*"
   to = "https://api.hubapi.com/:splat"
   status = 200
