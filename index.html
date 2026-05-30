@@ -191,10 +191,10 @@ tbody td:first-child{font-weight:500}
 .team-loading{padding:16px;font-size:13px;color:var(--ink3);font-style:italic}
 .empty-hint{padding:16px;color:var(--ink3);font-style:italic;font-size:13px}
 .roi-group-header td{background:var(--surface2);font-family:'Syne',sans-serif;font-weight:600;font-size:11px;color:var(--ink);text-transform:uppercase;letter-spacing:0.04em;padding-top:10px;padding-bottom:10px}
-.hs-select{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;max-width:200px}
-.hs-select:hover{border-color:var(--ink3)}
-.hs-select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
-.hs-select:disabled{opacity:0.5;cursor:wait}
+.hs-select,.hs-date{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;max-width:200px}
+.hs-select:hover,.hs-date:hover{border-color:var(--ink3)}
+.hs-select:focus,.hs-date:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.hs-select:disabled,.hs-date:disabled{opacity:0.5;cursor:wait}
 </style>
 </head>
 <body>
@@ -497,7 +497,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-cohort-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Account health</th></tr></thead>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Kickoff date</th><th>First post date</th><th>Time to value</th><th>Account health</th></tr></thead>
           <tbody id="cohort-roster-body"></tbody>
         </table>
       </div>
@@ -510,7 +510,7 @@ tbody td:first-child{font-weight:500}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-cohort-churned-ce" class="sortable">Content Engineer<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Time to value</th><th>Account health</th></tr></thead>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Kickoff date</th><th>First post date</th><th>Time to value</th><th>Account health</th></tr></thead>
           <tbody id="cohort-churned-roster-body"></tbody>
         </table>
       </div>
@@ -599,6 +599,7 @@ const STAGE_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D453
 const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
+const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned Post Conversion'];
 const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha']);
 const scrubFormer = v => (v && FORMER_TEAM_MEMBERS.has(v)) ? null : v;
 
@@ -1011,6 +1012,49 @@ function amSelect(c, allCsms) {
   const options=['<option value="">Unassigned</option>',...opts.map(v=>`<option value="${escapeHtml(v)}"${v===cur?' selected':''}>${escapeHtml(displayAM(v))}</option>`)].join('');
   return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="csm" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
 }
+function stageSelect(c, allStages) {
+  const cur=c.stage||'';
+  const opts=[...allStages];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=['<option value="">—</option>',...opts.map(v=>`<option value="${escapeHtml(v)}"${v===cur?' selected':''}>${escapeHtml(v)}</option>`)].join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="stage" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+function verticalSelect(c, allVerticals) {
+  const cur=c.vertical||'';
+  const opts=[...allVerticals];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=['<option value="">—</option>',...opts.map(v=>`<option value="${escapeHtml(v)}"${v===cur?' selected':''}>${escapeHtml(v)}</option>`)].join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="vertical" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+function statusSelect(c) {
+  const cur=c.pilot_status||'';
+  const opts=[...PILOT_STATUSES];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=opts.map(s=>`<option value="${escapeHtml(s)}"${s===cur?' selected':''}>${escapeHtml(s)}</option>`).join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="pilot_status" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+function toDateInputValue(v) {
+  if(!v) return '';
+  const d=new Date(v);
+  if(isNaN(d.getTime())) return '';
+  const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),day=String(d.getUTCDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function dateInput(c, hsProp, localField) {
+  const cur=toDateInputValue(c[localField]);
+  return `<input type="date" class="hs-date" data-cid="${escapeHtml(c.id||'')}" data-prop="${hsProp}" data-localprop="${localField}" data-prev="${cur}" onchange="updateHubspotField(this)" value="${cur}">`;
+}
+const HS_TO_LOCAL_PROP = { kickoff_call_date: 'kickoff_date' };
+function refreshActiveTab() {
+  if(!allCompanies.length) return;
+  recompute();
+  const exclude=document.getElementById('exclude-virio').checked;
+  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+  const active=document.querySelector('.tab-content.active');
+  if(!active) return;
+  if(active.id==='tab-cohorts') renderCohortsTab(cos);
+  else if(active.id==='tab-team') renderTeamTab(cos);
+}
 async function updateHubspotField(sel) {
   const id=sel.dataset.cid, prop=sel.dataset.prop, prev=sel.dataset.prev, next=sel.value;
   if(!id||next===prev) return;
@@ -1026,8 +1070,12 @@ async function updateHubspotField(sel) {
       throw new Error(e.error||('HubSpot '+res.status));
     }
     const c=allCompanies.find(x=>x.id===id);
-    if(c) c[prop]=next||null;
+    if(c) {
+      const localProp=sel.dataset.localprop||HS_TO_LOCAL_PROP[prop]||prop;
+      c[localProp]=next||null;
+    }
     sel.dataset.prev=next;
+    if(prop==='pilot_status') refreshActiveTab();
   } catch(e) {
     alert('Could not save '+prop+': '+e.message);
     sel.value=prev;
@@ -1043,15 +1091,16 @@ function renderPortfolioTable(cos) {
   const churned=cos.filter(isChurned);
 
   const allCsms=[...new Set(allCompanies.map(c=>c.csm).filter(Boolean))].sort((a,b)=>displayAM(a).localeCompare(displayAM(b)));
+  const allStages=[...new Set(allCompanies.map(c=>c.stage).filter(Boolean))].sort();
+  const allVerticals=[...new Set(allCompanies.map(c=>c.vertical).filter(Boolean))].sort();
 
   set('note-portfolio-roster',active.length+' active companies');
-  const activeOrder={'In progress':0,'Converted':1};
-  let portRows=[...active].sort((a,b)=>(activeOrder[a.pilot_status]??9)-(activeOrder[b.pilot_status]??9));
+  let portRows=[...active].sort((a,b)=>PILOT_STATUSES.indexOf(a.pilot_status)-PILOT_STATUSES.indexOf(b.pilot_status));
   portRows=applyListSort(portRows, window.__listSort.portfolio, { am: c => displayAM(c.csm) });
   document.getElementById('portfolio-roster-body').innerHTML=portRows.map(c=>{
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
   }).join('')||'<tr><td colspan="9" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-portfolio-am','portfolio','am',()=>renderPortfolioTable(cos));
 
@@ -1060,7 +1109,7 @@ function renderPortfolioTable(cos) {
   let churnRows=[...churned].sort((a,b)=>(churnedOrder[a.pilot_status]??9)-(churnedOrder[b.pilot_status]??9));
   churnRows=applyListSort(churnRows, window.__listSort.portfolioChurned||(window.__listSort.portfolioChurned={}), { am: c => displayAM(c.csm) });
   document.getElementById('portfolio-churned-roster-body').innerHTML=churnRows.map(c=>{
-    return `<tr><td>${c.name}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${c.stage||'—'}</td><td>${c.vertical||'—'}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td></tr>`;
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td></tr>`;
   }).join('')||'<tr><td colspan="8" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-portfolio-churned-am','portfolioChurned','am',()=>renderPortfolioTable(cos));
 }
@@ -1182,14 +1231,14 @@ function renderCohortsTab(cos) {
   }
 
   // Cohort roster — split into active vs churned
-  const bc={'In progress':'badge-blue','Converted':'badge-teal','Exited During Pilot':'badge-coral','Churned Post Conversion':'badge-amber'};
   const isChurned = c => c.pilot_status==='Exited During Pilot' || c.pilot_status==='Churned Post Conversion';
+  const allStagesForCohort=[...new Set(allCompanies.map(c=>c.stage).filter(Boolean))].sort();
   const renderCohortRow = c => {
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${c.stage||'—'}</td><td><span class="badge ${bc[c.pilot_status]||'badge-gray'}">${c.pilot_status}</span></td><td>${displayAM(c.csm)}</td><td>${c.content_manager||'—'}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
+    return `<tr><td>${c.name}</td><td>${stageSelect(c,allStagesForCohort)}</td><td>${statusSelect(c)}</td><td>${displayAM(c.csm)}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td>${dateInput(c,'kickoff_call_date','kickoff_date')}</td><td>${dateInput(c,'first_post_date','first_post_date')}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
   };
-  const sortGetters = { ce: c => c.content_manager, am: c => displayAM(c.csm) };
+  const sortGetters = { am: c => displayAM(c.csm) };
 
   const activeCos = cos.filter(c => !isChurned(c));
   const churnedCos = cos.filter(isChurned);
@@ -1199,8 +1248,7 @@ function renderCohortsTab(cos) {
   activeRows=applyListSort(activeRows, window.__listSort.cohort, sortGetters);
   document.getElementById('cohort-roster-body').innerHTML = activeRows.length
     ? activeRows.map(renderCohortRow).join('')
-    : '<tr><td colspan="8" class="empty-hint">No active customers.</td></tr>';
-  bindSortHeader('th-cohort-ce','cohort','ce',()=>renderCohortsTab(cos));
+    : '<tr><td colspan="9" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-cohort-am','cohort','am',()=>renderCohortsTab(cos));
 
   set('note-cohort-churned-roster', churnedCos.length + ' churned companies · sorted by stage');
@@ -1208,8 +1256,7 @@ function renderCohortsTab(cos) {
   churnedRows=applyListSort(churnedRows, window.__listSort.cohortChurned, sortGetters);
   document.getElementById('cohort-churned-roster-body').innerHTML = churnedRows.length
     ? churnedRows.map(renderCohortRow).join('')
-    : '<tr><td colspan="8" class="empty-hint">No churned customers.</td></tr>';
-  bindSortHeader('th-cohort-churned-ce','cohortChurned','ce',()=>renderCohortsTab(cos));
+    : '<tr><td colspan="9" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-cohort-churned-am','cohortChurned','am',()=>renderCohortsTab(cos));
 }
 
