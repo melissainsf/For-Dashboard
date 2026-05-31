@@ -517,11 +517,11 @@ tbody td:first-child{font-weight:500}
   <div id="tab-team" class="tab-content">
     <!-- CE WORKLOAD -->
     <div class="section-header" id="ce-load-section" style="margin-top:4px">
-      <span class="section-title">CE capacity</span>
-      <span class="section-note">Target posts per month per Content Engineer</span>
+      <span class="section-title">AM capacity</span>
+      <span class="section-note">Target posts per month per Account Manager</span>
     </div>
     <div class="chart-card" style="margin-bottom:20px">
-      <div class="chart-card-title">Content Engineer workload</div>
+      <div class="chart-card-title">Account Manager workload</div>
       <div id="ce-load-bars" style="padding:8px 0"><div class="team-loading">Loading...</div></div>
     </div>
 
@@ -1258,18 +1258,18 @@ function renderTeamTab(cos) {
   const exclude=document.getElementById('exclude-virio').checked;
   const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
 
-  // CE aggregates by post target — always include Virio so internal workload is reflected
+  // AM aggregates by post target — always include Virio so internal workload is reflected
   const ceSource=allCompanies.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
   const ceMap = {};
   ceSource.forEach(c => {
-    const ce = c.content_manager || 'Unassigned';
+    const am = displayAM(c.csm) || 'Unassigned';
     const target = parsePostsPerMonth(c.posts_per_month);
-    if (!ceMap[ce]) ceMap[ce] = { total:0, accounts:[] };
-    ceMap[ce].total += target;
-    ceMap[ce].accounts.push({ name: c.name, ppm: target });
+    if (!ceMap[am]) ceMap[am] = { total:0, accounts:[] };
+    ceMap[am].total += target;
+    ceMap[am].accounts.push({ name: c.name, ppm: target });
   });
 
-  // CE workload chart
+  // AM workload chart
   const maxLoad = Math.max(...Object.values(ceMap).map(v=>v.total), 1);
   const ceBars = document.getElementById('ce-load-bars');
   if (ceBars) {
@@ -1291,7 +1291,7 @@ function renderTeamTab(cos) {
           ${tooltipBody}
         </div>
       </div>`;
-    }).join('') : '<div class="empty-hint">No active customers assigned to a Content Engineer.</div>';
+    }).join('') : '<div class="empty-hint">No active customers assigned to an Account Manager.</div>';
   }
 
   // AM charts
