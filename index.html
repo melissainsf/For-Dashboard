@@ -197,6 +197,85 @@ tbody td:first-child{font-weight:500}
 .hs-select:hover,.hs-date:hover{border-color:var(--ink3)}
 .hs-select:focus,.hs-date:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
 .hs-select:disabled,.hs-date:disabled{opacity:0.5;cursor:wait}
+/* PRODUCT REQUEST TRACKER */
+.prt-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.prt-toolbar-spacer{flex:1}
+.prt-seg{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px;gap:2px}
+.prt-seg-btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--ink2);background:transparent;border:none;padding:6px 14px;border-radius:5px;cursor:pointer;transition:all 0.15s}
+.prt-seg-btn:hover{color:var(--ink)}
+.prt-seg-btn.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.prt-search{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;width:240px}
+.prt-search:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.prt-note{font-size:11px;color:var(--ink3)}
+.prt-add-btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#fff;background:var(--teal);border:none;border-radius:var(--radius-sm);padding:8px 16px;cursor:pointer;transition:opacity 0.15s}
+.prt-add-btn:hover{opacity:0.9}
+.prt-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+@media(max-width:1100px){.prt-columns{grid-template-columns:1fr}}
+.prt-col-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px}
+.prt-col-head.bug{background:var(--coral-light)}
+.prt-col-head.feature{background:var(--blue-light)}
+.prt-col-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.02em}
+.prt-col-head.bug .prt-col-title{color:var(--coral)}
+.prt-col-head.feature .prt-col-title{color:var(--blue)}
+.prt-col-meta{font-size:11px;color:var(--ink3);margin-left:auto}
+.prt-list{display:flex;flex-direction:column;gap:8px}
+.prt-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:border-color 0.15s}
+.prt-card:hover{border-color:var(--border-strong)}
+.prt-row{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer}
+.prt-rank{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--ink3);min-width:22px;text-align:center}
+.prt-row-main{flex:1;min-width:0}
+.prt-row-title{font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prt-row-sub{font-size:11px;color:var(--ink3);margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.prt-score{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;color:var(--teal);text-align:right;min-width:64px}
+.prt-card.bugcard .prt-score{color:var(--coral)}
+.prt-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;letter-spacing:0.02em}
+.prt-chip.arr{background:var(--teal-light);color:var(--teal)}
+.prt-chip.urgent{background:var(--red-light);color:var(--red)}
+.prt-chip.soon{background:var(--amber-light);color:var(--amber)}
+.prt-chip.later{background:var(--surface2);color:var(--ink2)}
+.prt-chip.sev-Urgent{background:var(--red-light);color:var(--red)}
+.prt-chip.sev-High{background:var(--coral-light);color:var(--coral)}
+.prt-chip.sev-Medium{background:var(--amber-light);color:var(--amber)}
+.prt-chip.sev-Low{background:var(--surface2);color:var(--ink2)}
+.prt-detail{border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);display:none}
+.prt-card.open .prt-detail{display:block}
+.prt-ask{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.prt-ask:last-of-type{border-bottom:none}
+.prt-ask-co{font-size:12px;font-weight:500;color:var(--ink);min-width:150px}
+.prt-ask-co .prt-ask-meta{font-size:10px;color:var(--ink3);font-weight:400;margin-top:2px}
+.prt-ask-detail{font-size:11px;color:var(--ink2);flex:1;line-height:1.5}
+.prt-ask-x{font-size:11px;color:var(--ink3);cursor:pointer;background:none;border:none;padding:2px 6px}
+.prt-ask-x:hover{color:var(--red)}
+.prt-detail-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.prt-mini-btn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:var(--ink2);background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer}
+.prt-mini-btn:hover{border-color:var(--ink3);color:var(--ink)}
+.prt-mini-btn.ship{color:var(--teal);border-color:var(--teal-light)}
+.prt-empty{font-size:12px;color:var(--ink3);padding:24px;text-align:center;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius)}
+.prt-shipped{margin-top:8px}
+.prt-shipped-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--teal-light);border-radius:var(--radius-sm);cursor:pointer}
+.prt-shipped-head .prt-col-title{color:var(--teal)}
+.prt-shipped-caret{font-size:11px;color:var(--teal);transition:transform 0.15s}
+.prt-shipped.open .prt-shipped-caret{transform:rotate(90deg)}
+.prt-list .prt-card.shippedcard{opacity:0.85}
+.prt-list .prt-card.shippedcard .prt-score{color:var(--ink3)}
+/* PRT MODAL */
+.prt-modal-overlay{position:fixed;inset:0;z-index:9500;background:rgba(26,25,22,0.45);display:flex;align-items:center;justify-content:center;padding:20px}
+.prt-modal{background:var(--surface);border-radius:14px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+.prt-modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.prt-modal-x{background:none;border:none;font-size:22px;line-height:1;color:var(--ink3);cursor:pointer}
+.prt-modal-x:hover{color:var(--ink)}
+.prt-modal-body{padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.prt-field{display:flex;flex-direction:column;gap:6px}
+.prt-label{font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink2)}
+.prt-optional{text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink3)}
+.prt-input{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border-strong);border-radius:6px;padding:9px 11px;width:100%}
+.prt-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+textarea.prt-input{resize:vertical}
+.prt-modal-err{font-size:12px;color:var(--red);min-height:16px}
+.prt-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border)}
+.prt-btn-ghost{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink2);background:none;border:1px solid var(--border);border-radius:6px;padding:8px 16px;cursor:pointer}
+.prt-btn-primary{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#fff;background:var(--teal);border:none;border-radius:6px;padding:8px 18px;cursor:pointer}
+.prt-btn-primary:disabled{opacity:0.5;cursor:wait}
 </style>
 </head>
 <body>
@@ -242,6 +321,7 @@ tbody td:first-child{font-weight:500}
   <button class="tab-btn" onclick="switchTab(event,'portfolio')">Whole Portfolio</button>
   <button class="tab-btn" onclick="switchTab(event,'cohorts')">Cohorts</button>
   <button class="tab-btn" onclick="switchTab(event,'team')">Team</button>
+  <button class="tab-btn" onclick="switchTab(event,'requests')">Product Request Tracker</button>
 </div>
 
 <main>
@@ -580,6 +660,96 @@ tbody td:first-child{font-weight:500}
     <div style="margin-bottom:12px"></div>
   </div>
 
+  <!-- TAB 5: PRODUCT REQUEST TRACKER -->
+  <div id="tab-requests" class="tab-content">
+    <div class="prt-toolbar">
+      <div class="prt-seg" id="prt-product-filter">
+        <button class="prt-seg-btn active" data-product="all">All</button>
+        <button class="prt-seg-btn" data-product="EGC">EGC</button>
+        <button class="prt-seg-btn" data-product="Full Service">Full Service</button>
+      </div>
+      <input type="text" id="prt-search" class="prt-search" placeholder="Search requests…">
+      <div class="prt-toolbar-spacer"></div>
+      <span id="prt-note" class="prt-note"></span>
+      <button class="prt-add-btn" onclick="prtOpenModal('feature')">+ Add issue</button>
+    </div>
+
+    <div class="prt-columns">
+      <div class="prt-col">
+        <div class="prt-col-head bug">
+          <span class="prt-col-title">🐞 Bugs</span>
+          <span class="prt-col-meta" id="prt-bug-meta">—</span>
+        </div>
+        <div id="prt-bug-list" class="prt-list"></div>
+      </div>
+      <div class="prt-col">
+        <div class="prt-col-head feature">
+          <span class="prt-col-title">✨ Feature Requests</span>
+          <span class="prt-col-meta" id="prt-feature-meta">—</span>
+        </div>
+        <div id="prt-feature-list" class="prt-list"></div>
+      </div>
+    </div>
+
+    <div class="prt-shipped">
+      <div class="prt-shipped-head" id="prt-shipped-toggle" onclick="prtToggleShipped()">
+        <span class="prt-shipped-caret" id="prt-shipped-caret">▸</span>
+        <span class="prt-col-title">✅ Shipped</span>
+        <span class="prt-col-meta" id="prt-shipped-meta">—</span>
+      </div>
+      <div id="prt-shipped-list" class="prt-list" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- PRODUCT REQUEST TRACKER · ADD / EDIT MODAL -->
+  <div id="prt-modal" class="prt-modal-overlay" style="display:none">
+    <div class="prt-modal">
+      <div class="prt-modal-head">
+        <span id="prt-modal-title">Add issue</span>
+        <button class="prt-modal-x" onclick="prtCloseModal()">×</button>
+      </div>
+      <div class="prt-modal-body">
+        <label class="prt-field">
+          <span class="prt-label">Type</span>
+          <div class="prt-seg" id="prt-modal-type">
+            <button type="button" class="prt-seg-btn" data-type="feature">✨ Feature</button>
+            <button type="button" class="prt-seg-btn" data-type="bug">🐞 Bug</button>
+          </div>
+        </label>
+        <label class="prt-field" id="prt-modal-request-field">
+          <span class="prt-label">Request</span>
+          <select id="prt-modal-request" class="prt-input"></select>
+        </label>
+        <label class="prt-field" id="prt-modal-newtitle-field">
+          <span class="prt-label">New request title</span>
+          <input type="text" id="prt-modal-title-input" class="prt-input" placeholder="e.g. Bulk schedule posts across seats">
+        </label>
+        <label class="prt-field" id="prt-modal-severity-field" style="display:none">
+          <span class="prt-label">Severity (Linear priority)</span>
+          <select id="prt-modal-severity" class="prt-input">
+            <option value="Urgent">Urgent</option>
+            <option value="High">High</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </label>
+        <label class="prt-field">
+          <span class="prt-label">Customer</span>
+          <select id="prt-modal-company" class="prt-input"></select>
+        </label>
+        <label class="prt-field">
+          <span class="prt-label">Detail / quote <span class="prt-optional">(optional)</span></span>
+          <textarea id="prt-modal-detail" class="prt-input" rows="3" placeholder="What did they say? Paste the Slack/email quote or note from the call."></textarea>
+        </label>
+        <div class="prt-modal-err" id="prt-modal-err"></div>
+      </div>
+      <div class="prt-modal-foot">
+        <button class="prt-btn-ghost" onclick="prtCloseModal()">Cancel</button>
+        <button class="prt-btn-primary" id="prt-modal-save" onclick="prtSaveIssue()">Save</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 <footer id="footer-date"></footer>
 
@@ -755,6 +925,7 @@ function switchTab(e, name) {
   if(name==='cohorts')   renderCohortsTab(cos);
   if(name==='portfolio') renderPortfolioTable(cos);
   if(name==='team')      renderTeamTab(cos);
+  if(name==='requests')  prtEnsureLoaded().then(prtRender);
 }
 
 // ── DATA FETCH ─────────────────────────────────────────────────
@@ -801,6 +972,9 @@ async function loadData() {
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Lineage · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
+    // Refresh the Product Request Tracker against the latest account data.
+    prtState.loaded=false;
+    prtEnsureLoaded().then(()=>{ if(document.getElementById('tab-requests').classList.contains('active')) prtRender(); });
   } catch(e) {
     setStatus('Failed to load: '+e.message,'error');
   } finally { btn.disabled=false; }
@@ -1342,8 +1516,351 @@ function renderTeamTab(cos) {
     : '<tr><td colspan="5" class="empty-hint">No active customers with MRR.</td></tr>';
 }
 
+// ── PRODUCT REQUEST TRACKER ───────────────────────────────────
+// Tunable scoring config — change these numbers to retune priorities.
+const PRT_CFG = {
+  pilotDays: 90,           // pilot length; pilot-end = pilot start + this
+  renewalDays: 365,        // converted contract length; renewal = pilot-end + this
+  urgencyTiers: [          // by days until the next decision date (pilot-end or renewal)
+    { maxDays: 30,  mult: 3.0 },
+    { maxDays: 90,  mult: 2.0 },
+    { maxDays: 180, mult: 1.5 }
+  ],
+  urgencyFloor: 1.0,       // anyone can churn anytime — far-out ARR never drops to zero
+  severityMult: { Urgent: 3.0, High: 2.0, Medium: 1.25, Low: 1.0 }
+};
+
+const prtState = { requests: [], asks: [], productMap: {}, loaded: false, loading: null, product: 'all', search: '', expanded: new Set(), shippedOpen: false, modalType: 'feature' };
+
+function prtMoney(n) {
+  n = Math.round(n || 0);
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (n >= 1000) return '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+  return '$' + n;
+}
+
+async function prtEnsureLoaded() {
+  if (prtState.loaded) return;
+  if (prtState.loading) return prtState.loading;
+  prtState.loading = prtFetchAll();
+  await prtState.loading;
+  prtState.loading = null;
+}
+
+async function prtFetchAll() {
+  try {
+    const [prodRes, reqRes, askRes] = await Promise.all([
+      fetch('/api/pr-products').then(r => r.ok ? r.json() : { map: {} }).catch(() => ({ map: {} })),
+      sb.from('pr_requests').select('*'),
+      sb.from('pr_asks').select('*')
+    ]);
+    prtState.productMap = prodRes.map || {};
+    prtState.productNote = prodRes.note || null;
+    prtState.requests = reqRes.data || [];
+    prtState.asks = askRes.data || [];
+    prtState.loaded = true;
+  } catch (e) {
+    prtState.requests = prtState.requests || [];
+    prtState.asks = prtState.asks || [];
+  }
+}
+
+// Build an account lookup from the live HubSpot company feed.
+function prtAccountIndex() {
+  const idx = {};
+  allCompanies.forEach(c => {
+    const arr = (c.mrr + c.expansion_mrr) * 12;
+    const pm = prtState.productMap[c.id];
+    const product = (pm && pm.product) || 'Unspecified';
+    const churned = c.pilot_status === 'Exited During Pilot' || c.pilot_status === 'Churned Post Conversion';
+    const pilotStart = (pm && pm.closeDate) || c.kickoff_date || null;
+    idx[c.id] = { id: c.id, name: c.name, arr, product, churned, nextDate: prtNextDecisionDate(pilotStart, c.pilot_status), pilot_status: c.pilot_status };
+  });
+  return idx;
+}
+
+function prtNextDecisionDate(start, status) {
+  if (!start) return null;
+  const d = new Date(start);
+  if (isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() + PRT_CFG.pilotDays);            // pilot end
+  if (status === 'Converted') d.setDate(d.getDate() + PRT_CFG.renewalDays); // then renewal
+  return d;
+}
+
+function prtUrgency(nextDate) {
+  if (!nextDate) return PRT_CFG.urgencyFloor;
+  const days = Math.round((nextDate - new Date()) / 86400000);
+  for (const t of PRT_CFG.urgencyTiers) if (days <= t.maxDays) return t.mult;
+  return PRT_CFG.urgencyFloor;
+}
+
+function prtDaysLabel(nextDate) {
+  if (!nextDate) return { txt: 'No date', cls: 'later' };
+  const days = Math.round((nextDate - new Date()) / 86400000);
+  const txt = days < 0 ? Math.abs(days) + 'd overdue' : days + 'd';
+  const cls = days <= 30 ? 'urgent' : days <= 90 ? 'soon' : 'later';
+  return { txt, cls, days };
+}
+
+// Score one request against the current product filter. Churned accounts drop out.
+function prtScore(req, idx) {
+  const pf = prtState.product;
+  const seen = {};
+  let raw = 0, score = 0, soonest = null;
+  const accounts = [];
+  prtState.asks.filter(a => a.request_id === req.id).forEach(a => {
+    const acc = idx[a.hs_company_id];
+    if (!acc || acc.churned) return;                       // money gone / unknown → excluded
+    if (pf !== 'all' && acc.product !== pf) return;        // respect EGC / Full Service filter
+    accounts.push({ acc, ask: a });
+    if (!seen[acc.id]) { seen[acc.id] = true; raw += acc.arr; score += acc.arr * prtUrgency(acc.nextDate); }
+    if (acc.nextDate && (!soonest || acc.nextDate < soonest)) soonest = acc.nextDate;
+  });
+  if (req.type === 'bug') score *= (PRT_CFG.severityMult[req.severity] || 1);
+  return { accounts, raw, score, soonest, count: Object.keys(seen).length };
+}
+
+function prtRender() {
+  const tab = document.getElementById('tab-requests');
+  if (!tab) return;
+  const idx = prtAccountIndex();
+  const q = prtState.search.trim().toLowerCase();
+  const match = r => !q || (r.title || '').toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q);
+
+  const open = prtState.requests.filter(r => r.status !== 'shipped' && match(r));
+  const scored = open.map(r => ({ r, s: prtScore(r, idx) })).filter(x => x.s.count > 0);
+
+  const bugs = scored.filter(x => x.r.type === 'bug').sort((a, b) => b.s.score - a.s.score);
+  const feats = scored.filter(x => x.r.type === 'feature').sort((a, b) => b.s.score - a.s.score);
+
+  renderList('prt-bug-list', bugs, 'bug');
+  renderList('prt-feature-list', feats, 'feature');
+  document.getElementById('prt-bug-meta').textContent = colMeta(bugs);
+  document.getElementById('prt-feature-meta').textContent = colMeta(feats);
+
+  // Shipped zone
+  const shipped = prtState.requests.filter(r => r.status === 'shipped' && match(r))
+    .map(r => ({ r, s: prtScore(r, idx) }))
+    .sort((a, b) => (b.r.shipped_date || '').localeCompare(a.r.shipped_date || ''));
+  renderList('prt-shipped-list', shipped, 'shipped');
+  document.getElementById('prt-shipped-meta').textContent = shipped.length + (shipped.length === 1 ? ' request' : ' requests');
+
+  // Product-field note (e.g. if EGC/Full Service couldn't be auto-detected)
+  const noteEl = document.getElementById('prt-note');
+  const anyProduct = Object.keys(prtState.productMap).length;
+  noteEl.textContent = (prtState.product !== 'all' && !anyProduct) ? 'Product tags unavailable — showing all' : '';
+
+  function colMeta(arr) {
+    if (!arr.length) return '0 requests';
+    const totalRaw = arr.reduce((s, x) => s + x.s.raw, 0);
+    return `${arr.length} · ${prtMoney(totalRaw)} ARR`;
+  }
+}
+
+function renderList(elId, items, kind) {
+  const el = document.getElementById(elId);
+  if (!items.length) {
+    const msg = kind === 'shipped' ? 'Nothing shipped yet.' : (kind === 'bug' ? 'No open bugs for this view.' : 'No open feature requests for this view.');
+    el.innerHTML = `<div class="prt-empty">${msg}</div>`;
+    return;
+  }
+  el.innerHTML = items.map((x, i) => prtCard(x.r, x.s, i + 1, kind)).join('');
+}
+
+function prtCard(req, s, rank, kind) {
+  const cardCls = kind === 'bug' ? 'bugcard' : kind === 'shipped' ? 'shippedcard' : '';
+  const isOpen = prtState.expanded.has(req.id);
+  const sev = req.type === 'bug' && req.severity ? `<span class="prt-chip sev-${req.severity}">${req.severity}</span>` : '';
+  let urgChip = '';
+  if (kind === 'shipped') {
+    urgChip = `<span class="prt-chip later">Shipped ${req.shipped_date || ''}</span>`;
+  } else {
+    const d = prtDaysLabel(s.soonest);
+    urgChip = `<span class="prt-chip ${d.cls}">⏰ ${d.txt}</span>`;
+  }
+  const asksHtml = s.accounts.map(({ acc, ask }) => {
+    const d = prtDaysLabel(acc.nextDate);
+    const stat = acc.pilot_status === 'In progress' ? 'Pilot ends' : acc.pilot_status === 'Converted' ? 'Renews' : '';
+    return `<div class="prt-ask">
+      <div class="prt-ask-co">${escapeHtml(acc.name)}
+        <div class="prt-ask-meta">${escapeHtml(acc.product)} · ${prtMoney(acc.arr)} ARR · ${stat} ${d.txt}</div>
+      </div>
+      <div class="prt-ask-detail">${escapeHtml(ask.detail || '—')}</div>
+      <button class="prt-ask-x" title="Remove this customer's ask" onclick="prtDeleteAsk(event,'${ask.id}')">✕</button>
+    </div>`;
+  }).join('');
+  const actions = kind === 'shipped'
+    ? `<button class="prt-mini-btn" onclick="prtReopen(event,'${req.id}')">↩ Reopen</button>
+       <button class="prt-mini-btn" onclick="prtDeleteRequest(event,'${req.id}')">Delete</button>`
+    : `<button class="prt-mini-btn" onclick="prtAddCustomer(event,'${req.id}')">+ Add customer</button>
+       <button class="prt-mini-btn ship" onclick="prtMarkShipped(event,'${req.id}')">✓ Mark shipped</button>
+       <button class="prt-mini-btn" onclick="prtDeleteRequest(event,'${req.id}')">Delete</button>`;
+  return `<div class="prt-card ${cardCls} ${isOpen ? 'open' : ''}">
+    <div class="prt-row" onclick="prtToggleRow('${req.id}')">
+      <span class="prt-rank">${kind === 'shipped' ? '✓' : rank}</span>
+      <div class="prt-row-main">
+        <div class="prt-row-title">${escapeHtml(req.title)}</div>
+        <div class="prt-row-sub">
+          <span class="prt-chip arr">${s.count} ${s.count === 1 ? 'account' : 'accounts'} · ${prtMoney(s.raw)}</span>
+          ${urgChip}${sev}
+        </div>
+      </div>
+      <div class="prt-score">${prtMoney(s.score)}</div>
+    </div>
+    <div class="prt-detail">
+      ${asksHtml || '<div class="prt-ask-detail">No qualifying accounts in this view.</div>'}
+      <div class="prt-detail-actions">${actions}</div>
+    </div>
+  </div>`;
+}
+
+function prtToggleRow(id) {
+  if (prtState.expanded.has(id)) prtState.expanded.delete(id); else prtState.expanded.add(id);
+  prtRender();
+}
+function prtToggleShipped() {
+  prtState.shippedOpen = !prtState.shippedOpen;
+  document.getElementById('prt-shipped-list').style.display = prtState.shippedOpen ? 'flex' : 'none';
+  document.querySelector('.prt-shipped').classList.toggle('open', prtState.shippedOpen);
+}
+
+async function prtCurrentEmail() {
+  try { const { data } = await sb.auth.getUser(); return data?.user?.email || null; } catch { return null; }
+}
+
+// ── Tracker actions ───────────────────────────────────────────
+async function prtMarkShipped(e, id) {
+  e.stopPropagation();
+  const today = new Date().toISOString().slice(0, 10);
+  await sb.from('pr_requests').update({ status: 'shipped', shipped_date: today, updated_at: new Date().toISOString() }).eq('id', id);
+  const r = prtState.requests.find(x => x.id === id); if (r) { r.status = 'shipped'; r.shipped_date = today; }
+  prtRender();
+}
+async function prtReopen(e, id) {
+  e.stopPropagation();
+  await sb.from('pr_requests').update({ status: 'open', shipped_date: null, updated_at: new Date().toISOString() }).eq('id', id);
+  const r = prtState.requests.find(x => x.id === id); if (r) { r.status = 'open'; r.shipped_date = null; }
+  prtRender();
+}
+async function prtDeleteRequest(e, id) {
+  e.stopPropagation();
+  if (!confirm('Delete this request and all of its customer asks?')) return;
+  await sb.from('pr_requests').delete().eq('id', id);
+  prtState.requests = prtState.requests.filter(x => x.id !== id);
+  prtState.asks = prtState.asks.filter(x => x.request_id !== id);
+  prtRender();
+}
+async function prtDeleteAsk(e, id) {
+  e.stopPropagation();
+  await sb.from('pr_asks').delete().eq('id', id);
+  prtState.asks = prtState.asks.filter(x => x.id !== id);
+  prtRender();
+}
+
+// ── Add / edit modal ──────────────────────────────────────────
+function prtOpenModal(type, requestId) {
+  prtState.modalType = type;
+  document.getElementById('prt-modal-err').textContent = '';
+  document.getElementById('prt-modal-detail').value = '';
+  document.getElementById('prt-modal-title-input').value = '';
+  document.getElementById('prt-modal-title').textContent = 'Add issue';
+  // type segmented control
+  document.querySelectorAll('#prt-modal-type .prt-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  document.getElementById('prt-modal-severity-field').style.display = type === 'bug' ? 'flex' : 'none';
+  prtPopulateRequestDropdown(requestId);
+  prtPopulateCompanyDropdown();
+  document.getElementById('prt-modal').style.display = 'flex';
+}
+function prtAddCustomer(e, id) { e.stopPropagation(); const r = prtState.requests.find(x => x.id === id); prtOpenModal(r ? r.type : 'feature', id); }
+function prtCloseModal() { document.getElementById('prt-modal').style.display = 'none'; }
+
+function prtPopulateRequestDropdown(selectId) {
+  const sel = document.getElementById('prt-modal-request');
+  const open = prtState.requests.filter(r => r.status !== 'shipped' && r.type === prtState.modalType)
+    .sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  sel.innerHTML = '<option value="__new__">➕ New request…</option>' +
+    open.map(r => `<option value="${r.id}">${escapeHtml(r.title)}</option>`).join('');
+  sel.value = selectId && open.some(r => r.id === selectId) ? selectId : '__new__';
+  prtToggleTitleField();
+}
+function prtToggleTitleField() {
+  const isNew = document.getElementById('prt-modal-request').value === '__new__';
+  document.getElementById('prt-modal-newtitle-field').style.display = isNew ? 'flex' : 'none';
+}
+function prtPopulateCompanyDropdown() {
+  const sel = document.getElementById('prt-modal-company');
+  const cos = [...allCompanies].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  sel.innerHTML = '<option value="">Select customer…</option>' +
+    cos.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+async function prtSaveIssue() {
+  const err = document.getElementById('prt-modal-err');
+  const btn = document.getElementById('prt-modal-save');
+  const type = prtState.modalType;
+  const reqSel = document.getElementById('prt-modal-request').value;
+  const newTitle = document.getElementById('prt-modal-title-input').value.trim();
+  const severity = type === 'bug' ? document.getElementById('prt-modal-severity').value : null;
+  const companyId = document.getElementById('prt-modal-company').value;
+  const detail = document.getElementById('prt-modal-detail').value.trim();
+
+  if (reqSel === '__new__' && !newTitle) { err.textContent = 'Give the new request a title.'; return; }
+  if (!companyId) { err.textContent = 'Pick a customer.'; return; }
+  const company = allCompanies.find(c => c.id === companyId);
+  if (!company) { err.textContent = 'Customer not found.'; return; }
+
+  btn.disabled = true;
+  try {
+    const email = await prtCurrentEmail();
+    let requestId = reqSel;
+    if (reqSel === '__new__') {
+      const { data, error } = await sb.from('pr_requests')
+        .insert({ title: newTitle, type, severity, created_by: email }).select().single();
+      if (error) throw error;
+      prtState.requests.push(data);
+      requestId = data.id;
+    }
+    const product = (prtState.productMap[companyId] && prtState.productMap[companyId].product) || null;
+    const { data: ask, error: aerr } = await sb.from('pr_asks')
+      .insert({ request_id: requestId, hs_company_id: companyId, company_name: company.name, product, detail, source: 'manual', created_by: email }).select().single();
+    if (aerr) throw aerr;
+    prtState.asks.push(ask);
+    prtState.expanded.add(requestId);
+    prtCloseModal();
+    prtRender();
+  } catch (e) {
+    err.textContent = e.message || 'Could not save.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function prtInit() {
+  document.querySelectorAll('#prt-product-filter .prt-seg-btn').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('#prt-product-filter .prt-seg-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      prtState.product = b.dataset.product;
+      prtRender();
+    };
+  });
+  document.querySelectorAll('#prt-modal-type .prt-seg-btn').forEach(b => {
+    b.onclick = () => {
+      prtState.modalType = b.dataset.type;
+      document.querySelectorAll('#prt-modal-type .prt-seg-btn').forEach(x => x.classList.toggle('active', x === b));
+      document.getElementById('prt-modal-severity-field').style.display = b.dataset.type === 'bug' ? 'flex' : 'none';
+      prtPopulateRequestDropdown();
+    };
+  });
+  document.getElementById('prt-modal-request').onchange = prtToggleTitleField;
+  document.getElementById('prt-search').addEventListener('input', e => { prtState.search = e.target.value; prtRender(); });
+  document.getElementById('prt-modal').addEventListener('click', e => { if (e.target.id === 'prt-modal') prtCloseModal(); });
+}
+
 // ── INIT ────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  prtInit();
   sb.auth.onAuthStateChange((event, session) => {
     if(event==='SIGNED_IN'&&session) {
       if(handleValidSession(session)) { if(!allCompanies.length) loadData(); }
