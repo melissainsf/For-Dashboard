@@ -1790,7 +1790,8 @@ function prtToggleTitleField() {
 }
 function prtPopulateCompanyDropdown() {
   const sel = document.getElementById('prt-modal-company');
-  const cos = [...allCompanies].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const isChurned = c => c.pilot_status === 'Exited During Pilot' || c.pilot_status === 'Churned Post Conversion';
+  const cos = allCompanies.filter(c => !isChurned(c)).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   sel.innerHTML = '<option value="">Select customer…</option>' +
     cos.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
 }
