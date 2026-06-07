@@ -246,6 +246,8 @@ tbody td:first-child{font-weight:500}
 .prt-ask-detail{font-size:11px;color:var(--ink2);flex:1;line-height:1.5}
 .prt-ask-x{font-size:11px;color:var(--ink3);cursor:pointer;background:none;border:none;padding:2px 6px}
 .prt-ask-x:hover{color:var(--red)}
+.prt-ask-imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.prt-ask-imgs img{width:46px;height:46px;object-fit:cover;border-radius:5px;border:1px solid var(--border);cursor:pointer;background:var(--border)}
 .prt-detail-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .prt-mini-btn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:var(--ink2);background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer}
 .prt-mini-btn:hover{border-color:var(--ink3);color:var(--ink)}
@@ -272,6 +274,14 @@ tbody td:first-child{font-weight:500}
 .prt-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
 textarea.prt-input{resize:vertical}
 .prt-modal-err{font-size:12px;color:var(--red);min-height:16px}
+.prt-uploader{display:flex;flex-direction:column;gap:8px}
+.prt-upload-btn{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--ink2);background:var(--surface);border:1px dashed var(--border-strong);border-radius:6px;padding:10px 11px;cursor:pointer;text-align:center;display:block}
+.prt-upload-btn:hover{border-color:var(--blue);color:var(--ink)}
+.prt-img-previews{display:flex;gap:8px;flex-wrap:wrap}
+.prt-img-previews:empty{display:none}
+.prt-img-thumb{position:relative;width:60px;height:60px}
+.prt-img-thumb img{width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+.prt-img-thumb button{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .prt-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border)}
 .prt-btn-ghost{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink2);background:none;border:1px solid var(--border);border-radius:6px;padding:8px 16px;cursor:pointer}
 .prt-btn-primary{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#fff;background:var(--teal);border:none;border-radius:6px;padding:8px 18px;cursor:pointer}
@@ -741,6 +751,14 @@ textarea.prt-input{resize:vertical}
           <span class="prt-label">Detail / quote <span class="prt-optional">(optional)</span></span>
           <textarea id="prt-modal-detail" class="prt-input" rows="3" placeholder="What did they say? Paste the Slack/email quote or note from the call."></textarea>
         </label>
+        <div class="prt-field">
+          <span class="prt-label">Screenshots <span class="prt-optional">(optional)</span></span>
+          <div class="prt-uploader">
+            <label class="prt-upload-btn" for="prt-modal-images">📎 Add images — click to browse, or paste a screenshot here</label>
+            <input type="file" id="prt-modal-images" accept="image/*" multiple hidden>
+            <div class="prt-img-previews" id="prt-modal-img-previews"></div>
+          </div>
+        </div>
         <div class="prt-modal-err" id="prt-modal-err"></div>
       </div>
       <div class="prt-modal-foot">
@@ -1530,7 +1548,22 @@ const PRT_CFG = {
   severityMult: { Urgent: 3.0, High: 2.0, Medium: 1.25, Low: 1.0 }
 };
 
-const prtState = { requests: [], asks: [], productMap: {}, loaded: false, loading: null, product: 'all', search: '', expanded: new Set(), shippedOpen: false, modalType: 'feature' };
+const PRT_IMG_BUCKET = 'pr-ask-images';
+const PRT_IMG_MAX = 10 * 1024 * 1024;   // 10 MB per image (matches bucket limit)
+const prtState = { requests: [], asks: [], productMap: {}, loaded: false, loading: null, product: 'all', search: '', expanded: new Set(), shippedOpen: false, modalType: 'feature', modalImages: [] };
+
+// Generate short-lived signed URLs for stored image paths and cache them on the ask objects.
+async function prtSignAskImages(asks) {
+  const paths = [];
+  asks.forEach(a => { (a.images || []).forEach(p => { if (p) paths.push(p); }); a._imageUrls = []; });
+  if (!paths.length) return;
+  try {
+    const { data } = await sb.storage.from(PRT_IMG_BUCKET).createSignedUrls(paths, 60 * 60 * 8);
+    const urlByPath = {};
+    (data || []).forEach(d => { if (d && d.path && d.signedUrl) urlByPath[d.path] = d.signedUrl; });
+    asks.forEach(a => { a._imageUrls = (a.images || []).map(p => urlByPath[p]).filter(Boolean); });
+  } catch (e) { /* leave thumbnails empty if signing fails */ }
+}
 
 function prtMoney(n) {
   n = Math.round(n || 0);
@@ -1558,6 +1591,7 @@ async function prtFetchAll() {
     prtState.productNote = prodRes.note || null;
     prtState.requests = reqRes.data || [];
     prtState.asks = askRes.data || [];
+    await prtSignAskImages(prtState.asks);
     prtState.loaded = true;
   } catch (e) {
     prtState.requests = prtState.requests || [];
@@ -1686,7 +1720,7 @@ function prtCard(req, s, rank, kind) {
       <div class="prt-ask-co">${escapeHtml(acc.name)}
         <div class="prt-ask-meta">${escapeHtml(acc.product)} · ${prtMoney(acc.arr)} ARR · ${stat} ${d.txt}</div>
       </div>
-      <div class="prt-ask-detail">${escapeHtml(ask.detail || '—')}</div>
+      <div class="prt-ask-detail">${escapeHtml(ask.detail || '—')}${(ask._imageUrls && ask._imageUrls.length) ? `<div class="prt-ask-imgs">${ask._imageUrls.map(u => `<img src="${escapeHtml(u)}" alt="screenshot" onclick="window.open('${escapeHtml(u)}','_blank')">`).join('')}</div>` : ''}</div>
       <button class="prt-ask-x" title="Remove this customer's ask" onclick="prtDeleteAsk(event,'${ask.id}')">✕</button>
     </div>`;
   }).join('');
@@ -1746,6 +1780,8 @@ async function prtReopen(e, id) {
 async function prtDeleteRequest(e, id) {
   e.stopPropagation();
   if (!confirm('Delete this request and all of its customer asks?')) return;
+  const imgPaths = prtState.asks.filter(a => a.request_id === id).flatMap(a => a.images || []);
+  if (imgPaths.length) { try { await sb.storage.from(PRT_IMG_BUCKET).remove(imgPaths); } catch (_) { /* best-effort */ } }
   await sb.from('pr_requests').delete().eq('id', id);
   prtState.requests = prtState.requests.filter(x => x.id !== id);
   prtState.asks = prtState.asks.filter(x => x.request_id !== id);
@@ -1753,6 +1789,10 @@ async function prtDeleteRequest(e, id) {
 }
 async function prtDeleteAsk(e, id) {
   e.stopPropagation();
+  const ask = prtState.asks.find(x => x.id === id);
+  if (ask && ask.images && ask.images.length) {
+    try { await sb.storage.from(PRT_IMG_BUCKET).remove(ask.images); } catch (_) { /* best-effort cleanup */ }
+  }
   await sb.from('pr_asks').delete().eq('id', id);
   prtState.asks = prtState.asks.filter(x => x.id !== id);
   prtRender();
@@ -1765,6 +1805,9 @@ function prtOpenModal(type, requestId) {
   document.getElementById('prt-modal-detail').value = '';
   document.getElementById('prt-modal-title-input').value = '';
   document.getElementById('prt-modal-title').textContent = 'Add issue';
+  prtState.modalImages = [];
+  document.getElementById('prt-modal-images').value = '';
+  prtRenderImgPreviews();
   // type segmented control
   document.querySelectorAll('#prt-modal-type .prt-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
   document.getElementById('prt-modal-severity-field').style.display = type === 'bug' ? 'flex' : 'none';
@@ -1773,7 +1816,35 @@ function prtOpenModal(type, requestId) {
   document.getElementById('prt-modal').style.display = 'flex';
 }
 function prtAddCustomer(e, id) { e.stopPropagation(); const r = prtState.requests.find(x => x.id === id); prtOpenModal(r ? r.type : 'feature', id); }
-function prtCloseModal() { document.getElementById('prt-modal').style.display = 'none'; }
+function prtCloseModal() {
+  document.getElementById('prt-modal').style.display = 'none';
+  prtState.modalImages.forEach(im => URL.revokeObjectURL(im.url));
+  prtState.modalImages = [];
+}
+
+// ── Modal image attachments ───────────────────────────────────
+function prtAddImageFiles(files) {
+  const err = document.getElementById('prt-modal-err');
+  for (const f of files) {
+    if (!f.type || !f.type.startsWith('image/')) { err.textContent = `"${f.name}" is not an image.`; continue; }
+    if (f.size > PRT_IMG_MAX) { err.textContent = `"${f.name || 'Image'}" is over 10 MB.`; continue; }
+    prtState.modalImages.push({ file: f, url: URL.createObjectURL(f) });
+  }
+  prtRenderImgPreviews();
+}
+function prtRemoveImage(idx) {
+  const im = prtState.modalImages[idx];
+  if (im) URL.revokeObjectURL(im.url);
+  prtState.modalImages.splice(idx, 1);
+  prtRenderImgPreviews();
+}
+function prtRenderImgPreviews() {
+  const box = document.getElementById('prt-modal-img-previews');
+  if (!box) return;
+  box.innerHTML = prtState.modalImages.map((im, i) =>
+    `<div class="prt-img-thumb"><img src="${im.url}" alt=""><button type="button" title="Remove" onclick="prtRemoveImage(${i})">✕</button></div>`
+  ).join('');
+}
 
 function prtPopulateRequestDropdown(selectId) {
   const sel = document.getElementById('prt-modal-request');
@@ -1790,7 +1861,8 @@ function prtToggleTitleField() {
 }
 function prtPopulateCompanyDropdown() {
   const sel = document.getElementById('prt-modal-company');
-  const cos = [...allCompanies].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const isChurned = c => c.pilot_status === 'Exited During Pilot' || c.pilot_status === 'Churned Post Conversion';
+  const cos = allCompanies.filter(c => !isChurned(c)).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   sel.innerHTML = '<option value="">Select customer…</option>' +
     cos.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
 }
@@ -1825,6 +1897,24 @@ async function prtSaveIssue() {
     const { data: ask, error: aerr } = await sb.from('pr_asks')
       .insert({ request_id: requestId, hs_company_id: companyId, company_name: company.name, product, detail, source: 'manual', created_by: email }).select().single();
     if (aerr) throw aerr;
+
+    // Upload any attached screenshots to storage, then record their paths on the ask.
+    if (prtState.modalImages.length) {
+      err.textContent = `Uploading ${prtState.modalImages.length} image${prtState.modalImages.length === 1 ? '' : 's'}…`;
+      const paths = [];
+      for (const im of prtState.modalImages) {
+        const ext = (im.file.name.split('.').pop() || im.file.type.split('/')[1] || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const path = `${ask.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: uerr } = await sb.storage.from(PRT_IMG_BUCKET).upload(path, im.file, { contentType: im.file.type, upsert: false });
+        if (uerr) throw uerr;
+        paths.push(path);
+      }
+      const { error: imgErr } = await sb.from('pr_asks').update({ images: paths }).eq('id', ask.id);
+      if (imgErr) throw imgErr;
+      ask.images = paths;
+      await prtSignAskImages([ask]);
+    }
+
     prtState.asks.push(ask);
     prtState.expanded.add(requestId);
     prtCloseModal();
@@ -1856,6 +1946,11 @@ function prtInit() {
   document.getElementById('prt-modal-request').onchange = prtToggleTitleField;
   document.getElementById('prt-search').addEventListener('input', e => { prtState.search = e.target.value; prtRender(); });
   document.getElementById('prt-modal').addEventListener('click', e => { if (e.target.id === 'prt-modal') prtCloseModal(); });
+  document.getElementById('prt-modal-images').addEventListener('change', e => { prtAddImageFiles(e.target.files); e.target.value = ''; });
+  document.getElementById('prt-modal').addEventListener('paste', e => {
+    const imgs = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith('image/')).map(i => i.getAsFile()).filter(Boolean);
+    if (imgs.length) { e.preventDefault(); prtAddImageFiles(imgs); }
+  });
 }
 
 // ── INIT ────────────────────────────────────────────────────────
