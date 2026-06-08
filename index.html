@@ -987,17 +987,15 @@ async function loadData() {
   btn.disabled=true;
   setStatus('Loading data from HubSpot + Lineage...','loading');
   try {
-    const [hsRes,lineageRes,focsRes,productRes]=await Promise.all([
+    const [hsRes,lineageRes,focsRes]=await Promise.all([
       fetch('/api/hubspot',{method:'POST'}),
       fetch('/api/lineage',{method:'GET'}),
-      sb.from('portfolio_focs').select('*'),
-      fetch('/api/pr-products').then(r=>r.ok?r.json():{map:{}}).catch(()=>({map:{}}))
+      sb.from('portfolio_focs').select('*')
     ]);
     if(!hsRes.ok) { const e=await hsRes.json().catch(()=>({})); throw new Error(e.error||`HubSpot ${hsRes.status}`); }
     const hsData=await hsRes.json();
     const focsMap={};
     (focsRes&&focsRes.data||[]).forEach(r=>{ if(r.hs_company_id) focsMap[r.hs_company_id]=r.focs; });
-    const productMap=(productRes&&productRes.map)||{};
     lineageMap={};
     if(lineageRes.ok) {
       const ld=await lineageRes.json();
@@ -1024,7 +1022,7 @@ async function loadData() {
         customer_journey:r.properties.customer_journey||null,
         account_health:lineageMap[normalizeName(name)]||null,
         focs:focsMap[r.id]||null,
-        product:(productMap[r.id]&&productMap[r.id].product)||null
+        product:r.properties.product||null
       };
     });
     setStatus('');
