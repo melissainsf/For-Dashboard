@@ -197,6 +197,11 @@ tbody td:first-child{font-weight:500}
 .hs-select:hover,.hs-date:hover{border-color:var(--ink3)}
 .hs-select:focus,.hs-date:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
 .hs-select:disabled,.hs-date:disabled{opacity:0.5;cursor:wait}
+.foc-input{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;width:150px;max-width:200px}
+.foc-input::placeholder{color:var(--ink3)}
+.foc-input:hover{border-color:var(--ink3)}
+.foc-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.foc-input:disabled{opacity:0.5;cursor:wait}
 /* PRODUCT REQUEST TRACKER */
 .prt-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
 .prt-toolbar-spacer{flex:1}
@@ -487,7 +492,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>FOCs</th></tr></thead>
           <tbody id="portfolio-roster-body"></tbody>
         </table>
       </div>
@@ -500,7 +505,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Health</th><th>Churn reason</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
           <tbody id="portfolio-churned-roster-body"></tbody>
         </table>
       </div>
@@ -952,12 +957,15 @@ async function loadData() {
   btn.disabled=true;
   setStatus('Loading data from HubSpot + Lineage...','loading');
   try {
-    const [hsRes,lineageRes]=await Promise.all([
+    const [hsRes,lineageRes,focsRes]=await Promise.all([
       fetch('/api/hubspot',{method:'POST'}),
-      fetch('/api/lineage',{method:'GET'})
+      fetch('/api/lineage',{method:'GET'}),
+      sb.from('portfolio_focs').select('*')
     ]);
     if(!hsRes.ok) { const e=await hsRes.json().catch(()=>({})); throw new Error(e.error||`HubSpot ${hsRes.status}`); }
     const hsData=await hsRes.json();
+    const focsMap={};
+    (focsRes&&focsRes.data||[]).forEach(r=>{ if(r.hs_company_id) focsMap[r.hs_company_id]=r.focs; });
     lineageMap={};
     if(lineageRes.ok) {
       const ld=await lineageRes.json();
@@ -982,7 +990,8 @@ async function loadData() {
         first_post_date:r.properties.first_post_date||null,
         vertical:r.properties.vertical||null,
         customer_journey:r.properties.customer_journey||null,
-        account_health:lineageMap[normalizeName(name)]||null
+        account_health:lineageMap[normalizeName(name)]||null,
+        focs:focsMap[r.id]||null
       };
     });
     setStatus('');
@@ -1221,6 +1230,28 @@ function statusSelect(c) {
   const options=opts.map(s=>`<option value="${escapeHtml(s)}"${s===cur?' selected':''}>${escapeHtml(s)}</option>`).join('');
   return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="pilot_status" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
 }
+function focsInput(c) {
+  const cur=c.focs||'';
+  return `<input type="text" class="foc-input" data-cid="${escapeHtml(c.id||'')}" data-prev="${escapeHtml(cur)}" value="${escapeHtml(cur)}" placeholder="Add name(s)…" onchange="saveFoc(this)">`;
+}
+async function saveFoc(input) {
+  const id=input.dataset.cid, prev=input.dataset.prev, next=input.value.trim();
+  if(!id||next===prev) return;
+  input.disabled=true;
+  try {
+    const email=await prtCurrentEmail();
+    const { error }=await sb.from('portfolio_focs').upsert({ hs_company_id:id, focs:next||null, updated_by:email, updated_at:new Date().toISOString() }, { onConflict:'hs_company_id' });
+    if(error) throw error;
+    const c=allCompanies.find(x=>x.id===id);
+    if(c) c.focs=next||null;
+    input.dataset.prev=next;
+  } catch(e) {
+    alert('Could not save FOCs: '+(e.message||e));
+    input.value=prev;
+  } finally {
+    input.disabled=false;
+  }
+}
 function toDateInputValue(v) {
   if(!v) return '';
   const d=new Date(v);
@@ -1288,8 +1319,8 @@ function renderPortfolioTable(cos) {
   document.getElementById('portfolio-roster-body').innerHTML=portRows.map(c=>{
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
-  }).join('')||'<tr><td colspan="9" class="empty-hint">No active customers.</td></tr>';
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td><td>${focsInput(c)}</td></tr>`;
+  }).join('')||'<tr><td colspan="10" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-portfolio-am','portfolio','am',()=>renderPortfolioTable(cos));
 
   set('note-portfolio-churned-roster',churned.length+' churned companies');
@@ -1297,8 +1328,8 @@ function renderPortfolioTable(cos) {
   let churnRows=[...churned].sort((a,b)=>(churnedOrder[a.pilot_status]??9)-(churnedOrder[b.pilot_status]??9));
   churnRows=applyListSort(churnRows, window.__listSort.portfolioChurned||(window.__listSort.portfolioChurned={}), { am: c => displayAM(c.csm) });
   document.getElementById('portfolio-churned-roster-body').innerHTML=churnRows.map(c=>{
-    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td></tr>`;
-  }).join('')||'<tr><td colspan="8" class="empty-hint">No churned customers.</td></tr>';
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
+  }).join('')||'<tr><td colspan="9" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-portfolio-churned-am','portfolioChurned','am',()=>renderPortfolioTable(cos));
 }
 
