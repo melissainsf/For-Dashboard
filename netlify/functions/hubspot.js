@@ -21,7 +21,7 @@ exports.handler = async function(event, context) {
       'name', 'pilot_status', 'stage', 'mrr', 'expansion_mrr',
       'churned_mrr_value', 'churn_reason', 'domain', 'csm',
       'kickoff_call_date', 'first_post_date', 'vertical', 'customer_journey',
-      'content_manager', 'posts_per_month'
+      'content_manager', 'posts_per_month', 'product'
     ],
     limit: 200
   };
