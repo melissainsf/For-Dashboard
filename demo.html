@@ -1,0 +1,2253 @@
+<!DOCTYPE html><!-- v3.0 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virio — Customer Success Metrics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- DEMO BUILD: Supabase client removed. This is a sanitized, standalone copy of the
+     Virio CS dashboard that runs entirely in the browser on fictional sample data.
+     No external services (HubSpot, Lineage, Supabase) are contacted. -->
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5F3EE;--surface:#FFFFFF;--surface2:#EFEDE8;
+  --ink:#1A1916;--ink2:#5C5A55;--ink3:#9B9890;
+  --teal:#0F6E56;--teal-light:#E1F5EE;--teal-mid:#1D9E75;
+  --coral:#993C1D;--coral-light:#FAECE7;--coral-mid:#D85A30;
+  --blue:#185FA5;--blue-light:#E6F1FB;--blue-mid:#378ADD;
+  --amber:#854F0B;--amber-light:#FAEEDA;
+  --purple:#3C3489;--purple-light:#EEEDFE;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --yellow:#7A5F00;--yellow-light:#FFF8E7;
+  --border:rgba(26,25,22,0.10);--border-strong:rgba(26,25,22,0.18);
+  --shadow:0 1px 3px rgba(26,25,22,0.06),0 4px 12px rgba(26,25,22,0.04);
+  --header-bg:#1A1916;--header-ink:#F5F3EE;
+  --radius:10px;--radius-sm:6px
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6}
+/* AUTH */
+#auth-screen{position:fixed;inset:0;z-index:10000;background:var(--header-bg);display:flex;align-items:center;justify-content:center}
+#auth-screen.hidden{display:none}
+.auth-card{background:#242320;border:1px solid rgba(245,243,238,0.1);border-radius:14px;padding:48px 40px;max-width:400px;width:90%;text-align:center}
+.auth-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:#F5F3EE;letter-spacing:-0.02em;margin-bottom:6px}
+.auth-subtitle{font-size:13px;color:rgba(245,243,238,0.4);margin-bottom:36px;letter-spacing:0.04em;text-transform:uppercase}
+.auth-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:12px 20px;background:#fff;color:#1A1916;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s}
+.auth-btn:hover{opacity:0.9}
+.auth-btn:disabled{opacity:0.5;cursor:default}
+.auth-btn svg{width:18px;height:18px;flex-shrink:0}
+.auth-error{margin-top:16px;font-size:12px;color:#F09595;min-height:18px}
+.auth-note{margin-top:20px;font-size:11px;color:rgba(245,243,238,0.25)}
+/* HEADER */
+header{background:var(--header-bg);color:var(--header-ink);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.header-left{display:flex;align-items:baseline;gap:14px}
+.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.02em}
+.header-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:400;color:rgba(245,243,238,0.45);letter-spacing:0.07em;text-transform:uppercase}
+.header-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+#refresh-btn{background:rgba(245,243,238,0.1);border:1px solid rgba(245,243,238,0.18);color:var(--header-ink);padding:7px 16px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:background 0.15s}
+#refresh-btn:hover{background:rgba(245,243,238,0.2)}
+#refresh-btn:disabled{opacity:0.4;cursor:default}
+#last-updated{font-size:12px;color:rgba(245,243,238,0.38)}
+.exclude-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(245,243,238,0.5);cursor:pointer;user-select:none}
+.exclude-toggle input{cursor:pointer;accent-color:var(--teal-mid)}
+.signout-btn{background:rgba(245,243,238,0.08);border:1px solid rgba(245,243,238,0.15);color:rgba(245,243,238,0.5);padding:6px 12px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all 0.15s}
+.signout-btn:hover{background:rgba(245,243,238,0.15);color:var(--header-ink)}
+/* TABS */
+.tab-nav{display:flex;gap:2px;padding:0 32px;background:var(--header-bg);border-top:1px solid rgba(245,243,238,0.08)}
+.tab-btn{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:10px 18px;border:none;background:transparent;color:rgba(245,243,238,0.4);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s}
+.tab-btn:hover{color:rgba(245,243,238,0.7)}
+.tab-btn.active{color:var(--header-ink);border-bottom-color:var(--teal-mid)}
+.tab-content{display:none}
+.tab-content.active{display:block;animation:fadeIn 0.25s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* MAIN */
+main{padding:24px 32px;max-width:1600px;margin:0 auto}
+#status-bar{padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:20px;display:none;align-items:center;gap:8px}
+#status-bar.loading{display:flex;background:var(--blue-light);color:var(--blue)}
+#status-bar.error{display:flex;background:var(--coral-light);color:var(--coral)}
+.spinner{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* TOOLTIP */
+#tip{position:fixed;z-index:9999;pointer-events:none;background:#1A1916;color:#F5F3EE;border-radius:8px;padding:10px 13px;font-size:12px;line-height:1.65;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.25);opacity:0;transition:opacity 0.1s ease}
+#tip.visible{opacity:1}
+#tip .tip-title{font-weight:500;margin-bottom:5px;color:rgba(245,243,238,0.5);font-size:10px;letter-spacing:0.06em;text-transform:uppercase}
+#tip .tip-row{display:flex;justify-content:space-between;gap:20px}
+#tip .tip-name{color:#F5F3EE;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+#tip .tip-val{color:rgba(245,243,238,0.5);white-space:nowrap;flex-shrink:0}
+#tip .tip-divider{border-top:1px solid rgba(245,243,238,0.12);margin:5px 0}
+/* LAYOUT */
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+@media(max-width:1100px){.columns{grid-template-columns:1fr}}
+.column-header{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:8px 14px;border-radius:var(--radius-sm);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.column-header.pilot{background:var(--amber-light);color:var(--amber)}
+.column-header.postpilot{background:var(--teal-light);color:var(--teal)}
+.col-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.col-dot.pilot{background:var(--amber)}
+.col-dot.postpilot{background:var(--teal)}
+.metric-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.metric-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.metric-grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.mcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);cursor:default;transition:border-color 0.15s,box-shadow 0.15s}
+.mcard:hover{border-color:var(--border-strong);box-shadow:0 2px 8px rgba(26,25,22,0.10)}
+.mcard-label{font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.mcard-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:600;line-height:1;letter-spacing:-0.03em}
+.mcard-value.teal{color:var(--teal)}
+.mcard-value.coral{color:var(--coral-mid)}
+.mcard-value.blue{color:var(--blue)}
+.mcard-value.ink{color:var(--ink)}
+.mcard-sub{font-size:10px;color:var(--ink3);margin-top:3px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:12px}
+.chart-card-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;margin-bottom:2px}
+.chart-card-sub{font-size:10px;color:var(--ink3);margin-bottom:12px}
+.chart-wrap-sm{position:relative;width:100%;height:180px}
+.chart-wrap-md{position:relative;width:100%;height:200px}
+.chart-wrap-lg{position:relative;width:100%;height:260px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.chart-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink2)}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+/* HEALTH WIDGET */
+.health-widget{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:12px}
+.health-widget-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.health-widget-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:600}
+.health-widget-sub{font-size:10px;color:var(--ink3)}
+.health-row{display:flex;align-items:center;gap:10px;padding:5px 6px;margin:0 -6px;border-bottom:1px solid var(--border);border-radius:4px;cursor:default;transition:background 0.1s}
+.health-row:last-child{border-bottom:none}
+.health-row:hover{background:var(--surface2)}
+.health-name{font-size:12px;font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.health-scores{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.health-ttv{font-size:10px;color:var(--ink3)}
+.no-sheet-data{font-size:11px;color:var(--ink3);font-style:italic;padding:8px 0}
+.health-summary{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.health-summary-item{display:inline-flex;align-items:center;gap:4px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--ink)}
+.health-summary-empty{font-family:inherit;font-size:10px;font-weight:400;color:var(--ink3)}
+.health-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:var(--surface2);color:var(--ink)}
+.health-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--ink3)}
+.health-chip.health-red{background:#FCEBEB;color:#791F1F}
+.health-chip.health-red .health-dot{background:#E24B4A}
+.health-chip.health-yellow{background:#FAEEDA;color:#633806}
+.health-chip.health-yellow .health-dot{background:#BA7517}
+.health-chip.health-green{background:#E1F5EE;color:#085041}
+.health-chip.health-green .health-dot{background:#1D9E75}
+.health-chip.health-blue{background:#E1ECF7;color:#0C3A6E}
+.health-chip.health-blue .health-dot{background:#378ADD}
+.health-chip.health-empty{background:var(--surface2);color:var(--ink3)}
+.health-chip.health-empty .health-dot{background:var(--ink3);opacity:0.4}
+/* TABLE */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{font-family:'Syne',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border-strong);white-space:nowrap;background:var(--surface2)}
+thead th.sortable{cursor:pointer;user-select:none;transition:color 0.12s}
+thead th.sortable:hover{color:var(--ink)}
+thead th.sortable .sort-indicator{display:inline-block;margin-left:5px;opacity:0.35;font-size:9px;font-weight:400}
+thead th.sortable.active{color:var(--blue)}
+thead th.sortable.active .sort-indicator{opacity:1}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+tbody td{padding:8px 14px;vertical-align:middle}
+tbody td:first-child{font-weight:500}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
+.badge-teal{background:var(--teal-light);color:var(--teal)}
+.badge-coral{background:var(--coral-light);color:var(--coral)}
+.badge-blue{background:var(--blue-light);color:var(--blue)}
+.badge-amber{background:var(--amber-light);color:var(--amber)}
+.badge-gray{background:var(--surface2);color:var(--ink2)}
+.section-header{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px}
+.section-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink2)}
+.section-note{font-size:11px;color:var(--ink3)}
+/* COHORT */
+.cohort-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:20px}
+.cohort-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.cohort-card-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.cohort-card-n{font-size:10px;color:var(--ink3);margin-bottom:12px}
+.cohort-metric{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border)}
+.cohort-metric:last-child{border-bottom:none}
+.cohort-metric-label{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em}
+.cohort-metric-value{font-family:'Syne',sans-serif;font-size:18px;font-weight:600}
+.cohort-metric-value.teal{color:var(--teal)}
+.cohort-metric-value.coral{color:var(--coral-mid)}
+.cohort-metric-value.blue{color:var(--blue)}
+.cohort-metric-value.ink{color:var(--ink)}
+.cohort-na{font-size:11px;color:var(--ink3);font-style:italic}
+.cohort-subgroup-label{font-size:10px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;margin:6px 0 2px}
+.cohort-subgroup-divider{height:1px;background:var(--border);margin:10px 0}
+/* TEAM TAB */
+.ce-bar-row{position:relative;margin-bottom:12px}
+.ce-bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:6px;cursor:default}
+.ce-bar-label{font-size:12px;font-weight:500;min-width:80px;flex-shrink:0}
+.ce-bar-track{flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden}
+.ce-bar-fill{height:100%;border-radius:5px;background:var(--teal-mid);transition:width 0.4s ease}
+.ce-bar-count{font-size:11px;color:var(--ink2);min-width:90px;flex-shrink:0}
+.ce-bar-tooltip{position:absolute;left:90px;top:calc(100% - 2px);z-index:50;min-width:220px;max-width:320px;background:var(--header-bg);color:var(--header-ink);border-radius:var(--radius-sm);padding:10px 12px;box-shadow:0 6px 20px rgba(26,25,22,0.18);opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity 0.12s ease,transform 0.12s ease,visibility 0.12s ease;pointer-events:none}
+.ce-bar-row:hover .ce-bar-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
+.ce-bar-tooltip-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:rgba(245,243,238,0.6);margin-bottom:6px}
+.ce-bar-tooltip-list{list-style:none;margin:0;padding:0;max-height:240px;overflow-y:auto}
+.ce-bar-tooltip-list li{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(245,243,238,0.08)}
+.ce-bar-tooltip-list li:last-child{border-bottom:none}
+.ce-bar-tooltip-name{color:var(--header-ink)}
+.ce-bar-tooltip-ppm{color:rgba(245,243,238,0.65);flex-shrink:0}
+.ce-bar-tooltip-empty{font-size:12px;color:rgba(245,243,238,0.65);font-style:italic}
+.team-loading{padding:16px;font-size:13px;color:var(--ink3);font-style:italic}
+.empty-hint{padding:16px;color:var(--ink3);font-style:italic;font-size:13px}
+.roi-group-header td{background:var(--surface2);font-family:'Syne',sans-serif;font-weight:600;font-size:11px;color:var(--ink);text-transform:uppercase;letter-spacing:0.04em;padding-top:10px;padding-bottom:10px}
+.hs-select,.hs-date{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;cursor:pointer;max-width:200px}
+.hs-select:hover,.hs-date:hover{border-color:var(--ink3)}
+.hs-select:focus,.hs-date:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.hs-select:disabled,.hs-date:disabled{opacity:0.5;cursor:wait}
+.foc-input{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;width:150px;max-width:200px}
+.foc-input::placeholder{color:var(--ink3)}
+.foc-input:hover{border-color:var(--ink3)}
+.foc-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.foc-input:disabled{opacity:0.5;cursor:wait}
+/* PRODUCT REQUEST TRACKER */
+.prt-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.prt-toolbar-spacer{flex:1}
+.prt-seg{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px;gap:2px}
+.prt-seg-btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--ink2);background:transparent;border:none;padding:6px 14px;border-radius:5px;cursor:pointer;transition:all 0.15s}
+.prt-seg-btn:hover{color:var(--ink)}
+.prt-seg-btn.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.prt-search{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;width:240px}
+.prt-search:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.prt-note{font-size:11px;color:var(--ink3)}
+.prt-add-btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#fff;background:var(--teal);border:none;border-radius:var(--radius-sm);padding:8px 16px;cursor:pointer;transition:opacity 0.15s}
+.prt-add-btn:hover{opacity:0.9}
+.prt-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+@media(max-width:1100px){.prt-columns{grid-template-columns:1fr}}
+.prt-col-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px}
+.prt-col-head.bug{background:var(--coral-light)}
+.prt-col-head.feature{background:var(--blue-light)}
+.prt-col-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.02em}
+.prt-col-head.bug .prt-col-title{color:var(--coral)}
+.prt-col-head.feature .prt-col-title{color:var(--blue)}
+.prt-col-meta{font-size:11px;color:var(--ink3);margin-left:auto}
+.prt-list{display:flex;flex-direction:column;gap:8px}
+.prt-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:border-color 0.15s}
+.prt-card:hover{border-color:var(--border-strong)}
+.prt-row{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer}
+.prt-rank{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--ink3);min-width:22px;text-align:center}
+.prt-row-main{flex:1;min-width:0}
+.prt-row-title{font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prt-row-sub{font-size:11px;color:var(--ink3);margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.prt-score{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;color:var(--teal);text-align:right;min-width:64px}
+.prt-card.bugcard .prt-score{color:var(--coral)}
+.prt-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;letter-spacing:0.02em}
+.prt-chip.arr{background:var(--teal-light);color:var(--teal)}
+.prt-chip.urgent{background:var(--red-light);color:var(--red)}
+.prt-chip.soon{background:var(--amber-light);color:var(--amber)}
+.prt-chip.later{background:var(--surface2);color:var(--ink2)}
+.prt-chip.sev-Urgent{background:var(--red-light);color:var(--red)}
+.prt-chip.sev-High{background:var(--coral-light);color:var(--coral)}
+.prt-chip.sev-Medium{background:var(--amber-light);color:var(--amber)}
+.prt-chip.sev-Low{background:var(--surface2);color:var(--ink2)}
+.prt-detail{border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);display:none}
+.prt-card.open .prt-detail{display:block}
+.prt-ask{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.prt-ask:last-of-type{border-bottom:none}
+.prt-ask-co{font-size:12px;font-weight:500;color:var(--ink);min-width:150px}
+.prt-ask-co .prt-ask-meta{font-size:10px;color:var(--ink3);font-weight:400;margin-top:2px}
+.prt-ask-detail{font-size:11px;color:var(--ink2);flex:1;line-height:1.5}
+.prt-ask-x{font-size:11px;color:var(--ink3);cursor:pointer;background:none;border:none;padding:2px 6px}
+.prt-ask-x:hover{color:var(--red)}
+.prt-ask-imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.prt-ask-imgs img{width:46px;height:46px;object-fit:cover;border-radius:5px;border:1px solid var(--border);cursor:pointer;background:var(--border)}
+.prt-detail-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.prt-mini-btn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:var(--ink2);background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer}
+.prt-mini-btn:hover{border-color:var(--ink3);color:var(--ink)}
+.prt-mini-btn.ship{color:var(--teal);border-color:var(--teal-light)}
+.prt-empty{font-size:12px;color:var(--ink3);padding:24px;text-align:center;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius)}
+.prt-shipped{margin-top:8px}
+.prt-shipped-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--teal-light);border-radius:var(--radius-sm);cursor:pointer}
+.prt-shipped-head .prt-col-title{color:var(--teal)}
+.prt-shipped-caret{font-size:11px;color:var(--teal);transition:transform 0.15s}
+.prt-shipped.open .prt-shipped-caret{transform:rotate(90deg)}
+.prt-list .prt-card.shippedcard{opacity:0.85}
+.prt-list .prt-card.shippedcard .prt-score{color:var(--ink3)}
+/* PRT MODAL */
+.prt-modal-overlay{position:fixed;inset:0;z-index:9500;background:rgba(26,25,22,0.45);display:flex;align-items:center;justify-content:center;padding:20px}
+.prt-modal{background:var(--surface);border-radius:14px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+.prt-modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.prt-modal-x{background:none;border:none;font-size:22px;line-height:1;color:var(--ink3);cursor:pointer}
+.prt-modal-x:hover{color:var(--ink)}
+.prt-modal-body{padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.prt-field{display:flex;flex-direction:column;gap:6px}
+.prt-label{font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink2)}
+.prt-optional{text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink3)}
+.prt-input{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border-strong);border-radius:6px;padding:9px 11px;width:100%}
+.prt-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+textarea.prt-input{resize:vertical}
+.prt-modal-err{font-size:12px;color:var(--red);min-height:16px}
+.prt-uploader{display:flex;flex-direction:column;gap:8px}
+.prt-upload-btn{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--ink2);background:var(--surface);border:1px dashed var(--border-strong);border-radius:6px;padding:10px 11px;cursor:pointer;text-align:center;display:block}
+.prt-upload-btn:hover{border-color:var(--blue);color:var(--ink)}
+.prt-img-previews{display:flex;gap:8px;flex-wrap:wrap}
+.prt-img-previews:empty{display:none}
+.prt-img-thumb{position:relative;width:60px;height:60px}
+.prt-img-thumb img{width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+.prt-img-thumb button{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.prt-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border)}
+.prt-btn-ghost{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink2);background:none;border:1px solid var(--border);border-radius:6px;padding:8px 16px;cursor:pointer}
+.prt-btn-primary{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#fff;background:var(--teal);border:none;border-radius:6px;padding:8px 18px;cursor:pointer}
+.prt-btn-primary:disabled{opacity:0.5;cursor:wait}
+.demo-badge{display:inline-block;margin-left:12px;padding:3px 9px;border-radius:999px;background:#BA7517;color:#fff;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div id="auth-screen" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">Virio</div>
+    <div class="auth-subtitle">Customer Success Metrics</div>
+    <button class="auth-btn" id="google-signin-btn" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-note">Demo build — sample data</div>
+  </div>
+</div>
+
+<div id="tip"><div class="tip-title" id="tip-title"></div><div id="tip-body"></div></div>
+
+<header>
+  <div class="header-left">
+    <span class="logo">Virio</span>
+    <span class="header-title">Customer Success Metrics</span>
+    <span class="demo-badge" title="All companies, names, and figures shown are fictional sample data.">SAMPLE DATA</span>
+  </div>
+  <div class="header-right">
+    <label class="exclude-toggle">
+      <input type="checkbox" id="exclude-virio" checked onchange="recompute()">
+      Exclude internal (Virio)
+    </label>
+    <span id="last-updated"></span>
+    <button class="signout-btn" id="signout-btn" style="display:none" onclick="signOut()">Sign out</button>
+    <button id="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab(event,'main')">Pilot &amp; Post-Pilot</button>
+  <button class="tab-btn" onclick="switchTab(event,'portfolio')">Whole Portfolio</button>
+  <button class="tab-btn" onclick="switchTab(event,'cohorts')">Cohorts</button>
+  <button class="tab-btn" onclick="switchTab(event,'team')">Team</button>
+  <button class="tab-btn" onclick="switchTab(event,'requests')">Product Request Tracker</button>
+</div>
+
+<main>
+  <div id="status-bar"></div>
+
+  <!-- TAB 1: PILOT & POST-PILOT -->
+  <div id="tab-main" class="tab-content active">
+    <div class="columns">
+      <div>
+        <div class="column-header pilot"><span class="col-dot pilot"></span>Pilot</div>
+        <div class="metric-grid-2">
+          <div class="mcard" id="mc-pilot-retention"><div class="mcard-label">Pilot Retention Rate</div><div class="mcard-value teal" id="m-pilot-retention">—</div><div class="mcard-sub" id="m-pilot-retention-sub"></div></div>
+          <div class="mcard" id="mc-pilot-churn"><div class="mcard-label">Pilot Churn Rate</div><div class="mcard-value coral" id="m-pilot-churn">—</div><div class="mcard-sub" id="m-pilot-churn-sub"></div></div>
+        </div>
+        <div class="metric-grid-3">
+          <div class="mcard" id="mc-active"><div class="mcard-label">Active Pilots</div><div class="mcard-value ink" id="m-active">—</div><div class="mcard-sub">In progress</div></div>
+          <div class="mcard" id="mc-converted-count"><div class="mcard-label">Converted Pilots</div><div class="mcard-value teal" id="m-converted-count">—</div><div class="mcard-sub">Concluded</div></div>
+          <div class="mcard" id="mc-pilot-conv-pct"><div class="mcard-label">Pilot Conversion %</div><div class="mcard-value teal" id="m-pilot-conv-pct">—</div><div class="mcard-sub">Of concluded</div></div>
+        </div>
+        <div class="metric-grid-3">
+          <div class="mcard" id="mc-pilot-mrr"><div class="mcard-label">Total MRR in Pilot</div><div class="mcard-value ink" id="m-pilot-mrr">—</div></div>
+          <div class="mcard" id="mc-pilot-count"><div class="mcard-label">Customers in Pilot</div><div class="mcard-value ink" id="m-pilot-count">—</div></div>
+          <div class="mcard" id="mc-pilot-churned-count"><div class="mcard-label">Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-count">—</div></div>
+        </div>
+        <div class="metric-grid-2">
+          <div class="mcard" id="mc-pilot-churned-mrr"><div class="mcard-label">MRR Churned in Pilot</div><div class="mcard-value coral" id="m-pilot-churned-mrr">—</div></div>
+        </div>
+        <div class="health-widget">
+          <div class="health-widget-header">
+            <div><div class="health-widget-title">Pilot account health</div><div class="health-widget-sub">From Lineage · Red / Yellow / Green / Blue</div></div>
+            <div class="health-summary" id="pilot-health-summary"></div>
+          </div>
+          <div id="pilot-health-rows"><div class="no-sheet-data">Loading...</div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Pilot outcomes</div>
+          <div class="chart-card-sub">In progress vs. converted vs. exited</div>
+          <div class="chart-wrap-sm"><canvas id="pilotOutcomePie"></canvas></div>
+          <div class="legend" id="legend-pilot-outcome"></div>
+        </div>
+        <div class="chart-row">
+          <div class="chart-card" style="margin-bottom:0">
+            <div class="chart-card-title">In pilot by stage</div>
+            <div class="chart-card-sub">Active pilots</div>
+            <div class="chart-wrap-sm"><canvas id="pilotStageBar"></canvas></div>
+          </div>
+          <div class="chart-card" style="margin-bottom:0">
+            <div class="chart-card-title">Exited during pilot by stage</div>
+            <div class="chart-card-sub">Pilot churn breakdown</div>
+            <div class="chart-wrap-sm"><canvas id="exitedStageBar"></canvas></div>
+          </div>
+        </div>
+        <div style="margin-bottom:12px"></div>
+        <div class="chart-card">
+          <div class="chart-card-title">AM attribution — pilot portfolio</div>
+          <div class="chart-card-sub">Active pilots and exits per account manager</div>
+          <div class="chart-wrap-md"><canvas id="pilotAMBar"></canvas></div>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Active pilots</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#D85A30"></span>Exited during pilot</span>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Pilot churn reasons</div>
+          <div class="chart-card-sub">All churned companies</div>
+          <div class="chart-wrap-sm"><canvas id="churnReasonPie"></canvas></div>
+          <div class="legend" id="legend-churn-reason"></div>
+        </div>
+      </div>
+      <div>
+        <div class="column-header postpilot"><span class="col-dot postpilot"></span>Post-Pilot</div>
+        <div class="metric-grid-2">
+          <div class="mcard" id="mc-post-retention"><div class="mcard-label">Post-Pilot Retention Rate</div><div class="mcard-value teal" id="m-post-retention">—</div><div class="mcard-sub" id="m-post-retention-sub"></div></div>
+          <div class="mcard" id="mc-post-churn"><div class="mcard-label">Post-Pilot Churn Rate</div><div class="mcard-value coral" id="m-post-churn">—</div><div class="mcard-sub" id="m-post-churn-sub"></div></div>
+        </div>
+        <div class="metric-grid-2">
+          <div class="mcard" id="mc-grr"><div class="mcard-label">Post-Pilot GRR</div><div class="mcard-value blue" id="m-grr">—</div><div class="mcard-sub">Gross revenue retention</div></div>
+          <div class="mcard" id="mc-nrr"><div class="mcard-label">Post-Pilot NRR</div><div class="mcard-value blue" id="m-nrr">—</div><div class="mcard-sub">Net revenue retention</div></div>
+        </div>
+        <div class="metric-grid-3">
+          <div class="mcard" id="mc-converted-mrr"><div class="mcard-label">Total MRR Converted</div><div class="mcard-value teal" id="m-converted-mrr">—</div></div>
+          <div class="mcard" id="mc-post-converted-count"><div class="mcard-label">Customers Converted</div><div class="mcard-value teal" id="m-post-converted-count">—</div></div>
+          <div class="mcard" id="mc-post-churned-count"><div class="mcard-label">Churned After Pilot</div><div class="mcard-value coral" id="m-post-churned-count">—</div></div>
+        </div>
+        <div class="health-widget">
+          <div class="health-widget-header">
+            <div><div class="health-widget-title">Post-pilot account health</div><div class="health-widget-sub">From Lineage · Red / Yellow / Green / Blue</div></div>
+            <div class="health-summary" id="post-health-summary"></div>
+          </div>
+          <div id="post-health-rows"><div class="no-sheet-data">Loading...</div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">MRR breakdown by stage</div>
+          <div class="chart-card-sub">Post-pilot converted customers only</div>
+          <div class="chart-wrap-md"><canvas id="postMRRPie"></canvas></div>
+          <div class="legend" id="legend-post-mrr"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Customers converted by stage</div>
+          <div class="chart-card-sub">Converted + Churned Post Conversion</div>
+          <div class="chart-wrap-sm"><canvas id="convertedStageBar"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: WHOLE PORTFOLIO -->
+  <div id="tab-portfolio" class="tab-content">
+    <div class="section-header" style="margin-top:4px">
+      <span class="section-title">Revenue health</span>
+      <span class="section-note">Whole portfolio · active + churned</span>
+    </div>
+    <div class="metric-grid-4" style="margin-bottom:20px">
+      <div class="mcard" id="mc-port-grr"><div class="mcard-label">Gross Revenue Retention</div><div class="mcard-value blue" id="m-port-grr">—</div></div>
+      <div class="mcard" id="mc-port-nrr"><div class="mcard-label">Net Revenue Retention</div><div class="mcard-value blue" id="m-port-nrr">—</div></div>
+      <div class="mcard" id="mc-port-retention"><div class="mcard-label">Retention Rate</div><div class="mcard-value teal" id="m-port-retention">—</div></div>
+      <div class="mcard" id="mc-port-churn"><div class="mcard-label">Churn Rate</div><div class="mcard-value coral" id="m-port-churn">—</div></div>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Portfolio size</span>
+      <span class="section-note">Active customers (in progress + converted)</span>
+    </div>
+    <div class="metric-grid-4" style="margin-bottom:20px">
+      <div class="mcard" id="mc-port-active"><div class="mcard-label">Total Active Customers</div><div class="mcard-value ink" id="m-port-active">—</div></div>
+      <div class="mcard" id="mc-port-mrr"><div class="mcard-label">Total Active MRR</div><div class="mcard-value teal" id="m-port-mrr">—</div><div class="mcard-sub">Incl. expansion</div></div>
+      <div class="mcard" id="mc-port-arr"><div class="mcard-label">Total Active ARR</div><div class="mcard-value teal" id="m-port-arr">—</div></div>
+      <div class="mcard" id="mc-port-ttv"><div class="mcard-label">Avg Time to Value</div><div class="mcard-value ink" id="m-port-ttv">—</div><div class="mcard-sub" id="m-port-ttv-sub">Kickoff to first post</div></div>
+    </div>
+    <div class="chart-row-3">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Active customers by vertical</div>
+        <div class="chart-card-sub">In progress + converted</div>
+        <div class="chart-wrap-md"><canvas id="verticalPie"></canvas></div>
+        <div class="legend" id="legend-vertical"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Active customers by stage</div>
+        <div class="chart-card-sub">In progress + converted</div>
+        <div class="chart-wrap-md"><canvas id="stagePie"></canvas></div>
+        <div class="legend" id="legend-stage"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Customer journey funnel</div>
+        <div class="chart-card-sub">Active customers by journey stage</div>
+        <div class="chart-wrap-md"><canvas id="journeyBar"></canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">All Customers - Full Service</span>
+      <span class="section-note" id="note-portfolio-roster-fs"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am-fs" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>FOCs</th></tr></thead>
+          <tbody id="portfolio-roster-body-fs"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Churned Customers - Full Service</span>
+      <span class="section-note" id="note-portfolio-churned-roster-fs"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-fs" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
+          <tbody id="portfolio-churned-roster-body-fs"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">All Customers - EGC</span>
+      <span class="section-note" id="note-portfolio-roster-egc"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am-egc" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>FOCs</th></tr></thead>
+          <tbody id="portfolio-roster-body-egc"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Churned Customers - EGC</span>
+      <span class="section-note" id="note-portfolio-churned-roster-egc"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-egc" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
+          <tbody id="portfolio-churned-roster-body-egc"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: COHORTS -->
+  <div id="tab-cohorts" class="tab-content">
+    <div class="section-header" style="margin-top:4px">
+      <span class="section-title">GRR and NRR by segment</span>
+    </div>
+    <div class="cohort-grid" id="grr-nrr-segment-cards"></div>
+    <div class="section-header">
+      <span class="section-title">Industry/vertical</span>
+    </div>
+    <div class="chart-row-3">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Pilot vs converted by vertical</div>
+        <div class="chart-card-sub">Active customers · in progress or converted</div>
+        <div class="chart-wrap-md"><canvas id="pilotConvVerticalPie"></canvas></div>
+        <div class="legend" id="legend-pilot-conv-vertical"></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Exited pilots by vertical</div>
+        <div class="chart-card-sub">Pilots that exited before converting</div>
+        <div class="chart-wrap-md"><canvas id="exitedVerticalBar"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Churn reasons by vertical</div>
+        <div class="chart-card-sub">All churns · stacked by reason</div>
+        <div class="chart-wrap-md"><canvas id="churnReasonVerticalBar"></canvas></div>
+        <div class="legend" id="legend-churn-vertical"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Operational metrics by stage</span>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Account health by stage</div>
+        <div class="chart-card-sub">Active customers · count of Red / Yellow / Green / Blue</div>
+        <div class="chart-wrap-md"><canvas id="healthByStageBar"></canvas></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#E24B4A"></span>Red</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>Yellow</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Green</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Blue</span>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Avg time to value by stage</div>
+        <div class="chart-card-sub">Days from kickoff to first post (target: 21 days)</div>
+        <div class="chart-wrap-md"><canvas id="ttvStageBar"></canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Pilot conversion rate by stage</div>
+        <div class="chart-card-sub">Concluded pilots only</div>
+        <div class="chart-wrap-md"><canvas id="conversionStageBar"></canvas></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Conversion rate</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#D85A30"></span>Churn rate</span>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Churn reasons by stage</div>
+        <div class="chart-card-sub">All churned companies</div>
+        <div class="chart-wrap-md"><canvas id="churnReasonStageBar"></canvas></div>
+        <div class="legend" id="legend-churn-stage"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Cohort roster</span>
+      <span class="section-note" id="note-cohort-roster"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Kickoff date</th><th>First post date</th><th>Time to value</th><th>Account health</th></tr></thead>
+          <tbody id="cohort-roster-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Churned accounts cohort roster</span>
+      <span class="section-note" id="note-cohort-churned-roster"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Kickoff date</th><th>First post date</th><th>Time to value</th><th>Account health</th></tr></thead>
+          <tbody id="cohort-churned-roster-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: TEAM -->
+  <div id="tab-team" class="tab-content">
+    <!-- CE WORKLOAD -->
+    <div class="section-header" id="ce-load-section" style="margin-top:4px">
+      <span class="section-title">AM capacity</span>
+      <span class="section-note">Target posts per month per Account Manager</span>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-card-title">Account Manager workload</div>
+      <div id="ce-load-bars" style="padding:8px 0"><div class="team-loading">Loading...</div></div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">AM performance</span>
+      <span class="section-note">Post-pilot portfolio · active converted + churned post-conversion</span>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">AM attribution — post-pilot portfolio</div>
+        <div class="chart-card-sub">Active converted vs. churned post-conversion per AM</div>
+        <div class="chart-wrap-md"><canvas id="postAMBar"></canvas></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Active converted</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#D85A30"></span>Churned post-conversion</span>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Active MRR by AM</div>
+        <div class="chart-card-sub">Total MRR across all active accounts per AM</div>
+        <div class="chart-wrap-md"><canvas id="amMRRBar"></canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Account health by AM</span>
+      <span class="section-note">Active accounts · count of Red / Yellow / Green / Blue from Lineage</span>
+    </div>
+    <div class="chart-card">
+      <div class="chart-wrap-md"><canvas id="healthByAMBar"></canvas></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#E24B4A"></span>Red</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>Yellow</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Green</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Blue</span>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">ROI calculator</span>
+      <span class="section-note">Closed-deal targets per customer at break-even (1× MRR)</span>
+    </div>
+    <div class="metric-grid-3">
+      <div class="mcard"><div class="mcard-label">Monthly target</div><div class="mcard-value ink" id="m-roi-monthly">—</div><div class="mcard-sub">Sum of active MRR</div></div>
+      <div class="mcard"><div class="mcard-label">Quarterly target</div><div class="mcard-value ink" id="m-roi-quarterly">—</div><div class="mcard-sub">3× monthly</div></div>
+      <div class="mcard"><div class="mcard-label">Annual target</div><div class="mcard-value ink" id="m-roi-annual">—</div><div class="mcard-sub">12× monthly</div></div>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>MRR</th><th>Monthly target</th><th>Quarterly target</th><th>Annual target</th></tr></thead>
+          <tbody id="roi-calculator-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+  </div>
+
+  <!-- TAB 5: PRODUCT REQUEST TRACKER -->
+  <div id="tab-requests" class="tab-content">
+    <div class="prt-toolbar">
+      <div class="prt-seg" id="prt-product-filter">
+        <button class="prt-seg-btn active" data-product="all">All</button>
+        <button class="prt-seg-btn" data-product="EGC">EGC</button>
+        <button class="prt-seg-btn" data-product="Full Service">Full Service</button>
+      </div>
+      <input type="text" id="prt-search" class="prt-search" placeholder="Search requests…">
+      <div class="prt-toolbar-spacer"></div>
+      <span id="prt-note" class="prt-note"></span>
+      <button class="prt-add-btn" onclick="prtOpenModal('feature')">+ Add issue</button>
+    </div>
+
+    <div class="prt-columns">
+      <div class="prt-col">
+        <div class="prt-col-head bug">
+          <span class="prt-col-title">🐞 Bugs</span>
+          <span class="prt-col-meta" id="prt-bug-meta">—</span>
+        </div>
+        <div id="prt-bug-list" class="prt-list"></div>
+      </div>
+      <div class="prt-col">
+        <div class="prt-col-head feature">
+          <span class="prt-col-title">✨ Feature Requests</span>
+          <span class="prt-col-meta" id="prt-feature-meta">—</span>
+        </div>
+        <div id="prt-feature-list" class="prt-list"></div>
+      </div>
+    </div>
+
+    <div class="prt-shipped">
+      <div class="prt-shipped-head" id="prt-shipped-toggle" onclick="prtToggleShipped()">
+        <span class="prt-shipped-caret" id="prt-shipped-caret">▸</span>
+        <span class="prt-col-title">✅ Shipped</span>
+        <span class="prt-col-meta" id="prt-shipped-meta">—</span>
+      </div>
+      <div id="prt-shipped-list" class="prt-list" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- PRODUCT REQUEST TRACKER · ADD / EDIT MODAL -->
+  <div id="prt-modal" class="prt-modal-overlay" style="display:none">
+    <div class="prt-modal">
+      <div class="prt-modal-head">
+        <span id="prt-modal-title">Add issue</span>
+        <button class="prt-modal-x" onclick="prtCloseModal()">×</button>
+      </div>
+      <div class="prt-modal-body">
+        <label class="prt-field">
+          <span class="prt-label">Type</span>
+          <div class="prt-seg" id="prt-modal-type">
+            <button type="button" class="prt-seg-btn" data-type="feature">✨ Feature</button>
+            <button type="button" class="prt-seg-btn" data-type="bug">🐞 Bug</button>
+          </div>
+        </label>
+        <label class="prt-field" id="prt-modal-request-field">
+          <span class="prt-label">Request</span>
+          <select id="prt-modal-request" class="prt-input"></select>
+        </label>
+        <label class="prt-field" id="prt-modal-newtitle-field">
+          <span class="prt-label">New request title</span>
+          <input type="text" id="prt-modal-title-input" class="prt-input" placeholder="e.g. Bulk schedule posts across seats">
+        </label>
+        <label class="prt-field" id="prt-modal-severity-field" style="display:none">
+          <span class="prt-label">Severity (Linear priority)</span>
+          <select id="prt-modal-severity" class="prt-input">
+            <option value="Urgent">Urgent</option>
+            <option value="High">High</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </label>
+        <label class="prt-field">
+          <span class="prt-label">Customer</span>
+          <select id="prt-modal-company" class="prt-input"></select>
+        </label>
+        <label class="prt-field">
+          <span class="prt-label">Detail / quote <span class="prt-optional">(optional)</span></span>
+          <textarea id="prt-modal-detail" class="prt-input" rows="3" placeholder="What did they say? Paste the Slack/email quote or note from the call."></textarea>
+        </label>
+        <div class="prt-field">
+          <span class="prt-label">Screenshots <span class="prt-optional">(optional)</span></span>
+          <div class="prt-uploader">
+            <label class="prt-upload-btn" for="prt-modal-images">📎 Add images — click to browse, or paste a screenshot here</label>
+            <input type="file" id="prt-modal-images" accept="image/*" multiple hidden>
+            <div class="prt-img-previews" id="prt-modal-img-previews"></div>
+          </div>
+        </div>
+        <div class="prt-modal-err" id="prt-modal-err"></div>
+      </div>
+      <div class="prt-modal-foot">
+        <button class="prt-btn-ghost" onclick="prtCloseModal()">Cancel</button>
+        <button class="prt-btn-primary" id="prt-modal-save" onclick="prtSaveIssue()">Save</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+<footer id="footer-date"></footer>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+// DEMO MODE — sanitized standalone build
+// ════════════════════════════════════════════════════════════════════════
+// Everything below replaces the live HubSpot / Lineage / Supabase backends
+// with an in-browser mock layer fed by FICTIONAL sample data. No network
+// calls leave the page for data, no API keys, no real customer information.
+// Edits (FOCs, status changes, new product requests) work but persist only
+// in memory for the current session.
+const DEMO_EMAIL = 'demo@example.com';
+
+// ── Synthetic data holders (filled by buildDemoData) ──────────────────────
+let DEMO_HS_RESULTS = [];   // HubSpot company-search shape
+let DEMO_LINEAGE    = [];   // [{ name, account_health }]
+let DEMO_FOCS       = [];   // [{ hs_company_id, focs }]
+let DEMO_PR_MAP     = {};   // companyId -> { product, closeDate }
+let DEMO_PR_REQUESTS = [];  // pr_requests rows
+let DEMO_PR_ASKS     = [];  // pr_asks rows
+let _demoBuilt = false;
+
+function buildDemoData() {
+  if (_demoBuilt) return;
+  _demoBuilt = true;
+
+  // Deterministic PRNG so the sample set is stable across reloads.
+  let _seed = 0x9e3779b9;
+  const rnd = () => { _seed |= 0; _seed = (_seed + 0x6D2B79F5) | 0; let t = Math.imul(_seed ^ (_seed >>> 15), 1 | _seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const pick = arr => arr[Math.floor(rnd() * arr.length)];
+  const rint = (lo, hi) => lo + Math.floor(rnd() * (hi - lo + 1));
+
+  const NAMES = ['Northwind Labs','Brightloom','Cedar & Pine Co','Halcyon Health','Meridian Freight','Lumen Robotics','Tideway Bank','Verdant Foods','Polaris Security','Kestrel Analytics','Driftwood Travel','Ironclad Insurance','Saffron Retail','Bluepeak Energy','Auberge Hospitality','Quill & Quire Media','Granite Logistics','Wavelength Telecom','Fernwood Education','Copperline Mfg','Solstice Apparel','Harborview Realty','Nimbus Cloud','Sablefish Seafood','Aria Fintech','Boxwood HR','Cobalt Devtools','Marigold Beauty','Tessellate Design','Umbra Gaming','Vantage Legal','Wildflower Wellness'];
+  const AMS = ['Maya Chen','Jordan Ellis','Priya Nair','Marcus Webb'];
+  const CMS = ['Alex Rivera','Sam Okafor','Devon Brooks','Robin Tate'];
+  const VERTICALS = ['Fintech','Healthcare','Developer Tools','E-commerce','Cybersecurity','Logistics','HR Tech','Real Estate','MarTech','EdTech','Hospitality','Manufacturing'];
+  const REASONS = ['Budget constraints','Lack of ROI','Champion departed','Product fit','Switched to competitor','Limited bandwidth'];
+  const STAGES = ['2024 Q3','2024 Q4','2025 Q1','2025 Q2'];
+  const PRODUCTS = ['Full Service','EGC'];
+  const HEALTH = ['green','green','green','blue','yellow','yellow','red'];
+
+  // Status mix: enough in each bucket to make every chart meaningful.
+  const STATUS_PLAN = [
+    ...Array(11).fill('In progress'),
+    ...Array(12).fill('Converted'),
+    ...Array(5).fill('Exited During Pilot'),
+    ...Array(4).fill('Churned Post Conversion')
+  ];
+
+  const addDays = (iso, n) => { const d = new Date(iso); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const stageStart = { '2024 Q3': '2024-07-15', '2024 Q4': '2024-10-15', '2025 Q1': '2025-01-15', '2025 Q2': '2025-04-15' };
+
+  DEMO_HS_RESULTS = STATUS_PLAN.map((status, i) => {
+    const name = NAMES[i % NAMES.length];
+    const stage = pick(STAGES);
+    const product = pick(PRODUCTS);
+    const baseMrr = product === 'Full Service' ? rint(4, 12) * 1000 : rint(15, 40) * 100;
+    const isLiveish = status === 'Converted' || status === 'Churned Post Conversion';
+    const kickoff = addDays(stageStart[stage], rint(0, 30));
+    const hasFirstPost = status !== 'In progress' || rnd() > 0.3;
+    const firstPost = hasFirstPost ? addDays(kickoff, rint(12, 45)) : null;
+    const churned = status === 'Exited During Pilot' || status === 'Churned Post Conversion';
+    const journey = status === 'In progress'
+      ? pick(JOURNEY_ORDER.slice(0, 5))
+      : isLiveish ? (rnd() > 0.5 ? 'Renewal' : 'Live') : 'Live';
+
+    return { id: 'demo-' + (i + 1), properties: {
+      name,
+      pilot_status: status,
+      stage,
+      mrr: churned && status === 'Exited During Pilot' ? 0 : baseMrr,
+      expansion_mrr: status === 'Converted' && rnd() > 0.6 ? rint(5, 25) * 100 : 0,
+      churned_mrr_value: churned ? baseMrr : 0,
+      churn_reason: churned ? pick(REASONS) : null,
+      domain: name.toLowerCase().replace(/[^a-z0-9]+/g, '') + '.example.com',
+      csm: pick(AMS),
+      content_manager: pick(CMS),
+      posts_per_month: String(rint(4, 16)) + ' / month',
+      kickoff_call_date: kickoff,
+      first_post_date: firstPost,
+      vertical: pick(VERTICALS),
+      customer_journey: journey,
+      product
+    } };
+  });
+
+  DEMO_LINEAGE = DEMO_HS_RESULTS.map(r => ({ name: r.properties.name, account_health: pick(HEALTH) }));
+
+  // A handful of accounts already have a Founder/Owner Champion noted.
+  DEMO_FOCS = DEMO_HS_RESULTS.slice(0, 6).map((r, i) => ({
+    hs_company_id: r.id,
+    focs: ['Jamie Patel','Taylor Brooks','Chris Donovan','Robin Yu','Sasha Mor','Lee Carter'][i]
+  }));
+
+  DEMO_PR_MAP = {};
+  DEMO_HS_RESULTS.forEach(r => { DEMO_PR_MAP[r.id] = { product: r.properties.product, closeDate: r.properties.kickoff_call_date }; });
+
+  // A few realistic product requests + customer asks.
+  const reqs = [
+    { title: 'Bulk schedule posts across seats', type: 'feature', severity: null, status: 'open' },
+    { title: 'Export analytics to CSV', type: 'feature', severity: null, status: 'open' },
+    { title: 'LinkedIn carousel support', type: 'feature', severity: null, status: 'open' },
+    { title: 'Draft preview renders wrong on mobile', type: 'bug', severity: 'medium', status: 'open' },
+    { title: 'SSO / SAML login', type: 'feature', severity: null, status: 'shipped' }
+  ];
+  DEMO_PR_REQUESTS = reqs.map((r, i) => ({
+    id: 'req-' + (i + 1), title: r.title, type: r.type, severity: r.severity,
+    status: r.status, shipped_date: r.status === 'shipped' ? '2025-03-20' : null,
+    created_by: DEMO_EMAIL, created_at: '2025-02-0' + (i + 1) + 'T12:00:00Z', updated_at: '2025-02-0' + (i + 1) + 'T12:00:00Z'
+  }));
+  const askSeed = [
+    [0, 'Customer wants to queue a month of posts in one go for all 8 seats.'],
+    [0, 'Asked about scheduling across the whole exec team at once.'],
+    [1, 'Needs raw numbers to drop into their QBR deck.'],
+    [2, 'Multi-image carousels are their top-performing format on LinkedIn.'],
+    [3, 'Preview cuts off the last line on iPhone Safari.'],
+    [4, 'Security review blocked rollout until SSO was available.']
+  ];
+  DEMO_PR_ASKS = askSeed.map((a, i) => {
+    const co = DEMO_HS_RESULTS[(i * 3) % DEMO_HS_RESULTS.length];
+    return { id: 'ask-' + (i + 1), request_id: 'req-' + (a[0] + 1), hs_company_id: co.id,
+      company_name: co.properties.name, product: co.properties.product, detail: a[1],
+      source: 'manual', created_by: DEMO_EMAIL, images: [], created_at: '2025-02-10T12:00:00Z' };
+  });
+}
+
+// ── Mock Supabase client (in-memory; chainable query-builder subset) ───────
+const _demoBlobs = new Map(); // storage path -> object URL (for pasted screenshots)
+function _demoTable(name) {
+  if (name === 'portfolio_focs') return DEMO_FOCS;
+  if (name === 'pr_requests') return DEMO_PR_REQUESTS;
+  if (name === 'pr_asks') return DEMO_PR_ASKS;
+  return [];
+}
+function _demoQuery(table, op, payload) {
+  const ctx = { table, op, payload, filters: [], single: false };
+  const run = () => {
+    const rows = _demoTable(table);
+    if (op === 'select') return { data: rows.slice(), error: null };
+    if (op === 'upsert') { // portfolio_focs upsert on hs_company_id
+      const key = 'hs_company_id';
+      const existing = rows.find(r => r[key] === payload[key]);
+      if (existing) Object.assign(existing, payload); else rows.push({ ...payload });
+      return { data: null, error: null };
+    }
+    if (op === 'insert') {
+      const row = { id: (table === 'pr_requests' ? 'req-' : 'ask-') + 'u' + Math.random().toString(36).slice(2, 8), ...payload };
+      rows.push(row);
+      return { data: ctx.single ? row : [row], error: null };
+    }
+    if (op === 'update') {
+      const match = r => ctx.filters.every(([c, v]) => r[c] === v);
+      rows.filter(match).forEach(r => Object.assign(r, payload));
+      return { data: null, error: null };
+    }
+    if (op === 'delete') {
+      const match = r => ctx.filters.every(([c, v]) => r[c] === v);
+      for (let i = rows.length - 1; i >= 0; i--) if (match(rows[i])) rows.splice(i, 1);
+      return { data: null, error: null };
+    }
+    return { data: null, error: null };
+  };
+  const builder = {
+    select() { return builder; },
+    single() { ctx.single = true; return builder; },
+    eq(col, val) { ctx.filters.push([col, val]); return builder; },
+    then(resolve, reject) { try { return Promise.resolve(run()).then(resolve, reject); } catch (e) { return Promise.reject(e).catch(reject); } }
+  };
+  return builder;
+}
+const sb = {
+  from(table) {
+    return {
+      select: () => _demoQuery(table, 'select'),
+      insert: payload => _demoQuery(table, 'insert', payload),
+      update: payload => _demoQuery(table, 'update', payload),
+      delete: () => _demoQuery(table, 'delete'),
+      upsert: payload => _demoQuery(table, 'upsert', payload)
+    };
+  },
+  storage: {
+    from() {
+      return {
+        async upload(path, file) { try { _demoBlobs.set(path, URL.createObjectURL(file)); } catch (_) {} return { error: null }; },
+        async remove(paths) { (paths || []).forEach(p => _demoBlobs.delete(p)); return { error: null }; },
+        async createSignedUrls(paths) { return { data: (paths || []).map(p => ({ path: p, signedUrl: _demoBlobs.get(p) || '' })), error: null }; }
+      };
+    }
+  },
+  auth: {
+    async getUser() { return { data: { user: { email: DEMO_EMAIL } } }; },
+    async getSession() { return { data: { session: null } }; },
+    onAuthStateChange() { return { data: { subscription: { unsubscribe() {} } } }; },
+    async signInWithOAuth() { return { error: null }; },
+    async signOut() { return { error: null }; }
+  }
+};
+
+// ── Intercept the serverless API routes with synthetic responses ──────────
+(function () {
+  const _origFetch = window.fetch ? window.fetch.bind(window) : null;
+  const json = body => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  window.fetch = function (url, opts) {
+    const u = String(url || '');
+    buildDemoData();
+    if (u.includes('/api/hubspot-update')) return Promise.resolve(json({ ok: true }));
+    if (u.includes('/api/hubspot'))        return Promise.resolve(json({ results: DEMO_HS_RESULTS }));
+    if (u.includes('/api/lineage'))        return Promise.resolve(json({ results: DEMO_LINEAGE }));
+    if (u.includes('/api/pr-products'))    return Promise.resolve(json({ map: DEMO_PR_MAP }));
+    return _origFetch ? _origFetch(url, opts) : Promise.reject(new Error('offline demo'));
+  };
+})();
+
+// ── CONSTANTS ──────────────────────────────────────────────────
+const STAGE_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780','#5DCAA5'];
+const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
+const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
+const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
+const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned Post Conversion'];
+const FORMER_TEAM_MEMBERS = new Set(); // demo build: no real personnel names
+const scrubFormer = v => (v && FORMER_TEAM_MEMBERS.has(v)) ? null : v;
+
+let allCompanies = [], lineageMap = {}, charts = {};
+
+// ── LIST WIDGET SORT STATE ────────────────────────────────────
+window.__listSort = window.__listSort || {
+  portfolio:        { col: null, dir: null },
+  portfolioChurned: { col: null, dir: null },
+  portfolio_fs:        { col: null, dir: null },
+  portfolioChurned_fs: { col: null, dir: null },
+  portfolio_egc:        { col: null, dir: null },
+  portfolioChurned_egc: { col: null, dir: null },
+  cohort:           { col: null, dir: null },
+  cohortChurned:    { col: null, dir: null }
+};
+function nextSortDir(cur) { return cur === null ? 'asc' : cur === 'asc' ? 'desc' : null; }
+function applyListSort(arr, state, getters) {
+  if (!state.col || !state.dir) return arr;
+  const get = getters[state.col];
+  if (!get) return arr;
+  return [...arr].sort((a, b) => {
+    const av = (get(a) || '').trim();
+    const bv = (get(b) || '').trim();
+    const aMissing = !av || av === '—' || av.toLowerCase() === 'unassigned';
+    const bMissing = !bv || bv === '—' || bv.toLowerCase() === 'unassigned';
+    if (aMissing && !bMissing) return 1;
+    if (!aMissing && bMissing) return -1;
+    if (aMissing && bMissing) return 0;
+    const cmp = av.toLowerCase().localeCompare(bv.toLowerCase());
+    return state.dir === 'desc' ? -cmp : cmp;
+  });
+}
+function bindSortHeader(thId, key, col, rerender) {
+  const th = document.getElementById(thId);
+  if (!th) return;
+  const state = window.__listSort[key];
+  const active = state.col === col && state.dir !== null;
+  th.classList.toggle('active', active);
+  const ind = th.querySelector('.sort-indicator');
+  if (ind) ind.textContent = !active ? '⇅' : state.dir === 'asc' ? '▲' : '▼';
+  th.onclick = () => {
+    const s = window.__listSort[key];
+    if (s.col !== col) { s.col = col; s.dir = 'asc'; }
+    else {
+      s.dir = nextSortDir(s.dir);
+      if (s.dir === null) s.col = null;
+    }
+    rerender();
+  };
+}
+
+// ── AUTH ────────────────────────────────────────────────────────
+function showAuthScreen(show) {
+  document.getElementById('auth-screen').classList.toggle('hidden', !show);
+  document.getElementById('signout-btn').style.display = show ? 'none' : 'inline-block';
+}
+function setAuthError(msg) { document.getElementById('auth-error').textContent = msg; }
+
+function handleValidSession(session) {
+  const email = session?.user?.email || '';
+  if (!email.endsWith('@virio.ai')) {
+    sb.auth.signOut();
+    setAuthError('Access restricted to @virio.ai accounts only.');
+    showAuthScreen(true);
+    return false;
+  }
+  if (window.location.search || window.location.hash) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+  showAuthScreen(false);
+  return true;
+}
+
+async function signInWithGoogle() {
+  const btn = document.getElementById('google-signin-btn');
+  btn.disabled = true;
+  setAuthError('');
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { hd: 'virio.ai' } }
+  });
+  if (error) { setAuthError(error.message); btn.disabled = false; }
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  showAuthScreen(true);
+  allCompanies = []; lineageMap = {};
+}
+
+// ── TOOLTIP ────────────────────────────────────────────────────
+const tipEl = document.getElementById('tip');
+function showTip(e, title, rows) {
+  document.getElementById('tip-title').textContent = title;
+  document.getElementById('tip-body').innerHTML = rows.map(r => {
+    if (r === '---') return '<div class="tip-divider"></div>';
+    if (typeof r === 'string') return `<div class="tip-row"><span class="tip-name">${r}</span></div>`;
+    return `<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-val">${r.val||''}</span></div>`;
+  }).join('');
+  tipEl.classList.add('visible');
+  posTip(e);
+}
+function posTip(e) {
+  const pad=14,w=tipEl.offsetWidth,h=tipEl.offsetHeight;
+  tipEl.style.left=(e.clientX+pad+w>window.innerWidth?e.clientX-w-pad:e.clientX+pad)+'px';
+  tipEl.style.top=(e.clientY+pad+h>window.innerHeight?e.clientY-h-pad:e.clientY+pad)+'px';
+}
+function hideTip() { tipEl.classList.remove('visible'); }
+function bindCard(id, getRows) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('mouseenter', e => { const r=getRows(); if(r) showTip(e,r.title,r.rows); });
+  el.addEventListener('mousemove', posTip);
+  el.addEventListener('mouseleave', hideTip);
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
+function setStatus(msg, type) {
+  const el = document.getElementById('status-bar');
+  if (!type) { el.style.display='none'; return; }
+  el.className = type;
+  el.innerHTML = type==='loading' ? `<div class="spinner"></div><span>${msg}</span>` : `<span>${msg}</span>`;
+}
+function fmt$(n) { return n>=1000?'$'+(n/1000).toFixed(1).replace(/\.0$/,'')+'k':'$'+Math.round(n); }
+function fmtBig$(n) {
+  if(n>=1000000) return '$'+(n/1000000).toFixed(2)+'M';
+  if(n>=1000) return '$'+(n/1000).toFixed(1).replace(/\.0$/,'')+'k';
+  return '$'+Math.round(n);
+}
+function set(id,v) { const el=document.getElementById(id); if(el) el.textContent=v; }
+function escapeHtml(s) { return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function normalizeName(n) { return (n||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function displayAM(csm) { return csm||'Unassigned'; }
+function calcTTV(k,f) { if(!k||!f) return null; const d=Math.round((new Date(f)-new Date(k))/86400000); return d>=0?d:null; }
+function fmtTTV(k,f) { const d=calcTTV(k,f); return d!==null?d+' days':'—'; }
+function parsePostsPerMonth(val) { if(!val) return 0; const m=val.match(/\d+/); return m?parseInt(m[0]):0; }
+const HEALTH_VALUES=['red','yellow','green','blue'];
+const HEALTH_COLORS={red:'#E24B4A',yellow:'#BA7517',green:'#1D9E75',blue:'#378ADD'};
+const HEALTH_LABEL={red:'Red',yellow:'Yellow',green:'Green',blue:'Blue'};
+function normalizeHealth(v) { if(!v) return null; const s=String(v).trim().toLowerCase(); return HEALTH_VALUES.includes(s)?s:null; }
+function healthChip(value,{withLabel=true}={}) {
+  const v=normalizeHealth(value);
+  if(!v) return `<span class="health-chip health-empty"><span class="health-dot"></span>${withLabel?'—':''}</span>`;
+  return `<span class="health-chip health-${v}"><span class="health-dot"></span>${withLabel?HEALTH_LABEL[v]:''}</span>`;
+}
+function buildLines(names) {
+  if(!names||!names.length) return ['No data'];
+  return names.map(n => typeof n==='string'?`  · ${n}`:`  · ${n.name}${n.val?'  ('+n.val+')':''}`);
+}
+
+// ── TAB SWITCHING ──────────────────────────────────────────────
+function switchTab(e, name) {
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(e&&e.target) e.target.classList.add('active');
+  if(!allCompanies.length) return;
+  const exclude=document.getElementById('exclude-virio').checked;
+  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+  if(name==='cohorts')   renderCohortsTab(cos);
+  if(name==='portfolio') renderPortfolioTable(cos);
+  if(name==='team')      renderTeamTab(cos);
+  if(name==='requests')  prtEnsureLoaded().then(prtRender);
+}
+
+// ── DATA FETCH ─────────────────────────────────────────────────
+async function loadData() {
+  const btn=document.getElementById('refresh-btn');
+  btn.disabled=true;
+  setStatus('Loading sample data…','loading');
+  try {
+    const [hsRes,lineageRes,focsRes]=await Promise.all([
+      fetch('/api/hubspot',{method:'POST'}),
+      fetch('/api/lineage',{method:'GET'}),
+      sb.from('portfolio_focs').select('*')
+    ]);
+    if(!hsRes.ok) { const e=await hsRes.json().catch(()=>({})); throw new Error(e.error||`HubSpot ${hsRes.status}`); }
+    const hsData=await hsRes.json();
+    const focsMap={};
+    (focsRes&&focsRes.data||[]).forEach(r=>{ if(r.hs_company_id) focsMap[r.hs_company_id]=r.focs; });
+    lineageMap={};
+    if(lineageRes.ok) {
+      const ld=await lineageRes.json();
+      (ld.results||ld||[]).forEach(row=>{ const n=row.name||row.company||row.account_name; if(n) lineageMap[normalizeName(n)]=normalizeHealth(row.account_health||row.health||row.status||row.color); });
+    }
+    allCompanies=(hsData.results||[]).map(r=>{
+      const name=r.properties.name||r.properties.domain||r.id;
+      return {
+        id:r.id,
+        name,
+        pilot_status:r.properties.pilot_status,
+        stage:r.properties.stage||'Unknown',
+        mrr:parseFloat(r.properties.mrr)||0,
+        expansion_mrr:parseFloat(r.properties.expansion_mrr)||0,
+        churned_mrr:parseFloat(r.properties.churned_mrr_value)||0,
+        churn_reason:r.properties.churn_reason||null,
+        domain:r.properties.domain,
+        csm:scrubFormer(r.properties.csm)||null,
+        content_manager:scrubFormer(r.properties.content_manager)||null,
+        posts_per_month:r.properties.posts_per_month||null,
+        kickoff_date:r.properties.kickoff_call_date||null,
+        first_post_date:r.properties.first_post_date||null,
+        vertical:r.properties.vertical||null,
+        customer_journey:r.properties.customer_journey||null,
+        account_health:lineageMap[normalizeName(name)]||null,
+        focs:focsMap[r.id]||null,
+        product:r.properties.product||null
+      };
+    });
+    setStatus('');
+    const now=new Date();
+    document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('footer-date').textContent='Virio CS Dashboard · Sample data (no real customers) · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    recompute();
+    // Refresh the Product Request Tracker against the latest account data.
+    prtState.loaded=false;
+    prtEnsureLoaded().then(()=>{ if(document.getElementById('tab-requests').classList.contains('active')) prtRender(); });
+  } catch(e) {
+    setStatus('Failed to load: '+e.message,'error');
+  } finally { btn.disabled=false; }
+}
+
+// ── MAIN COMPUTE ───────────────────────────────────────────────
+function recompute() {
+  if(!allCompanies.length) return;
+  const exclude=document.getElementById('exclude-virio').checked;
+  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+
+  const inProgress=cos.filter(c=>c.pilot_status==='In progress');
+  const converted=cos.filter(c=>c.pilot_status==='Converted');
+  const exited=cos.filter(c=>c.pilot_status==='Exited During Pilot');
+  const churnedPost=cos.filter(c=>c.pilot_status==='Churned Post Conversion');
+  const pilotConv=[...converted,...churnedPost];
+  const concluded=[...pilotConv,...exited];
+  const active=[...inProgress,...converted];
+  const everConv=[...converted,...churnedPost];
+
+  const pilotRetention=concluded.length?pilotConv.length/concluded.length*100:0;
+  const pilotChurn=100-pilotRetention;
+  const pilotMRR=inProgress.reduce((s,c)=>s+c.mrr,0);
+  const pilotChurnedMRR=exited.reduce((s,c)=>s+c.churned_mrr,0);
+  const startingMRR=everConv.reduce((s,c)=>s+c.mrr,0);
+  const expansionMRR=everConv.reduce((s,c)=>s+c.expansion_mrr,0);
+  const churnedMRR=churnedPost.reduce((s,c)=>s+c.churned_mrr,0);
+  const nrr=startingMRR?(startingMRR+expansionMRR-churnedMRR)/startingMRR*100:0;
+  const grr=startingMRR?(startingMRR-churnedMRR)/startingMRR*100:0;
+  const postChurnRate=everConv.length?churnedPost.length/everConv.length*100:0;
+  const postRetentionRate=100-postChurnRate;
+  const convertedMRR=converted.reduce((s,c)=>s+c.mrr,0);
+  const allMRR=cos.reduce((s,c)=>s+c.mrr,0);
+  const allExpansion=cos.reduce((s,c)=>s+c.expansion_mrr,0);
+  const allChurned=cos.reduce((s,c)=>s+c.churned_mrr,0);
+  const portGRR=allMRR?(allMRR-allChurned)/allMRR*100:0;
+  const portNRR=allMRR?(allMRR+allExpansion-allChurned)/allMRR*100:0;
+  const portRetention=cos.length?active.length/cos.length*100:0;
+  const portChurn=100-portRetention;
+  const activeMRR=active.reduce((s,c)=>s+c.mrr+c.expansion_mrr,0);
+  const activeARR=activeMRR*12;
+  const ttvDays=cos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>calcTTV(c.kickoff_date,c.first_post_date)).filter(d=>d!==null&&d>=0);
+  const avgTTV=ttvDays.length?Math.round(ttvDays.reduce((a,b)=>a+b,0)/ttvDays.length):null;
+
+  set('m-pilot-retention',pilotRetention.toFixed(1)+'%');
+  set('m-pilot-retention-sub',`${pilotConv.length} converted of ${concluded.length}`);
+  set('m-pilot-churn',pilotChurn.toFixed(1)+'%');
+  set('m-pilot-churn-sub',`${exited.length} exited of ${concluded.length}`);
+  set('m-active',inProgress.length);
+  set('m-converted-count',pilotConv.length);
+  set('m-pilot-conv-pct',pilotRetention.toFixed(1)+'%');
+  set('m-pilot-mrr',fmt$(pilotMRR));
+  set('m-pilot-count',inProgress.length);
+  set('m-pilot-churned-count',exited.length);
+  set('m-pilot-churned-mrr',fmt$(pilotChurnedMRR));
+  set('m-post-retention',postRetentionRate.toFixed(1)+'%');
+  set('m-post-retention-sub',`${converted.length} of ${everConv.length} retained`);
+  set('m-post-churn',postChurnRate.toFixed(1)+'%');
+  set('m-post-churn-sub',`${churnedPost.length} of ${everConv.length}`);
+  set('m-grr',grr.toFixed(1)+'%');
+  set('m-nrr',nrr.toFixed(1)+'%');
+  set('m-converted-mrr',fmt$(convertedMRR));
+  set('m-post-converted-count',converted.length);
+  set('m-post-churned-count',churnedPost.length);
+  set('m-port-grr',portGRR.toFixed(1)+'%');
+  set('m-port-nrr',portNRR.toFixed(1)+'%');
+  set('m-port-retention',portRetention.toFixed(1)+'%');
+  set('m-port-churn',portChurn.toFixed(1)+'%');
+  set('m-port-active',active.length);
+  set('m-port-mrr',fmtBig$(activeMRR));
+  set('m-port-arr',fmtBig$(activeARR));
+  set('m-port-ttv',avgTTV!==null?avgTTV+' days':'—');
+  set('m-port-ttv-sub',avgTTV!==null?`Based on ${ttvDays.length} customers`:'Kickoff to first post');
+
+  bindCard('mc-pilot-retention',()=>({title:'Converted (incl. post-conv churned)',rows:pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
+  bindCard('mc-pilot-churn',()=>({title:'Exited during pilot',rows:exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))}));
+  bindCard('mc-active',()=>({title:'Active pilots',rows:[...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
+  bindCard('mc-converted-count',()=>({title:'Converted pilots',rows:pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
+  bindCard('mc-pilot-mrr',()=>({title:'MRR by active pilot',rows:[...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
+  bindCard('mc-pilot-churned-count',()=>({title:'Exited during pilot',rows:exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))}));
+  bindCard('mc-pilot-churned-mrr',()=>({title:'MRR lost — pilot exits',rows:exited.filter(c=>c.churned_mrr>0).sort((a,b)=>b.churned_mrr-a.churned_mrr).map(c=>({name:c.name,val:fmt$(c.churned_mrr)}))}));
+  bindCard('mc-post-retention',()=>({title:'Active converted',rows:converted.map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
+  bindCard('mc-post-churn',()=>({title:'Churned post-conversion',rows:churnedPost.map(c=>({name:c.name,val:c.churn_reason||'—'}))}));
+  bindCard('mc-grr',()=>({title:'GRR inputs',rows:[{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'GRR',val:grr.toFixed(1)+'%'}]}));
+  bindCard('mc-nrr',()=>({title:'NRR inputs',rows:[{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Expansion MRR',val:fmt$(expansionMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'NRR',val:nrr.toFixed(1)+'%'}]}));
+  bindCard('mc-port-grr',()=>({title:'Portfolio GRR',rows:[{name:'Total MRR',val:fmt$(allMRR)},{name:'Churned MRR',val:fmt$(allChurned)},'---',{name:'GRR',val:portGRR.toFixed(1)+'%'}]}));
+  bindCard('mc-port-nrr',()=>({title:'Portfolio NRR',rows:[{name:'Total MRR',val:fmt$(allMRR)},{name:'Expansion',val:fmt$(allExpansion)},{name:'Churned',val:fmt$(allChurned)},'---',{name:'NRR',val:portNRR.toFixed(1)+'%'}]}));
+  bindCard('mc-port-active',()=>({title:'Active customers',rows:active.map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
+  bindCard('mc-port-mrr',()=>({title:'Active MRR',rows:[...active].sort((a,b)=>(b.mrr+b.expansion_mrr)-(a.mrr+a.expansion_mrr)).map(c=>({name:c.name,val:fmt$(c.mrr+c.expansion_mrr)}))}));
+  bindCard('mc-port-ttv',()=>{
+    const rows=cos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>({name:c.name,val:calcTTV(c.kickoff_date,c.first_post_date)+'d'})).sort((a,b)=>parseInt(a.val)-parseInt(b.val));
+    return {title:'TTV by customer',rows};
+  });
+
+  renderHealthWidget('pilot-health-rows','pilot-health-summary',inProgress);
+  renderHealthWidget('post-health-rows','post-health-summary',converted);
+
+  const allStages=[...new Set(cos.map(c=>c.stage).filter(Boolean))].sort();
+  const allAMs=[...new Set(cos.map(c=>displayAM(c.csm)).filter(Boolean))].sort();
+
+  renderPie('pilotOutcomePie',[inProgress.length,pilotConv.length,exited.length],['In progress','Converted','Exited'],OUTCOME_COLORS,'legend-pilot-outcome',
+    [inProgress.map(c=>({name:c.name,val:fmt$(c.mrr)})),pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)})),exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))]);
+  renderBar('pilotStageBar',allStages,allStages.map(st=>inProgress.filter(c=>c.stage===st).length),'#378ADD',allStages.map(st=>inProgress.filter(c=>c.stage===st).map(c=>({name:c.name,val:fmt$(c.mrr)}))));
+  renderBar('exitedStageBar',allStages,allStages.map(st=>exited.filter(c=>c.stage===st).length),'#D85A30',allStages.map(st=>exited.filter(c=>c.stage===st).map(c=>({name:c.name,val:c.churn_reason||'—'}))));
+  renderGroupedBar('pilotAMBar',allAMs,[
+    {label:'Active pilots',data:allAMs.map(am=>inProgress.filter(c=>displayAM(c.csm)===am).length),color:'#378ADD',names:allAMs.map(am=>inProgress.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)})))},
+    {label:'Exited',data:allAMs.map(am=>exited.filter(c=>displayAM(c.csm)===am).length),color:'#D85A30',names:allAMs.map(am=>exited.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'})))}]);
+
+  const reasonMap={};
+  [...exited,...churnedPost].filter(c=>c.churn_reason).forEach(c=>{ if(!reasonMap[c.churn_reason]) reasonMap[c.churn_reason]=[]; reasonMap[c.churn_reason].push({name:c.name,val:fmt$(c.churned_mrr)}); });
+  const rLabels=Object.keys(reasonMap);
+  renderPie('churnReasonPie',rLabels.map(r=>reasonMap[r].length),rLabels,REASON_COLORS.slice(0,rLabels.length),'legend-churn-reason',rLabels.map(r=>reasonMap[r]));
+
+  const stageMRRMap={},stageMRRNames={};
+  everConv.forEach(c=>{ stageMRRMap[c.stage]=(stageMRRMap[c.stage]||0)+c.mrr; if(!stageMRRNames[c.stage]) stageMRRNames[c.stage]=[]; stageMRRNames[c.stage].push({name:c.name,val:fmt$(c.mrr)}); });
+  const sLabels=Object.keys(stageMRRMap);
+  renderPie('postMRRPie',sLabels.map(s=>stageMRRMap[s]),sLabels,STAGE_COLORS.slice(0,sLabels.length),'legend-post-mrr',sLabels.map(s=>stageMRRNames[s]),sLabels.map(s=>fmt$(stageMRRMap[s])));
+  renderBar('convertedStageBar',allStages,allStages.map(st=>everConv.filter(c=>c.stage===st).length),'#1D9E75',allStages.map(st=>everConv.filter(c=>c.stage===st).map(c=>({name:c.name,val:fmt$(c.mrr)}))));
+
+  // Portfolio tab charts
+  const vertMap={},vertNames={};
+  active.forEach(c=>{ const v=c.vertical||'Unknown'; vertMap[v]=(vertMap[v]||0)+1; if(!vertNames[v]) vertNames[v]=[]; vertNames[v].push({name:c.name,val:fmt$(c.mrr)}); });
+  const vLabels=Object.keys(vertMap).sort((a,b)=>vertMap[b]-vertMap[a]);
+  renderPie('verticalPie',vLabels.map(v=>vertMap[v]),vLabels,STAGE_COLORS.slice(0,vLabels.length),'legend-vertical',vLabels.map(v=>vertNames[v]));
+  const stMap={},stNames={};
+  active.forEach(c=>{ stMap[c.stage]=(stMap[c.stage]||0)+1; if(!stNames[c.stage]) stNames[c.stage]=[]; stNames[c.stage].push({name:c.name,val:fmt$(c.mrr)}); });
+  const stLabels=Object.keys(stMap).sort((a,b)=>stMap[b]-stMap[a]);
+  renderPie('stagePie',stLabels.map(s=>stMap[s]),stLabels,STAGE_COLORS.slice(0,stLabels.length),'legend-stage',stLabels.map(s=>stNames[s]));
+  const journeyMap={};
+  active.forEach(c=>{ const j=c.customer_journey||'Unknown'; if(!journeyMap[j]) journeyMap[j]=[]; journeyMap[j].push({name:c.name,val:fmt$(c.mrr)}); });
+  const jLabels=[...JOURNEY_ORDER.filter(j=>journeyMap[j]),...Object.keys(journeyMap).filter(j=>!JOURNEY_ORDER.includes(j))];
+  renderBar('journeyBar',jLabels,jLabels.map(j=>(journeyMap[j]||[]).length),'#7F77DD',jLabels.map(j=>journeyMap[j]||[]));
+
+  renderPortfolioTable(cos);
+}
+
+// ── ACCOUNT HEALTH WIDGET ──────────────────────────────────────
+function renderHealthWidget(rowsId, summaryId, companies) {
+  const el=document.getElementById(rowsId);
+  const counts={red:0,yellow:0,green:0,blue:0,empty:0};
+  companies.forEach(c=>{ const v=normalizeHealth(c.account_health); counts[v||'empty']++; });
+  const summaryEl=document.getElementById(summaryId);
+  if(summaryEl) summaryEl.innerHTML=HEALTH_VALUES.map(v=>`<span class="health-summary-item"><span class="health-dot" style="background:${HEALTH_COLORS[v]}"></span>${counts[v]}</span>`).join('')+(counts.empty?`<span class="health-summary-item health-summary-empty">· ${counts.empty} no data</span>`:'');
+  const order={red:0,yellow:1,green:2,blue:3,empty:4};
+  const sorted=[...companies].sort((a,b)=>(order[normalizeHealth(a.account_health)||'empty']??9)-(order[normalizeHealth(b.account_health)||'empty']??9)||(b.mrr-a.mrr));
+  el.innerHTML=sorted.map(c=>{
+    const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
+    return `<div class="health-row">
+      ${healthChip(c.account_health,{withLabel:false})}
+      <div class="health-name">${c.name}</div>
+      <div class="health-scores">${healthChip(c.account_health)}<span class="health-ttv">TTV ${ttv}</span></div>
+    </div>`;
+  }).join('')||'<div class="no-sheet-data">No customers in this bucket.</div>';
+}
+
+// ── CHART RENDERERS ────────────────────────────────────────────
+function renderPie(id, data, labels, colors, legendId, companyLists, valLabels) {
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'pie',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+      const header=valLabels?` ${labels[ctx.dataIndex]}: ${valLabels[ctx.dataIndex]}`:`${labels[ctx.dataIndex]}: ${ctx.raw}`;
+      return [header,...buildLines(companyLists?companyLists[ctx.dataIndex]:[])];
+    }}}}}
+  });
+  const el=document.getElementById(legendId);
+  if(el) el.innerHTML=labels.map((l,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${l}: ${data[i]}${valLabels?'  ('+valLabels[i]+')':''}</span>`).join('');
+}
+function renderBar(id, labels, data, color, companyLists) {
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:color,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+      return [` ${ctx.raw} customer${ctx.raw!==1?'s':''}:`,...buildLines(companyLists?companyLists[ctx.dataIndex]:[])];
+    }}}},scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:35},grid:{display:false}},y:{ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
+}
+function renderGroupedBar(id, labels, datasets) {
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:datasets.map(d=>({label:d.label,data:d.data,backgroundColor:d.color,borderRadius:3,names:d.names}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+      const names=ctx.dataset.names?ctx.dataset.names[ctx.dataIndex]:[];
+      return [` ${ctx.dataset.label}: ${ctx.raw}`,...buildLines(names)];
+    }}}},scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:35},grid:{display:false}},y:{ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
+}
+
+// ── PORTFOLIO TABLE ────────────────────────────────────────────
+function journeySelect(c) {
+  const cur=c.customer_journey||'';
+  const opts=[...JOURNEY_ORDER];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=['<option value="">—</option>',...opts.map(j=>`<option value="${escapeHtml(j)}"${j===cur?' selected':''}>${escapeHtml(j)}</option>`)].join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="customer_journey" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+function amSelect(c, allCsms) {
+  const cur=c.csm||'';
+  const opts=[...allCsms];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=['<option value="">Unassigned</option>',...opts.map(v=>`<option value="${escapeHtml(v)}"${v===cur?' selected':''}>${escapeHtml(displayAM(v))}</option>`)].join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="csm" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+function stageSelect(c, allStages) {
+  const cur=c.stage||'';
+  const opts=[...allStages];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=['<option value="">—</option>',...opts.map(v=>`<option value="${escapeHtml(v)}"${v===cur?' selected':''}>${escapeHtml(v)}</option>`)].join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="stage" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+function verticalSelect(c, allVerticals) {
+  const cur=c.vertical||'';
+  const opts=[...allVerticals];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=['<option value="">—</option>',...opts.map(v=>`<option value="${escapeHtml(v)}"${v===cur?' selected':''}>${escapeHtml(v)}</option>`)].join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="vertical" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+function statusSelect(c) {
+  const cur=c.pilot_status||'';
+  const opts=[...PILOT_STATUSES];
+  if(cur&&!opts.includes(cur)) opts.unshift(cur);
+  const options=opts.map(s=>`<option value="${escapeHtml(s)}"${s===cur?' selected':''}>${escapeHtml(s)}</option>`).join('');
+  return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="pilot_status" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
+}
+function focsInput(c) {
+  const cur=c.focs||'';
+  return `<input type="text" class="foc-input" data-cid="${escapeHtml(c.id||'')}" data-prev="${escapeHtml(cur)}" value="${escapeHtml(cur)}" placeholder="Add name(s)…" onchange="saveFoc(this)">`;
+}
+async function saveFoc(input) {
+  const id=input.dataset.cid, prev=input.dataset.prev, next=input.value.trim();
+  if(!id||next===prev) return;
+  input.disabled=true;
+  try {
+    const email=await prtCurrentEmail();
+    const { error }=await sb.from('portfolio_focs').upsert({ hs_company_id:id, focs:next||null, updated_by:email, updated_at:new Date().toISOString() }, { onConflict:'hs_company_id' });
+    if(error) throw error;
+    const c=allCompanies.find(x=>x.id===id);
+    if(c) c.focs=next||null;
+    input.dataset.prev=next;
+  } catch(e) {
+    alert('Could not save FOCs: '+(e.message||e));
+    input.value=prev;
+  } finally {
+    input.disabled=false;
+  }
+}
+function toDateInputValue(v) {
+  if(!v) return '';
+  const d=new Date(v);
+  if(isNaN(d.getTime())) return '';
+  const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),day=String(d.getUTCDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function dateInput(c, hsProp, localField) {
+  const cur=toDateInputValue(c[localField]);
+  return `<input type="date" class="hs-date" data-cid="${escapeHtml(c.id||'')}" data-prop="${hsProp}" data-localprop="${localField}" data-prev="${cur}" onchange="updateHubspotField(this)" value="${cur}">`;
+}
+const HS_TO_LOCAL_PROP = { kickoff_call_date: 'kickoff_date' };
+function refreshActiveTab() {
+  if(!allCompanies.length) return;
+  recompute();
+  const exclude=document.getElementById('exclude-virio').checked;
+  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+  const active=document.querySelector('.tab-content.active');
+  if(!active) return;
+  if(active.id==='tab-cohorts') renderCohortsTab(cos);
+  else if(active.id==='tab-team') renderTeamTab(cos);
+}
+async function updateHubspotField(sel) {
+  const id=sel.dataset.cid, prop=sel.dataset.prop, prev=sel.dataset.prev, next=sel.value;
+  if(!id||next===prev) return;
+  sel.disabled=true;
+  try {
+    const res=await fetch('/api/hubspot-update',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id,property:prop,value:next})
+    });
+    if(!res.ok) {
+      const e=await res.json().catch(()=>({}));
+      throw new Error(e.error||('HubSpot '+res.status));
+    }
+    const c=allCompanies.find(x=>x.id===id);
+    if(c) {
+      const localProp=sel.dataset.localprop||HS_TO_LOCAL_PROP[prop]||prop;
+      c[localProp]=next||null;
+    }
+    sel.dataset.prev=next;
+    if(prop==='pilot_status') refreshActiveTab();
+  } catch(e) {
+    alert('Could not save '+prop+': '+e.message);
+    sel.value=prev;
+  } finally {
+    sel.disabled=false;
+  }
+}
+function renderPortfolioTable(cos) {
+  const isChurned=c=>c.pilot_status==='Exited During Pilot'||c.pilot_status==='Churned Post Conversion';
+  // Product split: EGC always has product 'EGC'; anything else (incl. blank) is Full Service.
+  const isEGC=c=>c.product==='EGC';
+
+  const allCsms=[...new Set(allCompanies.map(c=>c.csm).filter(Boolean))].sort((a,b)=>displayAM(a).localeCompare(displayAM(b)));
+  const allStages=[...new Set(allCompanies.map(c=>c.stage).filter(Boolean))].sort();
+  const allVerticals=[...new Set(allCompanies.map(c=>c.vertical).filter(Boolean))].sort();
+  const ctx={allCsms,allStages,allVerticals};
+
+  const active=cos.filter(c=>!isChurned(c));
+  const churned=cos.filter(isChurned);
+
+  renderPortfolioActive(active.filter(c=>!isEGC(c)), 'fs', ctx, cos);
+  renderPortfolioChurned(churned.filter(c=>!isEGC(c)), 'fs', ctx, cos);
+  renderPortfolioActive(active.filter(isEGC), 'egc', ctx, cos);
+  renderPortfolioChurned(churned.filter(isEGC), 'egc', ctx, cos);
+}
+function renderPortfolioActive(active, suffix, ctx, cos) {
+  const {allCsms,allStages,allVerticals}=ctx;
+  const f=n=>n?fmt$(n):'—';
+  const key='portfolio_'+suffix;
+  set('note-portfolio-roster-'+suffix, active.length+' active companies');
+  let rows=[...active].sort((a,b)=>PILOT_STATUSES.indexOf(a.pilot_status)-PILOT_STATUSES.indexOf(b.pilot_status));
+  rows=applyListSort(rows, window.__listSort[key], { am: c => displayAM(c.csm) });
+  document.getElementById('portfolio-roster-body-'+suffix).innerHTML=rows.map(c=>{
+    const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
+    const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td><td>${focsInput(c)}</td></tr>`;
+  }).join('')||'<tr><td colspan="10" class="empty-hint">No active customers.</td></tr>';
+  bindSortHeader('th-portfolio-am-'+suffix, key, 'am', ()=>renderPortfolioTable(cos));
+}
+function renderPortfolioChurned(churned, suffix, ctx, cos) {
+  const {allStages,allVerticals}=ctx;
+  const f=n=>n?fmt$(n):'—';
+  const key='portfolioChurned_'+suffix;
+  set('note-portfolio-churned-roster-'+suffix, churned.length+' churned companies');
+  const churnedOrder={'Exited During Pilot':0,'Churned Post Conversion':1};
+  let rows=[...churned].sort((a,b)=>(churnedOrder[a.pilot_status]??9)-(churnedOrder[b.pilot_status]??9));
+  rows=applyListSort(rows, window.__listSort[key], { am: c => displayAM(c.csm) });
+  document.getElementById('portfolio-churned-roster-body-'+suffix).innerHTML=rows.map(c=>{
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
+  }).join('')||'<tr><td colspan="9" class="empty-hint">No churned customers.</td></tr>';
+  bindSortHeader('th-portfolio-churned-am-'+suffix, key, 'am', ()=>renderPortfolioTable(cos));
+}
+
+// ── COHORTS TAB ────────────────────────────────────────────────
+function renderCohortsTab(cos) {
+  const active=cos.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
+  const allChurnedCos=cos.filter(c=>c.pilot_status==='Exited During Pilot'||c.pilot_status==='Churned Post Conversion');
+  const allStages=[...new Set(cos.map(c=>c.stage).filter(Boolean))].sort();
+
+  // GRR / NRR by segment — split into Pre Conversion (pilots) and Post Conversion (ever-converted)
+  const isPilotPop=c=>c.pilot_status==='In progress'||c.pilot_status==='Exited During Pilot';
+  const isEverConv=c=>c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion';
+  const grrCls=v=>v>=90?'teal':v>=75?'ink':'coral';
+  const nrrCls=v=>v>=100?'teal':v>=85?'ink':'coral';
+  const retCls=v=>v>=80?'teal':v>=60?'ink':'coral';
+  function retentionBlock(label, pop, churnFilter) {
+    if(!pop.length) return `<div class="cohort-subgroup-label">${label}</div><div class="cohort-na">No customers</div>`;
+    const churned=pop.filter(churnFilter);
+    const sMRR=pop.reduce((s,c)=>s+c.mrr,0);
+    const sExp=pop.reduce((s,c)=>s+c.expansion_mrr,0);
+    const sChrn=churned.reduce((s,c)=>s+c.churned_mrr,0);
+    const grr=sMRR?((sMRR-sChrn)/sMRR*100).toFixed(1):'—';
+    const nrr=sMRR?((sMRR+sExp-sChrn)/sMRR*100).toFixed(1):'—';
+    const ret=((pop.length-churned.length)/pop.length*100).toFixed(1);
+    return `<div class="cohort-subgroup-label">${label} · n=${pop.length}</div>
+      <div class="cohort-metric"><span class="cohort-metric-label">GRR</span><span class="cohort-metric-value ${grr==='—'?'ink':grrCls(parseFloat(grr))}">${grr==='—'?'—':grr+'%'}</span></div>
+      <div class="cohort-metric"><span class="cohort-metric-label">NRR</span><span class="cohort-metric-value ${nrr==='—'?'ink':nrrCls(parseFloat(nrr))}">${nrr==='—'?'—':nrr+'%'}</span></div>
+      <div class="cohort-metric"><span class="cohort-metric-label">Retention</span><span class="cohort-metric-value ${retCls(parseFloat(ret))}">${ret}%</span></div>`;
+  }
+  const grrNrrSegs=allStages.filter(stage=>cos.some(c=>c.stage===stage&&(isPilotPop(c)||isEverConv(c))));
+  document.getElementById('grr-nrr-segment-cards').innerHTML=grrNrrSegs.map(stage=>{
+    const pilots=cos.filter(c=>c.stage===stage&&isPilotPop(c));
+    const ever=cos.filter(c=>c.stage===stage&&isEverConv(c));
+    return `<div class="cohort-card">
+      <div class="cohort-card-title">${stage}</div>
+      ${retentionBlock('Pre Conversion', pilots, c=>c.pilot_status==='Exited During Pilot')}
+      <div class="cohort-subgroup-divider"></div>
+      ${retentionBlock('Post Conversion', ever, c=>c.pilot_status==='Churned Post Conversion')}
+    </div>`;
+  }).join('');
+
+  // Score pies
+  // Account health distribution by stage (stacked)
+  if(charts['healthByStageBar']) charts['healthByStageBar'].destroy();
+  charts['healthByStageBar']=new Chart(document.getElementById('healthByStageBar').getContext('2d'),{
+    type:'bar',data:{labels:allStages,datasets:HEALTH_VALUES.map(v=>({label:HEALTH_LABEL[v],data:allStages.map(s=>active.filter(c=>c.stage===s&&normalizeHealth(c.account_health)===v).length),backgroundColor:HEALTH_COLORS[v],borderRadius:3}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
+
+  // TTV bar
+  const ttvByStage=allStages.map(stage=>{ const vals=cos.filter(c=>c.stage===stage&&c.kickoff_date&&c.first_post_date).map(c=>calcTTV(c.kickoff_date,c.first_post_date)).filter(d=>d!==null&&d>=0); return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null; });
+  const ttvNamesByStage=allStages.map(stage=>cos.filter(c=>c.stage===stage&&c.kickoff_date&&c.first_post_date).map(c=>({name:c.name,val:calcTTV(c.kickoff_date,c.first_post_date)+'d'})));
+  if(charts['ttvStageBar']) charts['ttvStageBar'].destroy();
+  charts['ttvStageBar']=new Chart(document.getElementById('ttvStageBar').getContext('2d'),{
+    type:'bar',data:{labels:allStages,datasets:[{data:ttvByStage.map(v=>v||0),backgroundColor:ttvByStage.map(v=>v===null?'#D3D1C7':v<=21?'#1D9E75':v<=30?'#378ADD':'#BA7517'),borderRadius:4,names:ttvNamesByStage}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{ const v=ttvByStage[ctx.dataIndex]; return [v?` Avg: ${v}d (target: 21d)`:' No data',...buildLines(ctx.dataset.names[ctx.dataIndex])]; }}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10}},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
+
+  // Conversion by stage
+  const convByStage=allStages.map(stage=>{ const p=cos.filter(c=>c.stage===stage&&(c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion')); const e=cos.filter(c=>c.stage===stage&&c.pilot_status==='Exited During Pilot'); const t=p.length+e.length; return t?parseFloat((p.length/t*100).toFixed(1)):0; });
+  renderGroupedBar('conversionStageBar',allStages,[
+    {label:'Conversion rate',data:convByStage,color:'#1D9E75',names:allStages.map(s=>cos.filter(c=>c.stage===s&&(c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion')).map(c=>({name:c.name,val:fmt$(c.mrr)})))},
+    {label:'Churn rate',data:allStages.map((s,i)=>parseFloat((100-convByStage[i]).toFixed(1))),color:'#D85A30',names:allStages.map(s=>cos.filter(c=>c.stage===s&&c.pilot_status==='Exited During Pilot').map(c=>({name:c.name,val:c.churn_reason||'—'})))}]);
+
+  // Churn reasons stacked
+  const allReasons=[...new Set(allChurnedCos.map(c=>c.churn_reason).filter(Boolean))].sort();
+  if(charts['churnReasonStageBar']) charts['churnReasonStageBar'].destroy();
+  if(allReasons.length&&allStages.length) {
+    charts['churnReasonStageBar']=new Chart(document.getElementById('churnReasonStageBar').getContext('2d'),{
+      type:'bar',data:{labels:allStages,datasets:allReasons.map((r,i)=>({label:r,data:allStages.map(s=>allChurnedCos.filter(c=>c.stage===s&&c.churn_reason===r).length),backgroundColor:REASON_COLORS[i%REASON_COLORS.length],borderRadius:3}))},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    });
+    const el=document.getElementById('legend-churn-stage');
+    if(el) el.innerHTML=allReasons.map((r,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${REASON_COLORS[i%REASON_COLORS.length]}"></span>${r}</span>`).join('');
+  }
+
+  // Industry / vertical
+  const allVerticals=[...new Set(cos.map(c=>c.vertical).filter(Boolean))].sort();
+
+  // 1. Pilot vs converted by vertical (pie of active customers per vertical)
+  const pcByVert=allVerticals.map(v=>{
+    const pilot=cos.filter(c=>c.vertical===v&&c.pilot_status==='In progress');
+    const conv=cos.filter(c=>c.vertical===v&&c.pilot_status==='Converted');
+    return {vertical:v,pilot,conv,total:pilot.length+conv.length};
+  }).filter(x=>x.total>0);
+  if(charts['pilotConvVerticalPie']) charts['pilotConvVerticalPie'].destroy();
+  if(pcByVert.length) {
+    const pcLabels=pcByVert.map(x=>x.vertical);
+    const pcColors=STAGE_COLORS.slice(0,pcLabels.length);
+    charts['pilotConvVerticalPie']=new Chart(document.getElementById('pilotConvVerticalPie').getContext('2d'),{
+      type:'pie',
+      data:{labels:pcLabels,datasets:[{data:pcByVert.map(x=>x.total),backgroundColor:pcColors,borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+        const x=pcByVert[ctx.dataIndex];
+        return [` ${x.vertical}: ${x.total}  (pilot ${x.pilot.length} · converted ${x.conv.length})`,...buildLines([...x.pilot,...x.conv].map(c=>({name:c.name,val:c.pilot_status})))];
+      }}}}}
+    });
+    const pcLegend=document.getElementById('legend-pilot-conv-vertical');
+    if(pcLegend) pcLegend.innerHTML=pcByVert.map((x,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${pcColors[i]}"></span>${x.vertical}: ${x.pilot.length}p / ${x.conv.length}c</span>`).join('');
+  }
+
+  // 2. Exited pilots by vertical (bar)
+  const exitedByVert=allVerticals.map(v=>cos.filter(c=>c.vertical===v&&c.pilot_status==='Exited During Pilot'));
+  renderBar('exitedVerticalBar',allVerticals,exitedByVert.map(g=>g.length),'#D85A30',exitedByVert.map(g=>g.map(c=>({name:c.name,val:c.churn_reason||'—'}))));
+
+  // 3. Churn reasons by vertical (stacked bar)
+  if(charts['churnReasonVerticalBar']) charts['churnReasonVerticalBar'].destroy();
+  if(allReasons.length&&allVerticals.length) {
+    charts['churnReasonVerticalBar']=new Chart(document.getElementById('churnReasonVerticalBar').getContext('2d'),{
+      type:'bar',data:{labels:allVerticals,datasets:allReasons.map((r,i)=>({label:r,data:allVerticals.map(v=>allChurnedCos.filter(c=>c.vertical===v&&c.churn_reason===r).length),backgroundColor:REASON_COLORS[i%REASON_COLORS.length],borderRadius:3}))},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10},autoSkip:false,maxRotation:35},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    });
+    const cvLegend=document.getElementById('legend-churn-vertical');
+    if(cvLegend) cvLegend.innerHTML=allReasons.map((r,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${REASON_COLORS[i%REASON_COLORS.length]}"></span>${r}</span>`).join('');
+  }
+
+  // Cohort roster — split into active vs churned
+  const isChurned = c => c.pilot_status==='Exited During Pilot' || c.pilot_status==='Churned Post Conversion';
+  const allStagesForCohort=[...new Set(allCompanies.map(c=>c.stage).filter(Boolean))].sort();
+  const renderCohortRow = c => {
+    const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
+    const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
+    return `<tr><td>${c.name}</td><td>${stageSelect(c,allStagesForCohort)}</td><td>${statusSelect(c)}</td><td>${displayAM(c.csm)}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td>${dateInput(c,'kickoff_call_date','kickoff_date')}</td><td>${dateInput(c,'first_post_date','first_post_date')}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
+  };
+  const sortGetters = { am: c => displayAM(c.csm) };
+
+  const activeCos = cos.filter(c => !isChurned(c));
+  const churnedCos = cos.filter(isChurned);
+
+  set('note-cohort-roster', activeCos.length + ' active companies · sorted by stage');
+  let activeRows=[...activeCos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
+  activeRows=applyListSort(activeRows, window.__listSort.cohort, sortGetters);
+  document.getElementById('cohort-roster-body').innerHTML = activeRows.length
+    ? activeRows.map(renderCohortRow).join('')
+    : '<tr><td colspan="9" class="empty-hint">No active customers.</td></tr>';
+  bindSortHeader('th-cohort-am','cohort','am',()=>renderCohortsTab(cos));
+
+  set('note-cohort-churned-roster', churnedCos.length + ' churned companies · sorted by stage');
+  let churnedRows=[...churnedCos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
+  churnedRows=applyListSort(churnedRows, window.__listSort.cohortChurned, sortGetters);
+  document.getElementById('cohort-churned-roster-body').innerHTML = churnedRows.length
+    ? churnedRows.map(renderCohortRow).join('')
+    : '<tr><td colspan="9" class="empty-hint">No churned customers.</td></tr>';
+  bindSortHeader('th-cohort-churned-am','cohortChurned','am',()=>renderCohortsTab(cos));
+}
+
+// ── TEAM TAB ───────────────────────────────────────────────────
+function renderTeamTab(cos) {
+  const exclude=document.getElementById('exclude-virio').checked;
+  const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
+
+  // AM aggregates by post target — always include Virio so internal workload is reflected
+  const ceSource=allCompanies.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
+  const ceMap = {};
+  ceSource.forEach(c => {
+    const am = displayAM(c.csm) || 'Unassigned';
+    const target = parsePostsPerMonth(c.posts_per_month);
+    if (!ceMap[am]) ceMap[am] = { total:0, accounts:[] };
+    ceMap[am].total += target;
+    ceMap[am].accounts.push({ name: c.name, ppm: target });
+  });
+
+  // AM workload chart
+  const maxLoad = Math.max(...Object.values(ceMap).map(v=>v.total), 1);
+  const ceBars = document.getElementById('ce-load-bars');
+  if (ceBars) {
+    const sorted = Object.entries(ceMap).sort((a,b)=> b[1].total - a[1].total);
+    ceBars.innerHTML = sorted.length ? sorted.map(([ce, data])=>{
+      const fillColor = data.total >= 50 ? 'var(--red)' : data.total >= 25 ? 'var(--amber)' : 'var(--teal-mid)';
+      const accountsSorted = [...data.accounts].sort((a,b)=>b.ppm-a.ppm);
+      const tooltipBody = accountsSorted.length
+        ? `<ul class="ce-bar-tooltip-list">${accountsSorted.map(a=>`<li><span class="ce-bar-tooltip-name">${escapeHtml(a.name)}</span><span class="ce-bar-tooltip-ppm">${a.ppm}/mo</span></li>`).join('')}</ul>`
+        : `<div class="ce-bar-tooltip-empty">No customers assigned</div>`;
+      return `<div class="ce-bar-row">
+        <div class="ce-bar-wrap">
+          <div class="ce-bar-label">${escapeHtml(ce)}</div>
+          <div class="ce-bar-track"><div class="ce-bar-fill" style="width:${(data.total/maxLoad*100).toFixed(1)}%;background:${fillColor}"></div></div>
+          <div class="ce-bar-count">${data.total} posts/mo · ${data.accounts.length} account${data.accounts.length!==1?'s':''}</div>
+        </div>
+        <div class="ce-bar-tooltip">
+          <div class="ce-bar-tooltip-title">${escapeHtml(ce)} · ${data.accounts.length} account${data.accounts.length!==1?'s':''}</div>
+          ${tooltipBody}
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty-hint">No active customers assigned to an Account Manager.</div>';
+  }
+
+  // AM charts
+  const allAMs=[...new Set(cos.map(c=>displayAM(c.csm)).filter(Boolean))].sort();
+  const converted=cos.filter(c=>c.pilot_status==='Converted');
+  const churnedPost=cos.filter(c=>c.pilot_status==='Churned Post Conversion');
+  renderGroupedBar('postAMBar',allAMs,[
+    {label:'Active converted',data:allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).length),color:'#1D9E75',names:allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)})))},
+    {label:'Churned post-conversion',data:allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).length),color:'#D85A30',names:allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'})))}]);
+  const amMRRData=allAMs.map(am=>{ const ac=active.filter(c=>displayAM(c.csm)===am); return {total:ac.reduce((s,c)=>s+c.mrr+c.expansion_mrr,0),names:ac.map(c=>({name:c.name,val:fmt$(c.mrr+c.expansion_mrr)}))}; });
+  if(charts['amMRRBar']) charts['amMRRBar'].destroy();
+  charts['amMRRBar']=new Chart(document.getElementById('amMRRBar').getContext('2d'),{
+    type:'bar',data:{labels:allAMs,datasets:[{data:amMRRData.map(d=>d.total),backgroundColor:'#7F77DD',borderRadius:4,names:amMRRData.map(d=>d.names)}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[' '+fmtBig$(ctx.raw),...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
+  // Account health distribution by AM (stacked)
+  if(charts['healthByAMBar']) charts['healthByAMBar'].destroy();
+  const healthByAMEl=document.getElementById('healthByAMBar');
+  if(healthByAMEl) {
+    charts['healthByAMBar']=new Chart(healthByAMEl.getContext('2d'),{
+      type:'bar',data:{labels:allAMs,datasets:HEALTH_VALUES.map(v=>({label:HEALTH_LABEL[v],data:allAMs.map(am=>active.filter(c=>displayAM(c.csm)===am&&normalizeHealth(c.account_health)===v).length),backgroundColor:HEALTH_COLORS[v],borderRadius:3}))},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    });
+  }
+
+  // ROI calculator — closed-deal targets per active customer at 1× MRR, grouped by AM
+  const roiRows=[...active].filter(c=>c.mrr>0);
+  const totalMRR=roiRows.reduce((s,c)=>s+c.mrr,0);
+  set('m-roi-monthly',fmtBig$(totalMRR));
+  set('m-roi-quarterly',fmtBig$(totalMRR*3));
+  set('m-roi-annual',fmtBig$(totalMRR*12));
+  const roiGroups={};
+  roiRows.forEach(c=>{ const am=displayAM(c.csm); (roiGroups[am]=roiGroups[am]||[]).push(c); });
+  const sortedAMs=Object.keys(roiGroups).sort((a,b)=>{
+    const aUn=a.toLowerCase()==='unassigned', bUn=b.toLowerCase()==='unassigned';
+    if(aUn!==bUn) return aUn?1:-1;
+    const aMRR=roiGroups[a].reduce((s,c)=>s+c.mrr,0);
+    const bMRR=roiGroups[b].reduce((s,c)=>s+c.mrr,0);
+    return bMRR-aMRR;
+  });
+  document.getElementById('roi-calculator-body').innerHTML=roiRows.length
+    ? sortedAMs.map(am=>{
+        const list=[...roiGroups[am]].sort((a,b)=>b.mrr-a.mrr);
+        const sub=list.reduce((s,c)=>s+c.mrr,0);
+        const header=`<tr class="roi-group-header"><td>${am} · ${list.length} account${list.length!==1?'s':''}</td><td>${fmt$(sub)}</td><td>${fmt$(sub)}</td><td>${fmt$(sub*3)}</td><td>${fmt$(sub*12)}</td></tr>`;
+        return header+list.map(c=>`<tr><td style="padding-left:24px">${c.name}</td><td>${fmt$(c.mrr)}</td><td>${fmt$(c.mrr)}</td><td>${fmt$(c.mrr*3)}</td><td>${fmt$(c.mrr*12)}</td></tr>`).join('');
+      }).join('')
+    : '<tr><td colspan="5" class="empty-hint">No active customers with MRR.</td></tr>';
+}
+
+// ── PRODUCT REQUEST TRACKER ───────────────────────────────────
+// Tunable scoring config — change these numbers to retune priorities.
+const PRT_CFG = {
+  pilotDays: 90,           // pilot length; pilot-end = pilot start + this
+  renewalDays: 365,        // converted contract length; renewal = pilot-end + this
+  urgencyTiers: [          // by days until the next decision date (pilot-end or renewal)
+    { maxDays: 30,  mult: 3.0 },
+    { maxDays: 90,  mult: 2.0 },
+    { maxDays: 180, mult: 1.5 }
+  ],
+  urgencyFloor: 1.0,       // anyone can churn anytime — far-out ARR never drops to zero
+  severityMult: { Urgent: 3.0, High: 2.0, Medium: 1.25, Low: 1.0 }
+};
+
+const PRT_IMG_BUCKET = 'pr-ask-images';
+const PRT_IMG_MAX = 10 * 1024 * 1024;   // 10 MB per image (matches bucket limit)
+const prtState = { requests: [], asks: [], productMap: {}, loaded: false, loading: null, product: 'all', search: '', expanded: new Set(), shippedOpen: false, modalType: 'feature', modalImages: [] };
+
+// Generate short-lived signed URLs for stored image paths and cache them on the ask objects.
+async function prtSignAskImages(asks) {
+  const paths = [];
+  asks.forEach(a => { (a.images || []).forEach(p => { if (p) paths.push(p); }); a._imageUrls = []; });
+  if (!paths.length) return;
+  try {
+    const { data } = await sb.storage.from(PRT_IMG_BUCKET).createSignedUrls(paths, 60 * 60 * 8);
+    const urlByPath = {};
+    (data || []).forEach(d => { if (d && d.path && d.signedUrl) urlByPath[d.path] = d.signedUrl; });
+    asks.forEach(a => { a._imageUrls = (a.images || []).map(p => urlByPath[p]).filter(Boolean); });
+  } catch (e) { /* leave thumbnails empty if signing fails */ }
+}
+
+function prtMoney(n) {
+  n = Math.round(n || 0);
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (n >= 1000) return '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+  return '$' + n;
+}
+
+async function prtEnsureLoaded() {
+  if (prtState.loaded) return;
+  if (prtState.loading) return prtState.loading;
+  prtState.loading = prtFetchAll();
+  await prtState.loading;
+  prtState.loading = null;
+}
+
+async function prtFetchAll() {
+  try {
+    const [prodRes, reqRes, askRes] = await Promise.all([
+      fetch('/api/pr-products').then(r => r.ok ? r.json() : { map: {} }).catch(() => ({ map: {} })),
+      sb.from('pr_requests').select('*'),
+      sb.from('pr_asks').select('*')
+    ]);
+    prtState.productMap = prodRes.map || {};
+    prtState.productNote = prodRes.note || null;
+    prtState.requests = reqRes.data || [];
+    prtState.asks = askRes.data || [];
+    await prtSignAskImages(prtState.asks);
+    prtState.loaded = true;
+  } catch (e) {
+    prtState.requests = prtState.requests || [];
+    prtState.asks = prtState.asks || [];
+  }
+}
+
+// Build an account lookup from the live HubSpot company feed.
+function prtAccountIndex() {
+  const idx = {};
+  allCompanies.forEach(c => {
+    const arr = (c.mrr + c.expansion_mrr) * 12;
+    const pm = prtState.productMap[c.id];
+    const product = (pm && pm.product) || 'Unspecified';
+    const churned = c.pilot_status === 'Exited During Pilot' || c.pilot_status === 'Churned Post Conversion';
+    const pilotStart = (pm && pm.closeDate) || c.kickoff_date || null;
+    idx[c.id] = { id: c.id, name: c.name, arr, product, churned, nextDate: prtNextDecisionDate(pilotStart, c.pilot_status), pilot_status: c.pilot_status };
+  });
+  return idx;
+}
+
+function prtNextDecisionDate(start, status) {
+  if (!start) return null;
+  const d = new Date(start);
+  if (isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() + PRT_CFG.pilotDays);            // pilot end
+  if (status === 'Converted') d.setDate(d.getDate() + PRT_CFG.renewalDays); // then renewal
+  return d;
+}
+
+function prtUrgency(nextDate) {
+  if (!nextDate) return PRT_CFG.urgencyFloor;
+  const days = Math.round((nextDate - new Date()) / 86400000);
+  for (const t of PRT_CFG.urgencyTiers) if (days <= t.maxDays) return t.mult;
+  return PRT_CFG.urgencyFloor;
+}
+
+function prtDaysLabel(nextDate) {
+  if (!nextDate) return { txt: 'No date', cls: 'later' };
+  const days = Math.round((nextDate - new Date()) / 86400000);
+  const txt = days < 0 ? Math.abs(days) + 'd overdue' : days + 'd';
+  const cls = days <= 30 ? 'urgent' : days <= 90 ? 'soon' : 'later';
+  return { txt, cls, days };
+}
+
+// Score one request against the current product filter. Churned accounts drop out.
+function prtScore(req, idx) {
+  const pf = prtState.product;
+  const seen = {};
+  let raw = 0, score = 0, soonest = null;
+  const accounts = [];
+  prtState.asks.filter(a => a.request_id === req.id).forEach(a => {
+    const acc = idx[a.hs_company_id];
+    if (!acc || acc.churned) return;                       // money gone / unknown → excluded
+    if (pf !== 'all' && acc.product !== pf) return;        // respect EGC / Full Service filter
+    accounts.push({ acc, ask: a });
+    if (!seen[acc.id]) { seen[acc.id] = true; raw += acc.arr; score += acc.arr * prtUrgency(acc.nextDate); }
+    if (acc.nextDate && (!soonest || acc.nextDate < soonest)) soonest = acc.nextDate;
+  });
+  if (req.type === 'bug') score *= (PRT_CFG.severityMult[req.severity] || 1);
+  return { accounts, raw, score, soonest, count: Object.keys(seen).length };
+}
+
+function prtRender() {
+  const tab = document.getElementById('tab-requests');
+  if (!tab) return;
+  const idx = prtAccountIndex();
+  const q = prtState.search.trim().toLowerCase();
+  const match = r => !q || (r.title || '').toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q);
+
+  const open = prtState.requests.filter(r => r.status !== 'shipped' && match(r));
+  const scored = open.map(r => ({ r, s: prtScore(r, idx) })).filter(x => x.s.count > 0);
+
+  const bugs = scored.filter(x => x.r.type === 'bug').sort((a, b) => b.s.score - a.s.score);
+  const feats = scored.filter(x => x.r.type === 'feature').sort((a, b) => b.s.score - a.s.score);
+
+  renderList('prt-bug-list', bugs, 'bug');
+  renderList('prt-feature-list', feats, 'feature');
+  document.getElementById('prt-bug-meta').textContent = colMeta(bugs);
+  document.getElementById('prt-feature-meta').textContent = colMeta(feats);
+
+  // Shipped zone
+  const shipped = prtState.requests.filter(r => r.status === 'shipped' && match(r))
+    .map(r => ({ r, s: prtScore(r, idx) }))
+    .sort((a, b) => (b.r.shipped_date || '').localeCompare(a.r.shipped_date || ''));
+  renderList('prt-shipped-list', shipped, 'shipped');
+  document.getElementById('prt-shipped-meta').textContent = shipped.length + (shipped.length === 1 ? ' request' : ' requests');
+
+  // Product-field note (e.g. if EGC/Full Service couldn't be auto-detected)
+  const noteEl = document.getElementById('prt-note');
+  const anyProduct = Object.keys(prtState.productMap).length;
+  noteEl.textContent = (prtState.product !== 'all' && !anyProduct) ? 'Product tags unavailable — showing all' : '';
+
+  function colMeta(arr) {
+    if (!arr.length) return '0 requests';
+    const totalRaw = arr.reduce((s, x) => s + x.s.raw, 0);
+    return `${arr.length} · ${prtMoney(totalRaw)} ARR`;
+  }
+}
+
+function renderList(elId, items, kind) {
+  const el = document.getElementById(elId);
+  if (!items.length) {
+    const msg = kind === 'shipped' ? 'Nothing shipped yet.' : (kind === 'bug' ? 'No open bugs for this view.' : 'No open feature requests for this view.');
+    el.innerHTML = `<div class="prt-empty">${msg}</div>`;
+    return;
+  }
+  el.innerHTML = items.map((x, i) => prtCard(x.r, x.s, i + 1, kind)).join('');
+}
+
+function prtCard(req, s, rank, kind) {
+  const cardCls = kind === 'bug' ? 'bugcard' : kind === 'shipped' ? 'shippedcard' : '';
+  const isOpen = prtState.expanded.has(req.id);
+  const sev = req.type === 'bug' && req.severity ? `<span class="prt-chip sev-${req.severity}">${req.severity}</span>` : '';
+  let urgChip = '';
+  if (kind === 'shipped') {
+    urgChip = `<span class="prt-chip later">Shipped ${req.shipped_date || ''}</span>`;
+  } else {
+    const d = prtDaysLabel(s.soonest);
+    urgChip = `<span class="prt-chip ${d.cls}">⏰ ${d.txt}</span>`;
+  }
+  const asksHtml = s.accounts.map(({ acc, ask }) => {
+    const d = prtDaysLabel(acc.nextDate);
+    const stat = acc.pilot_status === 'In progress' ? 'Pilot ends' : acc.pilot_status === 'Converted' ? 'Renews' : '';
+    return `<div class="prt-ask">
+      <div class="prt-ask-co">${escapeHtml(acc.name)}
+        <div class="prt-ask-meta">${escapeHtml(acc.product)} · ${prtMoney(acc.arr)} ARR · ${stat} ${d.txt}</div>
+      </div>
+      <div class="prt-ask-detail">${escapeHtml(ask.detail || '—')}${(ask._imageUrls && ask._imageUrls.length) ? `<div class="prt-ask-imgs">${ask._imageUrls.map(u => `<img src="${escapeHtml(u)}" alt="screenshot" onclick="window.open('${escapeHtml(u)}','_blank')">`).join('')}</div>` : ''}</div>
+      <button class="prt-ask-x" title="Remove this customer's ask" onclick="prtDeleteAsk(event,'${ask.id}')">✕</button>
+    </div>`;
+  }).join('');
+  const actions = kind === 'shipped'
+    ? `<button class="prt-mini-btn" onclick="prtReopen(event,'${req.id}')">↩ Reopen</button>
+       <button class="prt-mini-btn" onclick="prtDeleteRequest(event,'${req.id}')">Delete</button>`
+    : `<button class="prt-mini-btn" onclick="prtAddCustomer(event,'${req.id}')">+ Add customer</button>
+       <button class="prt-mini-btn ship" onclick="prtMarkShipped(event,'${req.id}')">✓ Mark shipped</button>
+       <button class="prt-mini-btn" onclick="prtDeleteRequest(event,'${req.id}')">Delete</button>`;
+  return `<div class="prt-card ${cardCls} ${isOpen ? 'open' : ''}">
+    <div class="prt-row" onclick="prtToggleRow('${req.id}')">
+      <span class="prt-rank">${kind === 'shipped' ? '✓' : rank}</span>
+      <div class="prt-row-main">
+        <div class="prt-row-title">${escapeHtml(req.title)}</div>
+        <div class="prt-row-sub">
+          <span class="prt-chip arr">${s.count} ${s.count === 1 ? 'account' : 'accounts'} · ${prtMoney(s.raw)}</span>
+          ${urgChip}${sev}
+        </div>
+      </div>
+      <div class="prt-score">${prtMoney(s.score)}</div>
+    </div>
+    <div class="prt-detail">
+      ${asksHtml || '<div class="prt-ask-detail">No qualifying accounts in this view.</div>'}
+      <div class="prt-detail-actions">${actions}</div>
+    </div>
+  </div>`;
+}
+
+function prtToggleRow(id) {
+  if (prtState.expanded.has(id)) prtState.expanded.delete(id); else prtState.expanded.add(id);
+  prtRender();
+}
+function prtToggleShipped() {
+  prtState.shippedOpen = !prtState.shippedOpen;
+  document.getElementById('prt-shipped-list').style.display = prtState.shippedOpen ? 'flex' : 'none';
+  document.querySelector('.prt-shipped').classList.toggle('open', prtState.shippedOpen);
+}
+
+async function prtCurrentEmail() {
+  try { const { data } = await sb.auth.getUser(); return data?.user?.email || null; } catch { return null; }
+}
+
+// ── Tracker actions ───────────────────────────────────────────
+async function prtMarkShipped(e, id) {
+  e.stopPropagation();
+  const today = new Date().toISOString().slice(0, 10);
+  await sb.from('pr_requests').update({ status: 'shipped', shipped_date: today, updated_at: new Date().toISOString() }).eq('id', id);
+  const r = prtState.requests.find(x => x.id === id); if (r) { r.status = 'shipped'; r.shipped_date = today; }
+  prtRender();
+}
+async function prtReopen(e, id) {
+  e.stopPropagation();
+  await sb.from('pr_requests').update({ status: 'open', shipped_date: null, updated_at: new Date().toISOString() }).eq('id', id);
+  const r = prtState.requests.find(x => x.id === id); if (r) { r.status = 'open'; r.shipped_date = null; }
+  prtRender();
+}
+async function prtDeleteRequest(e, id) {
+  e.stopPropagation();
+  if (!confirm('Delete this request and all of its customer asks?')) return;
+  const imgPaths = prtState.asks.filter(a => a.request_id === id).flatMap(a => a.images || []);
+  if (imgPaths.length) { try { await sb.storage.from(PRT_IMG_BUCKET).remove(imgPaths); } catch (_) { /* best-effort */ } }
+  await sb.from('pr_requests').delete().eq('id', id);
+  prtState.requests = prtState.requests.filter(x => x.id !== id);
+  prtState.asks = prtState.asks.filter(x => x.request_id !== id);
+  prtRender();
+}
+async function prtDeleteAsk(e, id) {
+  e.stopPropagation();
+  const ask = prtState.asks.find(x => x.id === id);
+  if (ask && ask.images && ask.images.length) {
+    try { await sb.storage.from(PRT_IMG_BUCKET).remove(ask.images); } catch (_) { /* best-effort cleanup */ }
+  }
+  await sb.from('pr_asks').delete().eq('id', id);
+  prtState.asks = prtState.asks.filter(x => x.id !== id);
+  prtRender();
+}
+
+// ── Add / edit modal ──────────────────────────────────────────
+function prtOpenModal(type, requestId) {
+  prtState.modalType = type;
+  document.getElementById('prt-modal-err').textContent = '';
+  document.getElementById('prt-modal-detail').value = '';
+  document.getElementById('prt-modal-title-input').value = '';
+  document.getElementById('prt-modal-title').textContent = 'Add issue';
+  prtState.modalImages = [];
+  document.getElementById('prt-modal-images').value = '';
+  prtRenderImgPreviews();
+  // type segmented control
+  document.querySelectorAll('#prt-modal-type .prt-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  document.getElementById('prt-modal-severity-field').style.display = type === 'bug' ? 'flex' : 'none';
+  prtPopulateRequestDropdown(requestId);
+  prtPopulateCompanyDropdown();
+  document.getElementById('prt-modal').style.display = 'flex';
+}
+function prtAddCustomer(e, id) { e.stopPropagation(); const r = prtState.requests.find(x => x.id === id); prtOpenModal(r ? r.type : 'feature', id); }
+function prtCloseModal() {
+  document.getElementById('prt-modal').style.display = 'none';
+  prtState.modalImages.forEach(im => URL.revokeObjectURL(im.url));
+  prtState.modalImages = [];
+}
+
+// ── Modal image attachments ───────────────────────────────────
+function prtAddImageFiles(files) {
+  const err = document.getElementById('prt-modal-err');
+  for (const f of files) {
+    if (!f.type || !f.type.startsWith('image/')) { err.textContent = `"${f.name}" is not an image.`; continue; }
+    if (f.size > PRT_IMG_MAX) { err.textContent = `"${f.name || 'Image'}" is over 10 MB.`; continue; }
+    prtState.modalImages.push({ file: f, url: URL.createObjectURL(f) });
+  }
+  prtRenderImgPreviews();
+}
+function prtRemoveImage(idx) {
+  const im = prtState.modalImages[idx];
+  if (im) URL.revokeObjectURL(im.url);
+  prtState.modalImages.splice(idx, 1);
+  prtRenderImgPreviews();
+}
+function prtRenderImgPreviews() {
+  const box = document.getElementById('prt-modal-img-previews');
+  if (!box) return;
+  box.innerHTML = prtState.modalImages.map((im, i) =>
+    `<div class="prt-img-thumb"><img src="${im.url}" alt=""><button type="button" title="Remove" onclick="prtRemoveImage(${i})">✕</button></div>`
+  ).join('');
+}
+
+function prtPopulateRequestDropdown(selectId) {
+  const sel = document.getElementById('prt-modal-request');
+  const open = prtState.requests.filter(r => r.status !== 'shipped' && r.type === prtState.modalType)
+    .sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  sel.innerHTML = '<option value="__new__">➕ New request…</option>' +
+    open.map(r => `<option value="${r.id}">${escapeHtml(r.title)}</option>`).join('');
+  sel.value = selectId && open.some(r => r.id === selectId) ? selectId : '__new__';
+  prtToggleTitleField();
+}
+function prtToggleTitleField() {
+  const isNew = document.getElementById('prt-modal-request').value === '__new__';
+  document.getElementById('prt-modal-newtitle-field').style.display = isNew ? 'flex' : 'none';
+}
+function prtPopulateCompanyDropdown() {
+  const sel = document.getElementById('prt-modal-company');
+  const isChurned = c => c.pilot_status === 'Exited During Pilot' || c.pilot_status === 'Churned Post Conversion';
+  const cos = allCompanies.filter(c => !isChurned(c)).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  sel.innerHTML = '<option value="">Select customer…</option>' +
+    cos.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+async function prtSaveIssue() {
+  const err = document.getElementById('prt-modal-err');
+  const btn = document.getElementById('prt-modal-save');
+  const type = prtState.modalType;
+  const reqSel = document.getElementById('prt-modal-request').value;
+  const newTitle = document.getElementById('prt-modal-title-input').value.trim();
+  const severity = type === 'bug' ? document.getElementById('prt-modal-severity').value : null;
+  const companyId = document.getElementById('prt-modal-company').value;
+  const detail = document.getElementById('prt-modal-detail').value.trim();
+
+  if (reqSel === '__new__' && !newTitle) { err.textContent = 'Give the new request a title.'; return; }
+  if (!companyId) { err.textContent = 'Pick a customer.'; return; }
+  const company = allCompanies.find(c => c.id === companyId);
+  if (!company) { err.textContent = 'Customer not found.'; return; }
+
+  btn.disabled = true;
+  try {
+    const email = await prtCurrentEmail();
+    let requestId = reqSel;
+    if (reqSel === '__new__') {
+      const { data, error } = await sb.from('pr_requests')
+        .insert({ title: newTitle, type, severity, created_by: email }).select().single();
+      if (error) throw error;
+      prtState.requests.push(data);
+      requestId = data.id;
+    }
+    const product = (prtState.productMap[companyId] && prtState.productMap[companyId].product) || null;
+    const { data: ask, error: aerr } = await sb.from('pr_asks')
+      .insert({ request_id: requestId, hs_company_id: companyId, company_name: company.name, product, detail, source: 'manual', created_by: email }).select().single();
+    if (aerr) throw aerr;
+
+    // Upload any attached screenshots to storage, then record their paths on the ask.
+    if (prtState.modalImages.length) {
+      err.textContent = `Uploading ${prtState.modalImages.length} image${prtState.modalImages.length === 1 ? '' : 's'}…`;
+      const paths = [];
+      for (const im of prtState.modalImages) {
+        const ext = (im.file.name.split('.').pop() || im.file.type.split('/')[1] || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const path = `${ask.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: uerr } = await sb.storage.from(PRT_IMG_BUCKET).upload(path, im.file, { contentType: im.file.type, upsert: false });
+        if (uerr) throw uerr;
+        paths.push(path);
+      }
+      const { error: imgErr } = await sb.from('pr_asks').update({ images: paths }).eq('id', ask.id);
+      if (imgErr) throw imgErr;
+      ask.images = paths;
+      await prtSignAskImages([ask]);
+    }
+
+    prtState.asks.push(ask);
+    prtState.expanded.add(requestId);
+    prtCloseModal();
+    prtRender();
+  } catch (e) {
+    err.textContent = e.message || 'Could not save.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function prtInit() {
+  document.querySelectorAll('#prt-product-filter .prt-seg-btn').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('#prt-product-filter .prt-seg-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      prtState.product = b.dataset.product;
+      prtRender();
+    };
+  });
+  document.querySelectorAll('#prt-modal-type .prt-seg-btn').forEach(b => {
+    b.onclick = () => {
+      prtState.modalType = b.dataset.type;
+      document.querySelectorAll('#prt-modal-type .prt-seg-btn').forEach(x => x.classList.toggle('active', x === b));
+      document.getElementById('prt-modal-severity-field').style.display = b.dataset.type === 'bug' ? 'flex' : 'none';
+      prtPopulateRequestDropdown();
+    };
+  });
+  document.getElementById('prt-modal-request').onchange = prtToggleTitleField;
+  document.getElementById('prt-search').addEventListener('input', e => { prtState.search = e.target.value; prtRender(); });
+  document.getElementById('prt-modal').addEventListener('click', e => { if (e.target.id === 'prt-modal') prtCloseModal(); });
+  document.getElementById('prt-modal-images').addEventListener('change', e => { prtAddImageFiles(e.target.files); e.target.value = ''; });
+  document.getElementById('prt-modal').addEventListener('paste', e => {
+    const imgs = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith('image/')).map(i => i.getAsFile()).filter(Boolean);
+    if (imgs.length) { e.preventDefault(); prtAddImageFiles(imgs); }
+  });
+}
+
+// ── INIT ────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  // DEMO BUILD: no auth gate — the sign-in screen is bypassed and the
+  // dashboard loads directly against the in-memory sample data.
+  buildDemoData();
+  prtInit();
+  showAuthScreen(false);
+  const signoutBtn = document.getElementById('signout-btn');
+  if (signoutBtn) signoutBtn.style.display = 'none';
+  loadData();
+});
+</script>
+</body>
+</html>
