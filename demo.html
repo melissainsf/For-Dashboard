@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Virio — Customer Success Metrics</title>
+<title>Anonymous — Customer Success Metrics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- DEMO BUILD: Supabase client removed. This is a sanitized, standalone copy of the
-     Virio CS dashboard that runs entirely in the browser on fictional sample data.
+     CS dashboard that runs entirely in the browser on fictional sample data.
      No external services (HubSpot, Lineage, Supabase) are contacted. -->
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -300,7 +300,7 @@ textarea.prt-input{resize:vertical}
 
 <div id="auth-screen" class="hidden">
   <div class="auth-card">
-    <div class="auth-logo">Virio</div>
+    <div class="auth-logo">Anonymous</div>
     <div class="auth-subtitle">Customer Success Metrics</div>
     <button class="auth-btn" id="google-signin-btn" onclick="signInWithGoogle()">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -320,14 +320,14 @@ textarea.prt-input{resize:vertical}
 
 <header>
   <div class="header-left">
-    <span class="logo">Virio</span>
+    <span class="logo">Anonymous</span>
     <span class="header-title">Customer Success Metrics</span>
     <span class="demo-badge" title="All companies, names, and figures shown are fictional sample data.">SAMPLE DATA</span>
   </div>
   <div class="header-right">
     <label class="exclude-toggle">
       <input type="checkbox" id="exclude-virio" checked onchange="recompute()">
-      Exclude internal (Virio)
+      Exclude internal
     </label>
     <span id="last-updated"></span>
     <button class="signout-btn" id="signout-btn" style="display:none" onclick="signOut()">Sign out</button>
@@ -837,11 +837,12 @@ function buildDemoData() {
   const rint = (lo, hi) => lo + Math.floor(rnd() * (hi - lo + 1));
 
   const NAMES = ['Northwind Labs','Brightloom','Cedar & Pine Co','Halcyon Health','Meridian Freight','Lumen Robotics','Tideway Bank','Verdant Foods','Polaris Security','Kestrel Analytics','Driftwood Travel','Ironclad Insurance','Saffron Retail','Bluepeak Energy','Auberge Hospitality','Quill & Quire Media','Granite Logistics','Wavelength Telecom','Fernwood Education','Copperline Mfg','Solstice Apparel','Harborview Realty','Nimbus Cloud','Sablefish Seafood','Aria Fintech','Boxwood HR','Cobalt Devtools','Marigold Beauty','Tessellate Design','Umbra Gaming','Vantage Legal','Wildflower Wellness'];
-  const AMS = ['Maya Chen','Jordan Ellis','Priya Nair','Marcus Webb'];
+  const AMS = ['Maya Chen','Jordan Ellis','Priya Nair','Marcus Webb','Sofia Reyes','Liam Brennan','Naomi Park','Devin Walsh'];
   const CMS = ['Alex Rivera','Sam Okafor','Devon Brooks','Robin Tate'];
   const VERTICALS = ['Fintech','Healthcare','Developer Tools','E-commerce','Cybersecurity','Logistics','HR Tech','Real Estate','MarTech','EdTech','Hospitality','Manufacturing'];
   const REASONS = ['Budget constraints','Lack of ROI','Champion departed','Product fit','Switched to competitor','Limited bandwidth'];
-  const STAGES = ['2024 Q3','2024 Q4','2025 Q1','2025 Q2'];
+  const STAGES = ['Enterprise','Scale Up','Mid-Market','Startup']; // customer segment
+  const SEG_MULT = { 'Enterprise': 2.4, 'Scale Up': 1.5, 'Mid-Market': 1.0, 'Startup': 0.6 }; // bigger segments pay more
   const PRODUCTS = ['Full Service','EGC'];
   const HEALTH = ['green','green','green','blue','yellow','yellow','red'];
 
@@ -854,15 +855,15 @@ function buildDemoData() {
   ];
 
   const addDays = (iso, n) => { const d = new Date(iso); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-  const stageStart = { '2024 Q3': '2024-07-15', '2024 Q4': '2024-10-15', '2025 Q1': '2025-01-15', '2025 Q2': '2025-04-15' };
 
   DEMO_HS_RESULTS = STATUS_PLAN.map((status, i) => {
     const name = NAMES[i % NAMES.length];
     const stage = pick(STAGES);
     const product = pick(PRODUCTS);
-    const baseMrr = product === 'Full Service' ? rint(4, 12) * 1000 : rint(15, 40) * 100;
+    const rawMrr = product === 'Full Service' ? rint(4, 12) * 1000 : rint(15, 40) * 100;
+    const baseMrr = Math.round(rawMrr * (SEG_MULT[stage] || 1) / 100) * 100; // scale by segment, round to $100
     const isLiveish = status === 'Converted' || status === 'Churned Post Conversion';
-    const kickoff = addDays(stageStart[stage], rint(0, 30));
+    const kickoff = addDays('2024-08-01', rint(0, 300)); // spread kickoffs across ~10 months
     const hasFirstPost = status !== 'In progress' || rnd() > 0.3;
     const firstPost = hasFirstPost ? addDays(kickoff, rint(12, 45)) : null;
     const churned = status === 'Exited During Pilot' || status === 'Churned Post Conversion';
@@ -1182,7 +1183,7 @@ function switchTab(e, name) {
   if(e&&e.target) e.target.classList.add('active');
   if(!allCompanies.length) return;
   const exclude=document.getElementById('exclude-virio').checked;
-  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+  const cos=exclude?allCompanies.filter(c=>c.domain!=='internal.example'&&c.name!=='Internal'):allCompanies;
   if(name==='cohorts')   renderCohortsTab(cos);
   if(name==='portfolio') renderPortfolioTable(cos);
   if(name==='team')      renderTeamTab(cos);
@@ -1236,7 +1237,7 @@ async function loadData() {
     setStatus('');
     const now=new Date();
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('footer-date').textContent='Virio CS Dashboard · Sample data (no real customers) · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('footer-date').textContent='Anonymous CS Dashboard · Sample data (no real customers) · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
     // Refresh the Product Request Tracker against the latest account data.
     prtState.loaded=false;
@@ -1250,7 +1251,7 @@ async function loadData() {
 function recompute() {
   if(!allCompanies.length) return;
   const exclude=document.getElementById('exclude-virio').checked;
-  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+  const cos=exclude?allCompanies.filter(c=>c.domain!=='internal.example'&&c.name!=='Internal'):allCompanies;
 
   const inProgress=cos.filter(c=>c.pilot_status==='In progress');
   const converted=cos.filter(c=>c.pilot_status==='Converted');
@@ -1506,7 +1507,7 @@ function refreshActiveTab() {
   if(!allCompanies.length) return;
   recompute();
   const exclude=document.getElementById('exclude-virio').checked;
-  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+  const cos=exclude?allCompanies.filter(c=>c.domain!=='internal.example'&&c.name!=='Internal'):allCompanies;
   const active=document.querySelector('.tab-content.active');
   if(!active) return;
   if(active.id==='tab-cohorts') renderCohortsTab(cos);
@@ -1734,7 +1735,7 @@ function renderTeamTab(cos) {
   const exclude=document.getElementById('exclude-virio').checked;
   const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
 
-  // AM aggregates by post target — always include Virio so internal workload is reflected
+  // AM aggregates by post target — always include internal accounts so workload is reflected
   const ceSource=allCompanies.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
   const ceMap = {};
   ceSource.forEach(c => {
