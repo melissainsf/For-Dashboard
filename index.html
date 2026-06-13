@@ -242,6 +242,12 @@ tbody td:first-child{font-weight:500}
 .prt-chip.sev-High{background:var(--coral-light);color:var(--coral)}
 .prt-chip.sev-Medium{background:var(--amber-light);color:var(--amber)}
 .prt-chip.sev-Low{background:var(--surface2);color:var(--ink2)}
+.prt-group{display:flex;align-items:center;gap:7px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink2);margin:14px 0 8px;padding-top:12px;border-top:1px dashed var(--border)}
+.prt-group:first-child{margin-top:2px;padding-top:0;border-top:none}
+.prt-group-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.prt-group.urgent .prt-group-dot{background:var(--red)}
+.prt-group.soon .prt-group-dot{background:var(--amber)}
+.prt-group.later .prt-group-dot{background:var(--ink3)}
 .prt-detail{border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);display:none}
 .prt-card.open .prt-detail{display:block}
 .prt-ask{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
@@ -1713,22 +1719,37 @@ function prtDaysLabel(nextDate) {
   return { txt, cls, days };
 }
 
+// Urgency tier from the (median) days until renewal — drives the tag, ordering, and group breaks.
+function prtTier(days) {
+  if (days == null)  return { rank: 3, tag: 'No date', group: 'No renewal date on file',     cls: 'later' };
+  if (days <= 30)    return { rank: 0, tag: 'Urgent',  group: 'Urgent · renewing within 30 days', cls: 'urgent' };
+  if (days <= 90)    return { rank: 1, tag: 'Soon',    group: 'Soon · renewing within 90 days',    cls: 'soon' };
+  return               { rank: 2, tag: 'Later',   group: 'Later · renewing in 90+ days',       cls: 'later' };
+}
+
 // Score one request against the current product filter. Churned accounts drop out.
 function prtScore(req, idx) {
   const pf = prtState.product;
   const seen = {};
   let raw = 0, score = 0, soonest = null;
   const accounts = [];
+  const dayList = [];
   prtState.asks.filter(a => a.request_id === req.id).forEach(a => {
     const acc = idx[a.hs_company_id];
     if (!acc || acc.churned) return;                       // money gone / unknown → excluded
     if (pf !== 'all' && acc.product !== pf) return;        // respect EGC / Full Service filter
     accounts.push({ acc, ask: a });
-    if (!seen[acc.id]) { seen[acc.id] = true; raw += acc.arr; score += acc.arr * prtUrgency(acc.nextDate); }
+    if (!seen[acc.id]) {
+      seen[acc.id] = true; raw += acc.arr; score += acc.arr * prtUrgency(acc.nextDate);
+      if (acc.nextDate) dayList.push(Math.round((acc.nextDate - new Date()) / 86400000));
+    }
     if (acc.nextDate && (!soonest || acc.nextDate < soonest)) soonest = acc.nextDate;
   });
   if (req.type === 'bug') score *= (PRT_CFG.severityMult[req.severity] || 1);
-  return { accounts, raw, score, soonest, count: Object.keys(seen).length };
+  dayList.sort((a, b) => a - b);
+  const n = dayList.length;
+  const medianDays = n ? (n % 2 ? dayList[(n - 1) / 2] : Math.round((dayList[n / 2 - 1] + dayList[n / 2]) / 2)) : null;
+  return { accounts, raw, score, soonest, medianDays, count: Object.keys(seen).length };
 }
 
 function prtRender() {
@@ -1741,8 +1762,10 @@ function prtRender() {
   const open = prtState.requests.filter(r => r.status !== 'shipped' && match(r));
   const scored = open.map(r => ({ r, s: prtScore(r, idx) })).filter(x => x.s.count > 0);
 
-  const bugs = scored.filter(x => x.r.type === 'bug').sort((a, b) => b.s.score - a.s.score);
-  const feats = scored.filter(x => x.r.type === 'feature').sort((a, b) => b.s.score - a.s.score);
+  // Order by urgency tier first (Urgent → Soon → Later), then by score within each tier.
+  const byUrgency = (a, b) => prtTier(a.s.medianDays).rank - prtTier(b.s.medianDays).rank || b.s.score - a.s.score;
+  const bugs = scored.filter(x => x.r.type === 'bug').sort(byUrgency);
+  const feats = scored.filter(x => x.r.type === 'feature').sort(byUrgency);
 
   renderList('prt-bug-list', bugs, 'bug');
   renderList('prt-feature-list', feats, 'feature');
@@ -1775,7 +1798,19 @@ function renderList(elId, items, kind) {
     el.innerHTML = `<div class="prt-empty">${msg}</div>`;
     return;
   }
-  el.innerHTML = items.map((x, i) => prtCard(x.r, x.s, i + 1, kind)).join('');
+  // Render cards, inserting a group divider whenever the urgency tier changes.
+  let html = '', lastRank = null;
+  items.forEach((x, i) => {
+    if (kind !== 'shipped') {
+      const t = prtTier(x.s.medianDays);
+      if (t.rank !== lastRank) {
+        html += `<div class="prt-group ${t.cls}"><span class="prt-group-dot"></span>${escapeHtml(t.group)}</div>`;
+        lastRank = t.rank;
+      }
+    }
+    html += prtCard(x.r, x.s, i + 1, kind);
+  });
+  el.innerHTML = html;
 }
 
 function prtCard(req, s, rank, kind) {
@@ -1786,8 +1821,11 @@ function prtCard(req, s, rank, kind) {
   if (kind === 'shipped') {
     urgChip = `<span class="prt-chip later">Shipped ${req.shipped_date || ''}</span>`;
   } else {
-    const d = prtDaysLabel(s.soonest);
-    urgChip = `<span class="prt-chip ${d.cls}">⏰ ${d.txt}</span>`;
+    const t = prtTier(s.medianDays);
+    const med = s.medianDays == null ? 'No renewal date'
+      : s.medianDays < 0 ? `${Math.abs(s.medianDays)}d overdue`
+      : `~${s.medianDays}d to renewal`;
+    urgChip = `<span class="prt-chip ${t.cls}">${t.tag}</span><span class="prt-chip later">🗓 ${med}</span>`;
   }
   const asksHtml = s.accounts.map(({ acc, ask }) => {
     const d = prtDaysLabel(acc.nextDate);
