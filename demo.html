@@ -244,6 +244,12 @@ tbody td:first-child{font-weight:500}
 .prt-chip.sev-High{background:var(--coral-light);color:var(--coral)}
 .prt-chip.sev-Medium{background:var(--amber-light);color:var(--amber)}
 .prt-chip.sev-Low{background:var(--surface2);color:var(--ink2)}
+.prt-group{display:flex;align-items:center;gap:7px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink2);margin:14px 0 8px;padding-top:12px;border-top:1px dashed var(--border)}
+.prt-group:first-child{margin-top:2px;padding-top:0;border-top:none}
+.prt-group-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.prt-group.urgent .prt-group-dot{background:var(--red)}
+.prt-group.soon .prt-group-dot{background:var(--amber)}
+.prt-group.later .prt-group-dot{background:var(--ink3)}
 .prt-detail{border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);display:none}
 .prt-card.open .prt-detail{display:block}
 .prt-ask{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
@@ -855,6 +861,8 @@ function buildDemoData() {
   ];
 
   const addDays = (iso, n) => { const d = new Date(iso); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const TODAY = new Date().toISOString().slice(0, 10);          // anchor everything to whenever the demo is opened
+  const relDate = n => addDays(TODAY, n);                        // n days from today (negative = past)
 
   DEMO_HS_RESULTS = STATUS_PLAN.map((status, i) => {
     const name = NAMES[i % NAMES.length];
@@ -863,7 +871,7 @@ function buildDemoData() {
     const rawMrr = product === 'Full Service' ? rint(4, 12) * 1000 : rint(15, 40) * 100;
     const baseMrr = Math.round(rawMrr * (SEG_MULT[stage] || 1) / 100) * 100; // scale by segment, round to $100
     const isLiveish = status === 'Converted' || status === 'Churned Post Conversion';
-    const kickoff = addDays('2024-08-01', rint(0, 300)); // spread kickoffs across ~10 months
+    const kickoff = relDate(-rint(40, 420)); // kicked off 1.5–14 months ago
     const hasFirstPost = status !== 'In progress' || rnd() > 0.3;
     const firstPost = hasFirstPost ? addDays(kickoff, rint(12, 45)) : null;
     const churned = status === 'Exited During Pilot' || status === 'Churned Post Conversion';
@@ -899,36 +907,81 @@ function buildDemoData() {
     focs: ['Jamie Patel','Taylor Brooks','Chris Donovan','Robin Yu','Sasha Mor','Lee Carter'][i]
   }));
 
-  DEMO_PR_MAP = {};
-  DEMO_HS_RESULTS.forEach(r => { DEMO_PR_MAP[r.id] = { product: r.properties.product, closeDate: r.properties.kickoff_call_date }; });
+  // ── Product Request Tracker sample data ───────────────────────────────
+  // Priority = ARR × renewal-urgency (× severity for bugs). To make that legible
+  // we anchor each referenced account to a specific "days until renewal" and pull
+  // accounts from across the ARR range, so the ranking visibly tracks $ + urgency.
+  const arrOf = r => (r.properties.mrr + r.properties.expansion_mrr) * 12;
+  const activeCo = DEMO_HS_RESULTS
+    .filter(r => r.properties.pilot_status === 'In progress' || r.properties.pilot_status === 'Converted')
+    .sort((a, b) => arrOf(b) - arrOf(a)); // biggest ARR first
 
-  // A few realistic product requests + customer asks.
+  // Set a company's close date so its next decision (pilot-end, or renewal if
+  // converted) lands ~`daysOut` days from today.
+  DEMO_PR_MAP = {};
+  const setRenewal = (r, daysOut) => {
+    const lead = 90 + (r.properties.pilot_status === 'Converted' ? 365 : 0);
+    DEMO_PR_MAP[r.id] = { product: r.properties.product, closeDate: relDate(daysOut - lead) };
+  };
+  // Default spread for every active account, then hand-tune the story accounts.
+  const SPREAD = [25, 50, 75, 120, 160, 210, 270, 330];
+  activeCo.forEach((r, i) => setRenewal(r, SPREAD[i % SPREAD.length]));
+  DEMO_HS_RESULTS.filter(r => !DEMO_PR_MAP[r.id]).forEach(r => { DEMO_PR_MAP[r.id] = { product: r.properties.product, closeDate: r.properties.kickoff_call_date }; });
+
+  // Named tiers from the ARR-sorted active list (all distinct).
+  const whale = activeCo[0], big2 = activeCo[1], big3 = activeCo[2], big4 = activeCo[3];
+  const mids = activeCo.slice(8, 12);
+  const smalls = activeCo.slice(-6);
+  setRenewal(whale, 9);   // huge ARR, renews next week  → tops the feature list
+  setRenewal(big2, 18);
+  setRenewal(big3, 60);
+  setRenewal(big4, 14);   // anchor for the urgent bug
+  setRenewal(mids[0], 70);
+  setRenewal(mids[1], 78);
+  smalls.forEach((r, i) => setRenewal(r, 230 + i * 20)); // many small asks, far from renewal
+
   const reqs = [
-    { title: 'Bulk schedule posts across seats', type: 'feature', severity: null, status: 'open' },
-    { title: 'Export analytics to CSV', type: 'feature', severity: null, status: 'open' },
-    { title: 'LinkedIn carousel support', type: 'feature', severity: null, status: 'open' },
-    { title: 'Draft preview renders wrong on mobile', type: 'bug', severity: 'medium', status: 'open' },
-    { title: 'SSO / SAML login', type: 'feature', severity: null, status: 'shipped' }
+    { id: 'req-1', title: 'Bulk schedule posts across all seats',            type: 'feature', severity: null,     status: 'open' },
+    { id: 'req-2', title: 'Salesforce / CRM integration',                    type: 'feature', severity: null,     status: 'open' },
+    { id: 'req-3', title: 'LinkedIn carousel (multi-image) posts',           type: 'feature', severity: null,     status: 'open' },
+    { id: 'req-4', title: 'Dark mode for the dashboard',                     type: 'feature', severity: null,     status: 'open' },
+    { id: 'req-5', title: 'Scheduled posts publishing in the wrong timezone', type: 'bug',    severity: 'Urgent', status: 'open' },
+    { id: 'req-6', title: 'Analytics export missing the last 7 days',        type: 'bug',     severity: 'Medium', status: 'open' },
+    { id: 'req-7', title: 'Avatar upload fails on Safari',                   type: 'bug',     severity: 'Low',    status: 'open' },
+    { id: 'req-8', title: 'SSO / SAML login',                                type: 'feature', severity: null,     status: 'shipped' }
   ];
   DEMO_PR_REQUESTS = reqs.map((r, i) => ({
-    id: 'req-' + (i + 1), title: r.title, type: r.type, severity: r.severity,
-    status: r.status, shipped_date: r.status === 'shipped' ? '2025-03-20' : null,
-    created_by: DEMO_EMAIL, created_at: '2025-02-0' + (i + 1) + 'T12:00:00Z', updated_at: '2025-02-0' + (i + 1) + 'T12:00:00Z'
+    ...r, shipped_date: r.status === 'shipped' ? relDate(-25) : null,
+    created_by: DEMO_EMAIL, created_at: relDate(-60 + i), updated_at: relDate(-10)
   }));
-  const askSeed = [
-    [0, 'Customer wants to queue a month of posts in one go for all 8 seats.'],
-    [0, 'Asked about scheduling across the whole exec team at once.'],
-    [1, 'Needs raw numbers to drop into their QBR deck.'],
-    [2, 'Multi-image carousels are their top-performing format on LinkedIn.'],
-    [3, 'Preview cuts off the last line on iPhone Safari.'],
-    [4, 'Security review blocked rollout until SSO was available.']
-  ];
-  DEMO_PR_ASKS = askSeed.map((a, i) => {
-    const co = DEMO_HS_RESULTS[(i * 3) % DEMO_HS_RESULTS.length];
-    return { id: 'ask-' + (i + 1), request_id: 'req-' + (a[0] + 1), hs_company_id: co.id,
-      company_name: co.properties.name, product: co.properties.product, detail: a[1],
-      source: 'manual', created_by: DEMO_EMAIL, images: [], created_at: '2025-02-10T12:00:00Z' };
+
+  let _ask = 0;
+  const mkAsk = (reqId, co, detail) => ({
+    id: 'ask-' + (++_ask), request_id: reqId, hs_company_id: co.id,
+    company_name: co.properties.name, product: co.properties.product,
+    detail, source: 'manual', created_by: DEMO_EMAIL, images: [], created_at: relDate(-12)
   });
+  DEMO_PR_ASKS = [
+    // Feature 1 — two of the biggest accounts, both renewing within weeks → #1
+    mkAsk('req-1', whale, 'Wants to queue a full month of posts across all seats in one action. Raised on the renewal call.'),
+    mkAsk('req-1', big2,  'Renewal blocker — exec team needs to schedule a whole month in one sitting.'),
+    // Feature 2 — high ARR, renewal a couple months out → #2
+    mkAsk('req-2', big3,  'Needs request activity to sync into Salesforce for their RevOps team.'),
+    mkAsk('req-2', mids[0], 'Would expand seats if engagement data pushed to their CRM.'),
+    // Feature 3 — FOUR small accounts, all far from renewal → lots of demand, lower priority
+    mkAsk('req-3', smalls[0], 'Carousels are their best-performing format on LinkedIn.'),
+    mkAsk('req-3', smalls[1], 'Wants multi-image posts for product launches.'),
+    mkAsk('req-3', smalls[2], 'Asked for swipeable carousels.'),
+    mkAsk('req-3', smalls[3], 'Carousel support would help their design team.'),
+    // Feature 4 — single small account, far out → bottom
+    mkAsk('req-4', smalls[4], 'Nice-to-have: a dark theme for late-night reviewing.'),
+    // Bug 1 — Urgent severity, big account renewing in 2 weeks → top of bug list
+    mkAsk('req-5', big4, 'Posts set for 9am ET went out at 9am UTC — right before their renewal.'),
+    // Bug 2 — Medium severity, mid account
+    mkAsk('req-6', mids[1], 'CSV export is dropping the most recent week of analytics.'),
+    // Bug 3 — Low severity, small account far out
+    mkAsk('req-7', smalls[5], 'Profile photo upload fails in Safari; works in Chrome.')
+  ];
 }
 
 // ── Mock Supabase client (in-memory; chainable query-builder subset) ───────
@@ -1922,22 +1975,37 @@ function prtDaysLabel(nextDate) {
   return { txt, cls, days };
 }
 
+// Urgency tier from the (median) days until renewal — drives the tag, ordering, and group breaks.
+function prtTier(days) {
+  if (days == null)  return { rank: 3, tag: 'No date', group: 'No renewal date on file',     cls: 'later' };
+  if (days <= 30)    return { rank: 0, tag: 'Urgent',  group: 'Urgent · renewing within 30 days', cls: 'urgent' };
+  if (days <= 90)    return { rank: 1, tag: 'Soon',    group: 'Soon · renewing within 90 days',    cls: 'soon' };
+  return               { rank: 2, tag: 'Later',   group: 'Later · renewing in 90+ days',       cls: 'later' };
+}
+
 // Score one request against the current product filter. Churned accounts drop out.
 function prtScore(req, idx) {
   const pf = prtState.product;
   const seen = {};
   let raw = 0, score = 0, soonest = null;
   const accounts = [];
+  const dayList = [];
   prtState.asks.filter(a => a.request_id === req.id).forEach(a => {
     const acc = idx[a.hs_company_id];
     if (!acc || acc.churned) return;                       // money gone / unknown → excluded
     if (pf !== 'all' && acc.product !== pf) return;        // respect EGC / Full Service filter
     accounts.push({ acc, ask: a });
-    if (!seen[acc.id]) { seen[acc.id] = true; raw += acc.arr; score += acc.arr * prtUrgency(acc.nextDate); }
+    if (!seen[acc.id]) {
+      seen[acc.id] = true; raw += acc.arr; score += acc.arr * prtUrgency(acc.nextDate);
+      if (acc.nextDate) dayList.push(Math.round((acc.nextDate - new Date()) / 86400000));
+    }
     if (acc.nextDate && (!soonest || acc.nextDate < soonest)) soonest = acc.nextDate;
   });
   if (req.type === 'bug') score *= (PRT_CFG.severityMult[req.severity] || 1);
-  return { accounts, raw, score, soonest, count: Object.keys(seen).length };
+  dayList.sort((a, b) => a - b);
+  const n = dayList.length;
+  const medianDays = n ? (n % 2 ? dayList[(n - 1) / 2] : Math.round((dayList[n / 2 - 1] + dayList[n / 2]) / 2)) : null;
+  return { accounts, raw, score, soonest, medianDays, count: Object.keys(seen).length };
 }
 
 function prtRender() {
@@ -1950,8 +2018,10 @@ function prtRender() {
   const open = prtState.requests.filter(r => r.status !== 'shipped' && match(r));
   const scored = open.map(r => ({ r, s: prtScore(r, idx) })).filter(x => x.s.count > 0);
 
-  const bugs = scored.filter(x => x.r.type === 'bug').sort((a, b) => b.s.score - a.s.score);
-  const feats = scored.filter(x => x.r.type === 'feature').sort((a, b) => b.s.score - a.s.score);
+  // Order by urgency tier first (Urgent → Soon → Later), then by score within each tier.
+  const byUrgency = (a, b) => prtTier(a.s.medianDays).rank - prtTier(b.s.medianDays).rank || b.s.score - a.s.score;
+  const bugs = scored.filter(x => x.r.type === 'bug').sort(byUrgency);
+  const feats = scored.filter(x => x.r.type === 'feature').sort(byUrgency);
 
   renderList('prt-bug-list', bugs, 'bug');
   renderList('prt-feature-list', feats, 'feature');
@@ -1984,7 +2054,19 @@ function renderList(elId, items, kind) {
     el.innerHTML = `<div class="prt-empty">${msg}</div>`;
     return;
   }
-  el.innerHTML = items.map((x, i) => prtCard(x.r, x.s, i + 1, kind)).join('');
+  // Render cards, inserting a group divider whenever the urgency tier changes.
+  let html = '', lastRank = null;
+  items.forEach((x, i) => {
+    if (kind !== 'shipped') {
+      const t = prtTier(x.s.medianDays);
+      if (t.rank !== lastRank) {
+        html += `<div class="prt-group ${t.cls}"><span class="prt-group-dot"></span>${escapeHtml(t.group)}</div>`;
+        lastRank = t.rank;
+      }
+    }
+    html += prtCard(x.r, x.s, i + 1, kind);
+  });
+  el.innerHTML = html;
 }
 
 function prtCard(req, s, rank, kind) {
@@ -1995,8 +2077,9 @@ function prtCard(req, s, rank, kind) {
   if (kind === 'shipped') {
     urgChip = `<span class="prt-chip later">Shipped ${req.shipped_date || ''}</span>`;
   } else {
-    const d = prtDaysLabel(s.soonest);
-    urgChip = `<span class="prt-chip ${d.cls}">⏰ ${d.txt}</span>`;
+    const t = prtTier(s.medianDays);
+    const med = s.medianDays == null ? 'No renewal date' : `~${s.medianDays}d to renewal`;
+    urgChip = `<span class="prt-chip ${t.cls}">${t.tag}</span><span class="prt-chip later">🗓 ${med}</span>`;
   }
   const asksHtml = s.accounts.map(({ acc, ask }) => {
     const d = prtDaysLabel(acc.nextDate);
