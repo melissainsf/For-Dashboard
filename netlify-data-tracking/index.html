@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- Netlify Content Performance Dashboard v1.0 -->
+<!DOCTYPE html><!-- Netlify Content Performance Dashboard v2.0 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -24,7 +24,7 @@
   --radius:10px;--radius-sm:6px
 }
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6}
-a{color:var(--blue)}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 /* AUTH */
 #auth-screen{position:fixed;inset:0;z-index:10000;background:var(--header-bg);display:flex;align-items:center;justify-content:center}
 #auth-screen.hidden{display:none}
@@ -32,8 +32,7 @@ a{color:var(--blue)}
 .auth-logo{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:#F5F3EE;letter-spacing:-0.02em;margin-bottom:6px}
 .auth-subtitle{font-size:12px;color:rgba(245,243,238,0.4);margin-bottom:36px;letter-spacing:0.04em;text-transform:uppercase}
 .auth-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:12px 20px;background:#fff;color:#1A1916;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s}
-.auth-btn:hover{opacity:0.9}
-.auth-btn:disabled{opacity:0.5;cursor:default}
+.auth-btn:hover{opacity:0.9}.auth-btn:disabled{opacity:0.5;cursor:default}
 .auth-btn svg{width:18px;height:18px;flex-shrink:0}
 .auth-error{margin-top:16px;font-size:12px;color:#F09595;min-height:18px}
 .auth-note{margin-top:20px;font-size:11px;color:rgba(245,243,238,0.25)}
@@ -44,18 +43,15 @@ header{background:var(--header-bg);color:var(--header-ink);padding:18px 32px;dis
 .header-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:400;color:rgba(245,243,238,0.55);letter-spacing:0.06em;text-transform:uppercase}
 .header-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 #refresh-btn{background:rgba(245,243,238,0.1);border:1px solid rgba(245,243,238,0.18);color:var(--header-ink);padding:7px 16px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:background 0.15s}
-#refresh-btn:hover{background:rgba(245,243,238,0.2)}
-#refresh-btn:disabled{opacity:0.4;cursor:default}
+#refresh-btn:hover{background:rgba(245,243,238,0.2)}#refresh-btn:disabled{opacity:0.4;cursor:default}
 #last-updated{font-size:12px;color:rgba(245,243,238,0.38)}
 .signout-btn{background:rgba(245,243,238,0.08);border:1px solid rgba(245,243,238,0.15);color:rgba(245,243,238,0.5);padding:6px 12px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all 0.15s}
 .signout-btn:hover{background:rgba(245,243,238,0.15);color:var(--header-ink)}
 /* TABS */
 .tab-nav{display:flex;gap:2px;padding:0 32px;background:var(--header-bg);border-top:1px solid rgba(245,243,238,0.08);flex-wrap:wrap}
 .tab-btn{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:10px 18px;border:none;background:transparent;color:rgba(245,243,238,0.4);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s}
-.tab-btn:hover{color:rgba(245,243,238,0.7)}
-.tab-btn.active{color:var(--header-ink);border-bottom-color:var(--teal-mid)}
-.tab-content{display:none}
-.tab-content.active{display:block;animation:fadeIn 0.25s ease both}
+.tab-btn:hover{color:rgba(245,243,238,0.7)}.tab-btn.active{color:var(--header-ink);border-bottom-color:var(--teal-mid)}
+.tab-content{display:none}.tab-content.active{display:block;animation:fadeIn 0.25s ease both}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 /* MAIN */
 main{padding:24px 32px;max-width:1500px;margin:0 auto}
@@ -65,15 +61,21 @@ main{padding:24px 32px;max-width:1500px;margin:0 auto}
 #status-bar.warn{display:flex;background:var(--amber-light);color:var(--amber)}
 .spinner{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
-.section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink2);margin:6px 0 14px}
+/* PERIOD TOGGLE */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:3px}
+.seg button{border:none;background:transparent;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.03em;color:var(--ink2);padding:6px 16px;border-radius:999px;cursor:pointer;transition:all 0.15s}
+.seg button.active{background:var(--ink);color:#fff}
+.range-label{font-size:12px;color:var(--ink3)}
 /* METRIC CARDS */
-.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:24px}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:22px}
 .mcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);transition:border-color 0.15s,box-shadow 0.15s}
 .mcard:hover{border-color:var(--border-strong);box-shadow:0 2px 8px rgba(26,25,22,0.10)}
 .mcard-label{font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
 .mcard-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:600;line-height:1;letter-spacing:-0.03em}
 .mcard-value.teal{color:var(--teal)}.mcard-value.coral{color:var(--coral-mid)}.mcard-value.blue{color:var(--blue)}.mcard-value.ink{color:var(--ink)}
-.mcard-sub{font-size:10px;color:var(--ink3);margin-top:4px}
+.mcard-sub{font-size:11px;color:var(--ink3);margin-top:5px}
+.mcard-sub .up{color:var(--teal-mid);font-weight:500}
 /* CHARTS */
 .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 @media(max-width:1000px){.chart-row{grid-template-columns:1fr}}
@@ -81,27 +83,37 @@ main{padding:24px 32px;max-width:1500px;margin:0 auto}
 .chart-card-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;margin-bottom:2px}
 .chart-card-sub{font-size:10px;color:var(--ink3);margin-bottom:12px}
 .chart-wrap{position:relative;width:100%;height:240px}
+/* DEMOGRAPHICS */
+.demo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.demo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.demo-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600}
+.demo-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.demo-tabs button{border:1px solid var(--border);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--ink2);padding:5px 12px;border-radius:999px;cursor:pointer;transition:all 0.15s}
+.demo-tabs button.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.demo-row{margin-bottom:12px}
+.demo-row:last-child{margin-bottom:0}
+.demo-row-top{display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-bottom:4px}
+.demo-row-label{color:var(--ink);font-weight:500}
+.demo-row-pct{color:var(--ink2);font-variant-numeric:tabular-nums;flex-shrink:0}
+.demo-bar{height:7px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.demo-bar-fill{height:100%;background:var(--teal-mid);border-radius:4px}
 /* TABLE */
 .table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{text-align:left;font-family:'Syne',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink3);padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface2)}
-thead th.num{text-align:right}
-thead th.sortable{cursor:pointer;user-select:none}
-thead th.sortable:hover{color:var(--ink)}
+thead th.num{text-align:right}thead th.sortable{cursor:pointer;user-select:none}thead th.sortable:hover{color:var(--ink)}
 .sort-ind{opacity:0.5;font-size:9px;margin-left:3px}
 tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top}
 tbody td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-tbody tr:last-child td{border-bottom:none}
-tbody tr:hover{background:var(--surface2)}
-.post-text{max-width:420px;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+tbody tr:last-child td{border-bottom:none}tbody tr:hover{background:var(--surface2)}
+.post-title{max-width:480px;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .post-date{color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums}
 .empty{padding:48px 24px;text-align:center;color:var(--ink3);font-size:13px}
 /* ICP */
 .icp-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
 .btn{background:var(--ink);color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity 0.15s}
 .btn:hover{opacity:0.88}
-.btn.secondary{background:var(--surface);color:var(--ink);border:1px solid var(--border-strong)}
 .btn.danger{background:transparent;color:var(--coral);border:1px solid var(--coral-light);padding:5px 10px;font-size:12px}
 .btn.danger:hover{background:var(--coral-light)}
 .icp-list-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
@@ -142,7 +154,7 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink3)}
   <div class="header-right">
     <span id="last-updated"></span>
     <button class="signout-btn" id="signout-btn" style="display:none" onclick="signOut()">Sign out</button>
-    <button id="refresh-btn" onclick="loadAnalytics()">↻ Refresh</button>
+    <button id="refresh-btn" onclick="loadData()">↻ Refresh</button>
   </div>
 </header>
 
@@ -157,41 +169,48 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink3)}
 
   <!-- TAB 1: Performance Metrics Overview -->
   <div id="tab-overview" class="tab-content active">
+    <div class="toolbar">
+      <div class="seg">
+        <button id="seg-last7" onclick="setPeriod('last7')">Last 7 days</button>
+        <button id="seg-overall" class="active" onclick="setPeriod('overall')">Overall</button>
+      </div>
+      <div class="range-label" id="range-label"></div>
+    </div>
     <div class="metric-grid" id="overview-metrics"></div>
     <div class="chart-row">
       <div class="chart-card">
-        <div class="chart-card-title">Impressions Over Time</div>
-        <div class="chart-card-sub">Per post, since the program start</div>
-        <div class="chart-wrap"><canvas id="chart-impressions"></canvas></div>
+        <div class="chart-card-title">Follower Growth</div>
+        <div class="chart-card-sub" id="sub-followers">Cumulative new followers</div>
+        <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-card-title">Engagement Over Time</div>
-        <div class="chart-card-sub">Reactions + comments + reposts per post</div>
-        <div class="chart-wrap"><canvas id="chart-engagement"></canvas></div>
+        <div class="chart-card-title">Impressions</div>
+        <div class="chart-card-sub" id="sub-impr">Cumulative impressions</div>
+        <div class="chart-wrap"><canvas id="chart-impr"></canvas></div>
       </div>
     </div>
     <div class="chart-row">
       <div class="chart-card">
-        <div class="chart-card-title">Engagement Rate Trend</div>
-        <div class="chart-card-sub">Engagements ÷ impressions, per post</div>
-        <div class="chart-wrap"><canvas id="chart-rate"></canvas></div>
+        <div class="chart-card-title">Engagements</div>
+        <div class="chart-card-sub" id="sub-eng">Cumulative engagements (reactions + comments + reposts)</div>
+        <div class="chart-wrap"><canvas id="chart-eng"></canvas></div>
       </div>
-      <div class="chart-card">
-        <div class="chart-card-title">Engagement Mix</div>
-        <div class="chart-card-sub">Total reactions, comments & reposts</div>
-        <div class="chart-wrap"><canvas id="chart-mix"></canvas></div>
+      <div class="demo-card">
+        <div class="demo-head">
+          <div class="demo-title">Top Demographics <span class="muted" style="font-weight:400">· audience overall</span></div>
+          <div class="demo-tabs" id="demo-tabs"></div>
+        </div>
+        <div id="demo-body"></div>
       </div>
     </div>
   </div>
 
   <!-- TAB 2: By Post Performance -->
   <div id="tab-posts" class="tab-content">
+    <div class="toolbar"><div class="range-label">Mathias Biilmann's top-performing LinkedIn posts</div></div>
     <div class="table-card">
       <div class="table-wrap">
-        <table id="posts-table">
-          <thead><tr id="posts-head"></tr></thead>
-          <tbody id="posts-body"></tbody>
-        </table>
+        <table id="posts-table"><thead><tr id="posts-head"></tr></thead><tbody id="posts-body"></tbody></table>
       </div>
     </div>
   </div>
@@ -212,44 +231,31 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink3)}
 <script>
 const SUPABASE_URL  = 'https://ylplirptcybuzxnecsgp.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlscGxpcnB0Y3lidXp4bmVjc2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDAwNjcsImV4cCI6MjA2NzA3NjA2N30.H7BnhxTNvZ8WnByos5P84M2f8qhthIRlt_5Whkwt1wg';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
-});
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true } });
 const ALLOWED_DOMAINS = ['netlify.com', 'virio.ai'];
 const ICP_TABLE = 'netlify_icps';
 
-let posts = [], overview = {}, charts = {};
+let LI = null;             // LinkedIn analytics document
+let liPeriod = 'overall';  // 'overall' | 'last7'
+let demoCat = null;
+let charts = {};
 
 // ── AUTH ──────────────────────────────────────────────────────────
-function showAuthScreen(show){
-  document.getElementById('auth-screen').classList.toggle('hidden', !show);
-  document.getElementById('signout-btn').style.display = show ? 'none' : 'inline-block';
-}
+function showAuthScreen(s){ document.getElementById('auth-screen').classList.toggle('hidden', !s); document.getElementById('signout-btn').style.display = s ? 'none' : 'inline-block'; }
 function setAuthError(m){ document.getElementById('auth-error').textContent = m; }
-function emailAllowed(email){ return ALLOWED_DOMAINS.some(d => (email||'').toLowerCase().endsWith('@'+d)); }
-
+function emailAllowed(e){ return ALLOWED_DOMAINS.some(d => (e||'').toLowerCase().endsWith('@'+d)); }
 function handleValidSession(session){
   const email = session?.user?.email || '';
-  if (!emailAllowed(email)){
-    sb.auth.signOut();
-    setAuthError('Access restricted to ' + ALLOWED_DOMAINS.map(d=>'@'+d).join(' and ') + ' accounts.');
-    showAuthScreen(true);
-    return false;
-  }
+  if (!emailAllowed(email)){ sb.auth.signOut(); setAuthError('Access restricted to ' + ALLOWED_DOMAINS.map(d=>'@'+d).join(' and ') + ' accounts.'); showAuthScreen(true); return false; }
   if (window.location.search || window.location.hash) window.history.replaceState(null,'',window.location.pathname);
-  showAuthScreen(false);
-  return true;
+  showAuthScreen(false); return true;
 }
 async function signInWithGoogle(){
-  const btn = document.getElementById('google-signin-btn');
-  btn.disabled = true; setAuthError('');
-  const { error } = await sb.auth.signInWithOAuth({
-    provider:'google',
-    options:{ redirectTo: window.location.origin + window.location.pathname }
-  });
+  const btn = document.getElementById('google-signin-btn'); btn.disabled = true; setAuthError('');
+  const { error } = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin + window.location.pathname } });
   if (error){ setAuthError(error.message); btn.disabled = false; }
 }
-async function signOut(){ await sb.auth.signOut(); posts=[]; overview={}; showAuthScreen(true); }
+async function signOut(){ await sb.auth.signOut(); LI=null; showAuthScreen(true); }
 
 // ── TABS ──────────────────────────────────────────────────────────
 function switchTab(e, name){
@@ -258,244 +264,184 @@ function switchTab(e, name){
   document.getElementById('tab-'+name).classList.add('active');
   if (e&&e.target) e.target.classList.add('active');
   if (name==='icps') loadIcps();
+  if (name==='overview') renderOverview();
 }
 
 // ── FORMAT HELPERS ────────────────────────────────────────────────
-function fmt(n){
-  if (n==null || isNaN(n)) return '—';
-  const a = Math.abs(n);
-  if (a>=1e6) return (n/1e6).toFixed(a>=1e7?0:1)+'M';
-  if (a>=1e3) return (n/1e3).toFixed(a>=1e4?0:1)+'K';
-  return String(Math.round(n));
-}
+function fmt(n){ if(n==null||isNaN(n))return '—'; const a=Math.abs(n); if(a>=1e6)return (n/1e6).toFixed(a>=1e7?0:1)+'M'; if(a>=1e3)return (n/1e3).toFixed(a>=1e4?0:1)+'K'; return String(Math.round(n)); }
 function fmtFull(n){ return n==null||isNaN(n) ? '—' : Number(n).toLocaleString(); }
-function fmtDate(d){ if(!d) return '—'; const t=Date.parse(d); return isNaN(t)?d:new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 function fmtPct(n){ return n==null||isNaN(n) ? '—' : n.toFixed(2)+'%'; }
+function pctNum(s){ if(s==null)return 0; s=String(s).trim(); if(s.indexOf('<')>=0)return 0.5; const v=parseFloat(s.replace('%','')); return isNaN(v)?0:v; }
+function addDays(iso,i){ const [y,m,d]=iso.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d+i)); return dt.toISOString().slice(0,10); }
+function fmtDate(iso){ if(!iso)return '—'; const t=Date.parse(iso+(iso.length<=10?'T00:00:00Z':'')); return isNaN(t)?iso:new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function fmtDateShort(iso){ const t=Date.parse(iso+'T00:00:00Z'); return new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function esc(s){ return s==null?'':String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function setStatus(msg, kind){ const el=document.getElementById('status-bar'); el.className=kind||''; el.innerHTML = kind==='loading' ? '<span class="spinner"></span>'+msg : msg; }
 
-// ── LOAD ANALYTICS (live sync) ────────────────────────────────────
-async function loadAnalytics(){
-  const btn = document.getElementById('refresh-btn');
-  btn.disabled = true;
-  setStatus('Syncing content analytics from Lineage…','loading');
+// ── LOAD DATA ─────────────────────────────────────────────────────
+async function loadData(){
+  const btn=document.getElementById('refresh-btn'); btn.disabled=true;
+  setStatus('Loading dashboard data…','loading');
   try {
-    const res = await fetch('/api/lineage-analytics');
-    const data = await res.json();
-    if (!data.ok){
-      posts=[]; overview={};
-      renderOverview(); renderPosts();
-      setStatus('Not connected to Lineage yet. ' + (data.error||'') + ' — add the LINEAGE_API_KEY environment variable in Netlify to turn on the live sync.','warn');
-      return;
-    }
-    posts = data.posts || [];
-    overview = data.overview || {};
+    const { data, error } = await sb.from('linkedin_analytics').select('*').order('updated_at',{ascending:false}).limit(1);
+    if (error) throw error;
+    LI = (data && data[0]) ? data[0].data : null;
+    if (!LI){ setStatus('No LinkedIn data loaded yet.','warn'); }
+    else { setStatus(''); document.getElementById('last-updated').textContent = 'Data through ' + fmtDate(LI.end); }
     renderOverview(); renderPosts();
-    if (!posts.length){
-      setStatus('Connected, but no posts returned for this account/date range yet.','warn');
-    } else {
-      setStatus('');
-    }
-    const now = new Date();
-    document.getElementById('last-updated').textContent = 'Synced '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('footer-date').textContent = 'Netlify Content Performance Dashboard · Powered by Virio · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-  } catch(e){
-    setStatus('Failed to sync: '+e.message,'error');
-  } finally { btn.disabled = false; }
+    document.getElementById('footer-date').textContent = 'Netlify Content Performance Dashboard · Powered by Virio · LinkedIn data: ' + (LI? (fmtDate(LI.start)+' – '+fmtDate(LI.end)) : '—');
+  } catch(e){ setStatus('Failed to load: '+e.message,'error'); }
+  finally { btn.disabled=false; }
 }
+
+// ── PERIOD ────────────────────────────────────────────────────────
+function setPeriod(p){
+  liPeriod=p;
+  document.getElementById('seg-last7').classList.toggle('active', p==='last7');
+  document.getElementById('seg-overall').classList.toggle('active', p==='overall');
+  renderOverview();
+}
+function periodSlice(arr){ return liPeriod==='last7' ? arr.slice(-7) : arr; }
+function periodStartIndex(len){ return liPeriod==='last7' ? Math.max(0,len-7) : 0; }
 
 // ── TAB 1: OVERVIEW ───────────────────────────────────────────────
 function renderOverview(){
-  const o = overview || {};
+  if (!LI){ document.getElementById('overview-metrics').innerHTML=''; return; }
+  const sIdx = periodStartIndex(LI.fNew.length);
+  const fNew = periodSlice(LI.fNew), impr = periodSlice(LI.impr), eng = periodSlice(LI.eng);
+  const sum = a=>a.reduce((x,y)=>x+(y||0),0);
+  const pImpr=sum(impr), pEng=sum(eng), pNewF=sum(fNew);
+  const rate = pImpr ? (pEng/pImpr*100) : null;
+  const growthPct = (LI.totFollowers-pNewF)>0 ? (pNewF/(LI.totFollowers-pNewF)*100) : null;
+  const startDate = addDays(LI.start, sIdx);
+  document.getElementById('range-label').textContent = (liPeriod==='last7'?'Last 7 days · ':'Since start · ') + fmtDateShort(startDate) + ' – ' + fmtDate(LI.end);
+
   const cards = [
-    { label:'Total Posts',          value: fmtFull(o.totalPosts),                 cls:'ink'  },
-    { label:'Total Impressions',    value: fmt(o.totalImpressions),               cls:'teal', sub: fmtFull(o.totalImpressions) },
-    { label:'Total Engagements',    value: fmt(o.totalEngagements),               cls:'blue', sub:'reactions + comments + reposts' },
-    { label:'Avg Engagement Rate',  value: fmtPct(o.avgEngagementRate),           cls:'coral' },
-    { label:'Total Reactions',      value: fmt(o.totalReactions),                 cls:'ink'  },
-    { label:'Total Comments',       value: fmt(o.totalComments),                  cls:'ink'  },
-    { label:'Total Reposts',        value: fmt(o.totalReposts),                   cls:'ink'  },
-    { label:'Avg Impressions / Post',value: fmt(o.avgImpressionsPerPost),         cls:'ink'  }
+    { label:'Total Followers', value: fmtFull(LI.totFollowers), cls:'teal', sub: growthPct!=null ? `<span class="up">▲ ${pNewF.toLocaleString()}</span> in this period (${growthPct.toFixed(1)}% growth)` : '' },
+    { label:'Impressions', value: fmt(pImpr), cls:'blue', sub: fmtFull(pImpr) },
+    { label:'Engagements', value: fmt(pEng), cls:'ink', sub:'reactions + comments + reposts' },
+    { label:'Engagement Rate', value: fmtPct(rate), cls:'coral', sub:'engagements ÷ impressions' },
+    { label:'Members Reached', value: fmt(LI.discovery&&LI.discovery.members), cls:'ink', sub:'unique, overall' }
   ];
-  if (o.followers!=null) cards.push({ label:'Followers', value: fmt(o.followers), cls:'teal' });
   document.getElementById('overview-metrics').innerHTML = cards.map(c=>`
-    <div class="mcard">
-      <div class="mcard-label">${c.label}</div>
-      <div class="mcard-value ${c.cls}">${c.value}</div>
-      ${c.sub?`<div class="mcard-sub">${c.sub}</div>`:''}
-    </div>`).join('');
-  renderCharts();
+    <div class="mcard"><div class="mcard-label">${c.label}</div><div class="mcard-value ${c.cls}">${c.value}</div>${c.sub?`<div class="mcard-sub">${c.sub}</div>`:''}</div>`).join('');
+
+  // charts
+  const labels = (liPeriod==='last7'?fNew:LI.fNew).map((_,i)=>fmtDateShort(addDays(LI.start, sIdx+i)));
+  const cum = a=>{ let s=0; return a.map(v=>s+=(v||0)); };
+  drawLine('chart-followers', labels, cum(fNew), '#1D9E75');
+  drawLine('chart-impr', labels, cum(impr), '#378ADD');
+  drawLine('chart-eng', labels, cum(eng), '#D85A30');
+
+  renderDemoTabs();
 }
-
-function renderCharts(){
-  Object.values(charts).forEach(c=>{ try{c.destroy();}catch(_){} });
-  charts = {};
-  const ink2='#5C5A55', grid='rgba(26,25,22,0.07)';
-  Chart.defaults.font.family = "'DM Sans',sans-serif";
-  Chart.defaults.color = ink2;
-  const chrono = [...posts].reverse();          // oldest → newest for trends
-  const labels = chrono.map(p=>fmtDate(p.date));
-  const noData = !posts.length;
-
-  const lineOpts = (color)=>({
+function drawLine(id, labels, data, color){
+  if (charts[id]){ try{charts[id].destroy();}catch(_){} }
+  Chart.defaults.font.family="'DM Sans',sans-serif"; Chart.defaults.color='#5C5A55';
+  charts[id]=new Chart(document.getElementById(id),{
     type:'line',
-    data:{ labels, datasets:[{ data:[], borderColor:color, backgroundColor:color+'22', borderWidth:2, pointRadius:2, fill:true, tension:0.3 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:9}}}, y:{grid:{color:grid},beginAtZero:true,ticks:{font:{size:10},callback:v=>fmt(v)}} } }
-  });
-
-  if (noData){ ['chart-impressions','chart-engagement','chart-rate','chart-mix'].forEach(id=>emptyCanvas(id)); return; }
-
-  let cfg;
-  cfg = lineOpts('#1D9E75'); cfg.data.datasets[0].data = chrono.map(p=>p.impressions||0);
-  charts.impr = new Chart(document.getElementById('chart-impressions'), cfg);
-
-  cfg = lineOpts('#378ADD'); cfg.data.datasets[0].data = chrono.map(p=>p.engagements||0);
-  charts.eng = new Chart(document.getElementById('chart-engagement'), cfg);
-
-  cfg = lineOpts('#D85A30'); cfg.data.datasets[0].data = chrono.map(p=>p.engagementRate||0);
-  cfg.options.scales.y.ticks.callback = v=>v+'%';
-  charts.rate = new Chart(document.getElementById('chart-rate'), cfg);
-
-  charts.mix = new Chart(document.getElementById('chart-mix'), {
-    type:'doughnut',
-    data:{ labels:['Reactions','Comments','Reposts'], datasets:[{ data:[overview.totalReactions||0, overview.totalComments||0, overview.totalReposts||0], backgroundColor:['#1D9E75','#378ADD','#D85A30'], borderWidth:0 }] },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:10,padding:12}}} }
+    data:{labels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:labels.length>20?0:2,fill:true,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtFull(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:9}}},y:{grid:{color:'rgba(26,25,22,0.07)'},beginAtZero:true,ticks:{font:{size:10},callback:v=>fmt(v)}}}}
   });
 }
-function emptyCanvas(id){
-  const cv=document.getElementById(id), ctx=cv.getContext('2d');
-  ctx.clearRect(0,0,cv.width,cv.height);
-  ctx.fillStyle='#9B9890'; ctx.font="13px 'DM Sans',sans-serif"; ctx.textAlign='center';
-  ctx.fillText('No data yet', cv.width/2, cv.height/2);
+function renderDemoTabs(){
+  if (!LI||!LI.demo) return;
+  const cats = Object.keys(LI.demo);
+  const order = ['Job title','Seniority','Industry','Location','Company size','Company'];
+  cats.sort((a,b)=>{ const ia=order.indexOf(a), ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+  if (!demoCat || !cats.includes(demoCat)) demoCat = cats[0];
+  document.getElementById('demo-tabs').innerHTML = cats.map(c=>`<button class="${c===demoCat?'active':''}" onclick="setDemoCat('${esc(c)}')">${esc(c)}</button>`).join('');
+  renderDemoBody();
+}
+function setDemoCat(c){ demoCat=c; renderDemoTabs(); }
+function renderDemoBody(){
+  const items = (LI.demo[demoCat]||[]);
+  const max = Math.max(1, ...items.map(it=>pctNum(it[1])));
+  document.getElementById('demo-body').innerHTML = items.map(it=>{
+    const w = Math.max(2, pctNum(it[1])/max*100);
+    return `<div class="demo-row"><div class="demo-row-top"><span class="demo-row-label">${esc(it[0])}</span><span class="demo-row-pct">${esc(it[1])}</span></div><div class="demo-bar"><div class="demo-bar-fill" style="width:${w}%"></div></div></div>`;
+  }).join('') || '<div class="empty">No data</div>';
 }
 
 // ── TAB 2: BY POST ────────────────────────────────────────────────
+function humanize(slug){
+  let s = slug.replace(/-(share|ugcPost)-\d+-[\w-]+$/,'').replace(/-+/g,' ').trim();
+  try { s = decodeURIComponent(s); } catch(_){}
+  return s.charAt(0).toUpperCase()+s.slice(1) + '…';
+}
 const POST_COLS = [
-  { key:'date',           label:'Date',          num:false, render:p=>`<span class="post-date">${fmtDate(p.date)}</span>` },
-  { key:'text',           label:'Post',          num:false, render:p=> p.url ? `<a href="${p.url}" target="_blank" rel="noopener" class="post-text">${esc(p.text)||'View post'}</a>` : `<div class="post-text">${esc(p.text)||'—'}</div>` },
-  { key:'impressions',    label:'Impressions',   num:true,  render:p=>fmtFull(p.impressions) },
-  { key:'reactions',      label:'Reactions',     num:true,  render:p=>fmtFull(p.reactions) },
-  { key:'comments',       label:'Comments',      num:true,  render:p=>fmtFull(p.comments) },
-  { key:'reposts',        label:'Reposts',       num:true,  render:p=>fmtFull(p.reposts) },
-  { key:'engagementRate', label:'Eng. Rate',     num:true,  render:p=>fmtPct(p.engagementRate) }
+  { key:'date',  label:'Date', num:false, get:p=>p[1], render:p=>`<span class="post-date">${fmtDate(p[1])}</span>` },
+  { key:'title', label:'Post', num:false, get:p=>p[0], render:p=>`<a class="post-title" href="${LI.urlPrefix+p[0]}" target="_blank" rel="noopener">${esc(humanize(p[0]))}</a>` },
+  { key:'impr',  label:'Impressions', num:true, get:p=>p[2]||0, render:p=>fmtFull(p[2]) },
+  { key:'eng',   label:'Engagements', num:true, get:p=>p[3]||0, render:p=>fmtFull(p[3]) },
+  { key:'rate',  label:'Eng. Rate', num:true, get:p=>(p[2]&&p[3])?p[3]/p[2]*100:0, render:p=>(p[2]&&p[3]!=null)?fmtPct(p[3]/p[2]*100):'—' }
 ];
-let postSort = { col:'date', dir:'desc' };
+let postSort = { col:'impr', dir:'desc' };
 function renderPosts(){
   document.getElementById('posts-head').innerHTML = POST_COLS.map(c=>{
-    const active = postSort.col===c.key;
-    const ind = !active ? '⇅' : postSort.dir==='asc'?'▲':'▼';
+    const active=postSort.col===c.key; const ind=!active?'⇅':postSort.dir==='asc'?'▲':'▼';
     return `<th class="sortable ${c.num?'num':''}" onclick="sortPosts('${c.key}')">${c.label}<span class="sort-ind">${ind}</span></th>`;
   }).join('');
-  if (!posts.length){
-    document.getElementById('posts-body').innerHTML = `<tr><td colspan="${POST_COLS.length}"><div class="empty">No posts to show yet. Once the Lineage sync is connected, every post since 4/14/2026 will appear here.</div></td></tr>`;
-    return;
-  }
+  const posts = (LI&&LI.posts)?LI.posts:[];
+  if (!posts.length){ document.getElementById('posts-body').innerHTML = `<tr><td colspan="${POST_COLS.length}"><div class="empty">No posts yet.</div></td></tr>`; return; }
+  const col = POST_COLS.find(c=>c.key===postSort.col);
   const sorted = [...posts].sort((a,b)=>{
-    let av=a[postSort.col], bv=b[postSort.col];
+    let av=col.get(a), bv=col.get(b);
     if (postSort.col==='date'){ av=Date.parse(av)||0; bv=Date.parse(bv)||0; }
-    if (typeof av==='string'||typeof bv==='string'){ av=(av||'').toString().toLowerCase(); bv=(bv||'').toString().toLowerCase(); return postSort.dir==='asc'?av.localeCompare(bv):bv.localeCompare(av); }
-    av=av||0; bv=bv||0; return postSort.dir==='asc'?av-bv:bv-av;
+    if (typeof av==='string'){ return postSort.dir==='asc'?av.localeCompare(bv):bv.localeCompare(av); }
+    return postSort.dir==='asc'?av-bv:bv-av;
   });
-  document.getElementById('posts-body').innerHTML = sorted.map(p=>
-    '<tr>'+POST_COLS.map(c=>`<td class="${c.num?'num':''}">${c.render(p)}</td>`).join('')+'</tr>'
-  ).join('');
+  document.getElementById('posts-body').innerHTML = sorted.map(p=>'<tr>'+POST_COLS.map(c=>`<td class="${c.num?'num':''}">${c.render(p)}</td>`).join('')+'</tr>').join('');
 }
-function sortPosts(col){
-  if (postSort.col===col) postSort.dir = postSort.dir==='asc'?'desc':'asc';
-  else postSort = { col, dir: col==='date'?'desc':'desc' };
-  renderPosts();
-}
-function esc(s){ return s==null?'':String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function sortPosts(col){ if(postSort.col===col)postSort.dir=postSort.dir==='asc'?'desc':'asc'; else postSort={col,dir:col==='title'?'asc':'desc'}; renderPosts(); }
 
 // ── TAB 3: ICPs ───────────────────────────────────────────────────
 function parseCSV(text){
   const rows=[]; let row=[], cur='', q=false;
-  for (let i=0;i<text.length;i++){
-    const ch=text[i];
-    if (q){
-      if (ch==='"'){ if (text[i+1]==='"'){ cur+='"'; i++; } else q=false; }
-      else cur+=ch;
-    } else {
-      if (ch==='"') q=true;
-      else if (ch===','){ row.push(cur); cur=''; }
-      else if (ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
-      else if (ch==='\r'){ /* skip */ }
-      else cur+=ch;
-    }
+  for (let i=0;i<text.length;i++){ const ch=text[i];
+    if (q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else { if(ch==='"')q=true; else if(ch===','){row.push(cur);cur='';} else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';} else if(ch==='\r'){} else cur+=ch; }
   }
   if (cur.length||row.length){ row.push(cur); rows.push(row); }
   return rows.filter(r=>r.some(c=>c.trim()!==''));
 }
-
 async function handleIcpUpload(e){
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  const statusEl = document.getElementById('icp-status');
-  statusEl.textContent = 'Reading '+file.name+'…';
+  const file=e.target.files[0]; e.target.value=''; if(!file)return;
+  const statusEl=document.getElementById('icp-status'); statusEl.textContent='Reading '+file.name+'…';
   try {
-    const text = await file.text();
-    const grid = parseCSV(text);
-    if (grid.length < 2){ statusEl.textContent = 'That CSV looks empty.'; return; }
-    const headers = grid[0].map(h=>h.trim());
-    const rows = grid.slice(1).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o; });
-    const name = (file.name.replace(/\.csv$/i,'') || 'ICP list').trim();
-    const { data:{ user } } = await sb.auth.getUser();
-    const { error } = await sb.from(ICP_TABLE).insert({ name, columns: headers, rows, created_by: user?.email || null });
+    const grid=parseCSV(await file.text());
+    if (grid.length<2){ statusEl.textContent='That CSV looks empty.'; return; }
+    const headers=grid[0].map(h=>h.trim());
+    const rows=grid.slice(1).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o; });
+    const name=(file.name.replace(/\.csv$/i,'')||'ICP list').trim();
+    const { data:{ user } }=await sb.auth.getUser();
+    const { error }=await sb.from(ICP_TABLE).insert({ name, columns:headers, rows, created_by:user?.email||null });
     if (error) throw error;
-    statusEl.textContent = 'Uploaded "'+name+'" ('+rows.length+' rows).';
-    loadIcps();
-  } catch(err){
-    statusEl.textContent = 'Upload failed: '+err.message+(err.message&&err.message.includes(ICP_TABLE)?' — the ICP table may not be set up yet.':'');
-  }
+    statusEl.textContent='Uploaded "'+name+'" ('+rows.length+' rows).'; loadIcps();
+  } catch(err){ statusEl.textContent='Upload failed: '+err.message; }
 }
-
 async function loadIcps(){
-  const wrap = document.getElementById('icp-lists');
-  wrap.innerHTML = '<div class="empty">Loading…</div>';
-  const { data, error } = await sb.from(ICP_TABLE).select('*').order('created_at',{ascending:false});
-  if (error){
-    wrap.innerHTML = `<div class="hint">Couldn't load ICP lists: ${esc(error.message)}<br>If this mentions a missing table, the <code>${ICP_TABLE}</code> table still needs to be created in the database.</div>`;
-    return;
-  }
-  if (!data || !data.length){
-    wrap.innerHTML = `<div class="empty">No ICP lists yet. Click <strong>+ Upload ICP CSV</strong> to add one.</div>`;
-    return;
-  }
-  wrap.innerHTML = data.map(renderIcpList).join('');
+  const wrap=document.getElementById('icp-lists'); wrap.innerHTML='<div class="empty">Loading…</div>';
+  const { data, error }=await sb.from(ICP_TABLE).select('*').order('created_at',{ascending:false});
+  if (error){ wrap.innerHTML=`<div class="hint">Couldn't load ICP lists: ${esc(error.message)}</div>`; return; }
+  if (!data||!data.length){ wrap.innerHTML=`<div class="empty">No ICP lists yet. Click <strong>+ Upload ICP CSV</strong> to add one.</div>`; return; }
+  wrap.innerHTML=data.map(renderIcpList).join('');
 }
 function renderIcpList(list){
-  const cols = list.columns || (list.rows && list.rows[0] ? Object.keys(list.rows[0]) : []);
-  const rows = list.rows || [];
-  const head = cols.map(c=>`<th>${esc(c)}</th>`).join('');
-  const body = rows.map(r=>'<tr>'+cols.map(c=>`<td>${esc(r[c])}</td>`).join('')+'</tr>').join('');
-  return `
-  <div class="icp-list-card">
-    <div class="icp-list-head">
-      <div>
-        <div class="icp-list-name">${esc(list.name)}</div>
-        <div class="icp-list-meta">${rows.length} ${rows.length===1?'entry':'entries'} · added ${fmtDate(list.created_at)}${list.created_by?' · '+esc(list.created_by):''}</div>
-      </div>
-      <button class="btn danger" onclick="deleteIcp('${list.id}')">Delete</button>
-    </div>
-    <div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
-  </div>`;
+  const cols=list.columns||(list.rows&&list.rows[0]?Object.keys(list.rows[0]):[]);
+  const rows=list.rows||[];
+  const head=cols.map(c=>`<th>${esc(c)}</th>`).join('');
+  const body=rows.map(r=>'<tr>'+cols.map(c=>`<td>${esc(r[c])}</td>`).join('')+'</tr>').join('');
+  return `<div class="icp-list-card"><div class="icp-list-head"><div><div class="icp-list-name">${esc(list.name)}</div><div class="icp-list-meta">${rows.length} ${rows.length===1?'entry':'entries'} · added ${fmtDate((list.created_at||'').slice(0,10))}${list.created_by?' · '+esc(list.created_by):''}</div></div><button class="btn danger" onclick="deleteIcp('${list.id}')">Delete</button></div><div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></div>`;
 }
-async function deleteIcp(id){
-  if (!confirm('Delete this ICP list?')) return;
-  const { error } = await sb.from(ICP_TABLE).delete().eq('id', id);
-  if (error){ alert('Delete failed: '+error.message); return; }
-  loadIcps();
-}
+async function deleteIcp(id){ if(!confirm('Delete this ICP list?'))return; const { error }=await sb.from(ICP_TABLE).delete().eq('id',id); if(error){alert('Delete failed: '+error.message);return;} loadIcps(); }
 
 // ── BOOT ──────────────────────────────────────────────────────────
 async function boot(){
-  const { data:{ session } } = await sb.auth.getSession();
-  if (session && handleValidSession(session)){ loadAnalytics(); }
-  else showAuthScreen(true);
-  sb.auth.onAuthStateChange((_evt, sess)=>{
-    if (sess && handleValidSession(sess)){ loadAnalytics(); }
-    else if (!sess) showAuthScreen(true);
-  });
+  const { data:{ session } }=await sb.auth.getSession();
+  if (session && handleValidSession(session)) loadData(); else showAuthScreen(true);
+  sb.auth.onAuthStateChange((_e, sess)=>{ if(sess&&handleValidSession(sess)) loadData(); else if(!sess) showAuthScreen(true); });
 }
 boot();
 </script>
