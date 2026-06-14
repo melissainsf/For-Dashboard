@@ -124,6 +124,21 @@ tbody tr:last-child td{border-bottom:none}tbody tr:hover{background:var(--surfac
 footer{text-align:center;padding:24px;font-size:11px;color:var(--ink3)}
 .hint{background:var(--amber-light);color:var(--amber);border:1px solid rgba(133,79,11,0.18);border-radius:var(--radius);padding:14px 18px;font-size:13px;margin-bottom:20px}
 .hint code{background:rgba(133,79,11,0.12);padding:1px 5px;border-radius:4px;font-size:12px}
+/* ICP REPORT */
+.section-divider{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:36px 0 18px;padding-top:26px;border-top:1px solid var(--border-strong)}
+.section-divider h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;letter-spacing:-0.01em}
+.section-divider .meta{font-size:11px;color:var(--ink3)}
+.section-sub{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:0.05em;margin:22px 0 10px}
+.summary-text{font-size:13px;color:var(--ink2);margin-bottom:14px;max-width:920px}
+.pill{display:inline-block;font-family:'Syne',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.03em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.dev{background:var(--teal-light);color:var(--teal)}
+.pill.biz{background:var(--amber-light);color:var(--amber)}
+.pill.infl{background:var(--purple-light);color:var(--purple)}
+.pill.build{background:var(--blue-light);color:var(--blue)}
+.insights{list-style:none;display:grid;gap:8px}
+.insights li{position:relative;padding:12px 14px 12px 40px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);font-size:13px;color:var(--ink)}
+.insights li .num{position:absolute;left:14px;top:12px;font-family:'Syne',sans-serif;font-weight:700;color:var(--teal-mid);font-size:13px}
+.role-cell{max-width:280px;color:var(--ink2)}
 </style>
 </head>
 <body>
@@ -203,6 +218,9 @@ footer{text-align:center;padding:24px;font-size:11px;color:var(--ink3)}
         <div id="demo-body"></div>
       </div>
     </div>
+
+    <!-- ICP ENGAGEMENT REPORT (from periodic ICP report upload) -->
+    <div id="icp-report"></div>
   </div>
 
   <!-- TAB 2: By Post Performance -->
@@ -234,6 +252,66 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true } });
 const ALLOWED_DOMAINS = ['netlify.com', 'virio.ai'];
 const ICP_TABLE = 'netlify_icps';
+
+// ── ICP ENGAGEMENT REPORT ─────────────────────────────────────────
+// Source: periodic ICP Engagement Report (PDF). Replace this object with
+// each new report. Top engagers with "Netlify" in their role are auto-
+// excluded at render time, so paste the list as-is from the report.
+const ICP_REPORT = {
+  subject: 'Mathias Biilmann Christensen · Netlify',
+  posts: 49,
+  periodStart: '2026-04-14',
+  periodEnd: '2026-06-12',
+  prepared: '2026-06-13',
+  summary: {
+    text: 'Across 49 posts from 2026-04-14 to 2026-06-12, 1,505 unique people engaged. After excluding 48 Netlify employees, 860 engagers (57%) match at least one ICP persona.',
+    metrics: [
+      { label:'Total engagers',         count:1505, share:'100%' },
+      { label:'Netlify staff excluded', count:48,   share:'3%'   },
+      { label:'ICP engagers',           count:860,  share:'57%'  },
+      { label:'Non-ICP engagers',       count:597,  share:'40%'  }
+    ]
+  },
+  personas: [
+    { name:'Primary: Developer/Software Engineer',                engagers:371, pct:'43%', engagements:617 },
+    { name:'Primary: Non-Developer Builder',                      engagers:322, pct:'37%', engagements:592 },
+    { name:'Primary: Business Leader (CMO/CFO/PM)',               engagers:63,  pct:'7%',  engagements:152 },
+    { name:'Secondary: Influencer of Users / Technical Leader',   engagers:104, pct:'12%', engagements:210 }
+  ],
+  topEngagers: [
+    { name:'Mitchell Seaton',        role:'Full Stack Developer',              persona:'Dev',   eng:23, posts:23, last:'06-13' },
+    { name:'Christian (Chris) Bach', role:'Founder',                          persona:'Dev',   eng:20, posts:20, last:'06-13' },
+    { name:'Jan Pilgaard Carlsen',   role:'Startup Mentor',                   persona:'Biz',   eng:19, posts:19, last:'06-13' },
+    { name:'Mona Nasiri',            role:'Product Growth and Monetization',  persona:'Biz',   eng:19, posts:19, last:'06-10' },
+    { name:'Michael Carter',         role:'VIP Connector',                    persona:'Dev',   eng:17, posts:17, last:'06-13' },
+    { name:'Tania Chakraborty',      role:'Senior Technical Community Manager',persona:'Infl.', eng:17, posts:17, last:'06-13' },
+    { name:'Wade Warren',            role:'CTO/SVP - Engineering, Advisor',   persona:'Dev',   eng:16, posts:16, last:'06-13' },
+    { name:'Dan Barak',              role:'Building something new…',          persona:'Dev',   eng:12, posts:12, last:'06-10' },
+    { name:'Clarence A.',            role:'Software Engineer - Developer',    persona:'Dev',   eng:12, posts:12, last:'06-07' },
+    { name:'Samuel Snopko',          role:'Head of Product @Storyblok',       persona:'Dev',   eng:12, posts:12, last:'06-13' },
+    { name:'Barry D’Arcy',           role:'Executive Member',                 persona:'Biz',   eng:12, posts:12, last:'06-13' },
+    { name:'Ran Makavy',             role:'Board Member',                     persona:'Infl.', eng:12, posts:11, last:'06-07' },
+    { name:'Conor Martin',           role:'Coding with AI Expert',            persona:'Dev',   eng:11, posts:11, last:'06-10' },
+    { name:'Rasmus Leth Skjoldan',   role:'CMO',                              persona:'Biz',   eng:11, posts:11, last:'06-13' },
+    { name:'Phanindra Reddy',        role:'AI builder and Automation expert', persona:'Dev',   eng:10, posts:10, last:'06-13' },
+    { name:'Dr Claire Knight',       role:'Co-Founder & CTO',                 persona:'Dev',   eng:10, posts:10, last:'06-07' },
+    { name:'Ameer Badri',            role:'GTM AI Architect and Solutions',   persona:'Infl.', eng:9,  posts:9,  last:'06-10' },
+    { name:'Brandi Bergstrom',       role:'Founding Member',                  persona:'Infl.', eng:9,  posts:9,  last:'06-13' },
+    { name:'Deb Mukherjee',          role:'Founder & CEO',                    persona:'Dev',   eng:8,  posts:8,  last:'06-13' },
+    { name:'René Fournier',          role:'Chief Software Architect',         persona:'Dev',   eng:8,  posts:8,  last:'06-10' }
+  ],
+  contentInsights: [
+    'Media posts average 44% ICP engagement rate vs 43% for text-only (1.0x).',
+    'Top ICP post: “If you’ve been sitting on an idea, there’s a path to making…” (69% ICP rate, 20 ICP of 29 total).',
+    'Top ICP post: “Today we’re removing seat-based pricing from Netlify.” (64% ICP rate, 149 ICP of 232 total).',
+    'Top ICP post: “There’s too much talk about how agents make us more efficien…” (64% ICP rate, 46 ICP of 72 total).',
+    'Primary: Developer/Software Engineer makes up 43% of ICP engagers (371 of 860).',
+    '54 ICP engagers hit 5+ posts, 16 hit 10+ posts.',
+    'ICP rate trended up: 49% (first half) to 57% (second half), +15% relative change.',
+    'Business Leader persona: 63 matches (20 with LinkedIn URLs), avg 2.4 engagements each.',
+    'Lowest ICP post: “The AI era is changing more than how software gets built. It…” (17% ICP rate, 2 ICP of 12 total).'
+  ]
+};
 
 let LI = null;             // LinkedIn analytics document
 let liPeriod = 'overall';  // 'overall' | 'last7'
@@ -306,6 +384,7 @@ function periodStartIndex(len){ return liPeriod==='last7' ? Math.max(0,len-7) : 
 
 // ── TAB 1: OVERVIEW ───────────────────────────────────────────────
 function renderOverview(){
+  renderIcpReport();
   if (!LI){ document.getElementById('overview-metrics').innerHTML=''; return; }
   const sIdx = periodStartIndex(LI.fNew.length);
   const fNew = periodSlice(LI.fNew), impr = periodSlice(LI.impr), eng = periodSlice(LI.eng);
@@ -362,6 +441,46 @@ function renderDemoBody(){
     const w = Math.max(2, pctNum(it[1])/max*100);
     return `<div class="demo-row"><div class="demo-row-top"><span class="demo-row-label">${esc(it[0])}</span><span class="demo-row-pct">${esc(it[1])}</span></div><div class="demo-bar"><div class="demo-bar-fill" style="width:${w}%"></div></div></div>`;
   }).join('') || '<div class="empty">No data</div>';
+}
+
+// ── ICP ENGAGEMENT REPORT ─────────────────────────────────────────
+function personaClass(code){ const c=(code||'').toLowerCase(); if(c.indexOf('dev')===0)return 'dev'; if(c.indexOf('biz')===0)return 'biz'; if(c.indexOf('infl')===0)return 'infl'; if(c.indexOf('build')===0)return 'build'; return 'dev'; }
+function renderIcpReport(){
+  const host=document.getElementById('icp-report'); if(!host) return;
+  const R=ICP_REPORT; if(!R){ host.innerHTML=''; return; }
+
+  const sumCards = R.summary.metrics.map(m=>
+    `<div class="mcard"><div class="mcard-label">${esc(m.label)}</div><div class="mcard-value ink">${fmtFull(m.count)}</div><div class="mcard-sub">${esc(m.share)} of engagers</div></div>`).join('');
+
+  const maxEng = Math.max(1, ...R.personas.map(p=>p.engagers));
+  const personaRows = R.personas.map(p=>{
+    const w=Math.max(2, p.engagers/maxEng*100);
+    return `<div class="demo-row"><div class="demo-row-top"><span class="demo-row-label">${esc(p.name)}</span><span class="demo-row-pct">${fmtFull(p.engagers)} engagers · ${fmtFull(p.engagements)} actions · ${esc(p.pct)}</span></div><div class="demo-bar"><div class="demo-bar-fill" style="width:${w}%"></div></div></div>`;
+  }).join('');
+
+  const engagers = (R.topEngagers||[]).filter(e=>!/netlify/i.test(e.role||''));
+  const engRows = engagers.map(e=>`<tr><td>${esc(e.name)}</td><td class="role-cell">${esc(e.role)}</td><td><span class="pill ${personaClass(e.persona)}">${esc(e.persona)}</span></td><td class="num">${fmtFull(e.eng)}</td><td class="num">${fmtFull(e.posts)}</td><td class="num">${esc(e.last)}</td></tr>`).join('')
+    || `<tr><td colspan="6"><div class="empty">No ICP engagers.</div></td></tr>`;
+
+  const insightItems = (R.contentInsights||[]).map((t,i)=>`<li><span class="num">${i+1}</span>${esc(t)}</li>`).join('');
+
+  host.innerHTML = `
+    <div class="section-divider">
+      <h2>ICP Engagement Report</h2>
+      <span class="meta">${esc(R.subject)} · ${fmtDate(R.periodStart)} – ${fmtDate(R.periodEnd)} · prepared ${fmtDate(R.prepared)}</span>
+    </div>
+    <div class="section-sub">Summary</div>
+    <p class="summary-text">${esc(R.summary.text)}</p>
+    <div class="metric-grid">${sumCards}</div>
+    <div class="section-sub">Persona Breakdown</div>
+    <div class="demo-card">${personaRows}</div>
+    <div class="section-sub">Top ICP Engagers <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">· ${engagers.length} shown, sorted by engagement actions · Netlify roles excluded</span></div>
+    <div class="table-card"><div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Role</th><th>Persona</th><th class="num">Eng</th><th class="num">Posts</th><th class="num">Last</th></tr></thead>
+      <tbody>${engRows}</tbody>
+    </table></div></div>
+    <div class="section-sub">Content Insights</div>
+    <ul class="insights">${insightItems}</ul>`;
 }
 
 // ── TAB 2: BY POST ────────────────────────────────────────────────
