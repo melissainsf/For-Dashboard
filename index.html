@@ -57,6 +57,14 @@ header{background:var(--header-bg);color:var(--header-ink);padding:18px 32px;dis
 .tab-btn{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:10px 18px;border:none;background:transparent;color:rgba(245,243,238,0.4);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s}
 .tab-btn:hover{color:rgba(245,243,238,0.7)}
 .tab-btn.active{color:var(--header-ink);border-bottom-color:var(--teal-mid)}
+.rt-val{font-variant-numeric:tabular-nums;font-weight:600}
+.rt-dim{color:rgba(20,20,20,0.4);font-variant-numeric:tabular-nums}
+.rt-empty{text-align:center;color:rgba(20,20,20,0.45);padding:18px 0}
+.rt-pending{color:rgba(20,20,20,0.35)}
+.rt-chip{display:inline-block;font-size:11px;font-weight:600;letter-spacing:0.03em;padding:2px 8px;border-radius:10px;line-height:1.5}
+.rt-chip.egc{background:rgba(29,158,117,0.14);color:#137a58}
+.rt-chip.fs{background:rgba(20,20,20,0.06);color:rgba(20,20,20,0.6)}
+.rt-note{margin-top:12px;font-size:12px;color:rgba(20,20,20,0.45)}
 .tab-content{display:none}
 .tab-content.active{display:block;animation:fadeIn 0.25s ease both}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -343,6 +351,7 @@ textarea.prt-input{resize:vertical}
   <button class="tab-btn" onclick="switchTab(event,'cohorts')">Cohorts</button>
   <button class="tab-btn" onclick="switchTab(event,'team')">Team</button>
   <button class="tab-btn" onclick="switchTab(event,'requests')">Product Request Tracker</button>
+  <button class="tab-btn" onclick="switchTab(event,'responses')">Response Times</button>
 </div>
 
 <main>
@@ -805,6 +814,43 @@ textarea.prt-input{resize:vertical}
     </div>
   </div>
 
+  <!-- TAB 6: RESPONSE TIMES -->
+  <div id="tab-responses" class="tab-content">
+    <div class="section-header" style="margin-top:4px">
+      <span class="section-title">Response time by customer</span>
+      <span class="section-note">Median time from a customer message to the first Virio reply · Slack · raw 24/7</span>
+    </div>
+    <div class="prt-toolbar">
+      <div class="prt-seg" id="rt-product-filter">
+        <button class="prt-seg-btn active" data-product="all">All</button>
+        <button class="prt-seg-btn" data-product="EGC">EGC</button>
+        <button class="prt-seg-btn" data-product="Full Service">Full Service</button>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Customer</th><th>Account Manager</th><th>Product</th><th>Median response</th><th>Samples</th></tr></thead>
+          <tbody id="rt-customer-body"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:22px">
+      <span class="section-title">Response time by AM</span>
+      <span class="section-note">Fastest first · pooled across each AM's accounts</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Account Manager</th><th># Accounts</th><th>Product</th><th>Median response</th></tr></thead>
+          <tbody id="rt-am-body"><tr><td colspan="4" class="rt-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rt-note" id="rt-note"></div>
+  </div>
+
 </main>
 <footer id="footer-date"></footer>
 
@@ -978,6 +1024,7 @@ function switchTab(e, name) {
   document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   if(e&&e.target) e.target.classList.add('active');
+  if(name==='responses'){ rtEnsureLoaded(); return; }
   if(!allCompanies.length) return;
   const exclude=document.getElementById('exclude-virio').checked;
   const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
@@ -2065,6 +2112,83 @@ function prtInit() {
     const imgs = [...(e.clipboardData?.items || [])].filter(i => i.type.startsWith('image/')).map(i => i.getAsFile()).filter(Boolean);
     if (imgs.length) { e.preventDefault(); prtAddImageFiles(imgs); }
   });
+}
+
+// ── RESPONSE TIMES ─────────────────────────────────────────────
+let rtData=null, rtProduct='all', rtWired=false;
+function rtEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function rtRank(x){ return x==null ? Infinity : x; }
+function fmtDur(sec){
+  if(sec==null) return '<span class="rt-pending">—</span>';
+  sec=Math.round(sec);
+  if(sec<60) return sec+'s';
+  if(sec<3600){ const m=Math.floor(sec/60), s=sec%60; return s?`${m}m ${s}s`:`${m}m`; }
+  if(sec<86400){ const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60); return m?`${h}h ${m}m`:`${h}h`; }
+  const d=Math.floor(sec/86400), h=Math.floor((sec%86400)/3600); return h?`${d}d ${h}h`:`${d}d`;
+}
+function rtProdChip(p){ return p==='EGC' ? '<span class="rt-chip egc">EGC</span>' : '<span class="rt-chip fs">Full Service</span>'; }
+function rtMixCell(mix){
+  const egc=mix&&mix.EGC||0, fs=mix&&mix.FS||0, out=[];
+  if(egc) out.push('<span class="rt-chip egc">EGC ×'+egc+'</span>');
+  if(fs)  out.push('<span class="rt-chip fs">Full Service ×'+fs+'</span>');
+  return out.join(' ') || '—';
+}
+function rtDeriveAms(accts){
+  const by={};
+  accts.forEach(a=>{ const am=a.am||'Unassigned'; (by[am]=by[am]||[]).push(a); });
+  return Object.keys(by).map(am=>{
+    const list=by[am];
+    const mix=list.reduce((m,a)=>{ const k=a.product==='EGC'?'EGC':'FS'; m[k]=(m[k]||0)+1; return m; },{});
+    const meds=list.map(a=>a.median_seconds).filter(v=>v!=null).sort((x,y)=>x-y);
+    let med=null; if(meds.length){ const mid=Math.floor(meds.length/2); med=meds.length%2?meds[mid]:(meds[mid-1]+meds[mid])/2; }
+    return { am, accounts:list.length, product_mix:mix, median_seconds:med };
+  });
+}
+async function rtEnsureLoaded(){
+  if(!rtWired){
+    document.querySelectorAll('#rt-product-filter .prt-seg-btn').forEach(b=>{
+      b.addEventListener('click',()=>{
+        document.querySelectorAll('#rt-product-filter .prt-seg-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active'); rtProduct=b.dataset.product; rtRender();
+      });
+    });
+    rtWired=true;
+  }
+  if(rtData){ rtRender(); return; }
+  try{ const r=await fetch('/api/response-times'); rtData=await r.json(); }
+  catch(e){ rtData={accounts:[],ams:null,source:'error'}; }
+  rtRender();
+}
+function rtRender(){
+  if(!rtData) return;
+  const accts=(rtData.accounts||[]).filter(a=> rtProduct==='all' || a.product===rtProduct);
+  // Widget 1 — by customer (fastest first, pending/no-data last)
+  const rows=[...accts].sort((a,b)=> rtRank(a.median_seconds)-rtRank(b.median_seconds));
+  document.getElementById('rt-customer-body').innerHTML = rows.length ? rows.map(a=>`<tr>
+    <td>${rtEsc(a.company)}</td>
+    <td>${rtEsc(a.am||'Unassigned')}</td>
+    <td>${rtProdChip(a.product)}</td>
+    <td class="rt-val">${fmtDur(a.median_seconds)}</td>
+    <td class="rt-dim">${a.sample||0}</td></tr>`).join('')
+    : `<tr><td colspan="5" class="rt-empty">No accounts for this filter.</td></tr>`;
+  // Widget 2 — by AM (server-pooled medians when unfiltered; else derived from accounts)
+  let ams = (rtProduct==='all' && Array.isArray(rtData.ams) && rtData.ams.length) ? rtData.ams.slice() : rtDeriveAms(accts);
+  ams.sort((a,b)=> rtRank(a.median_seconds)-rtRank(b.median_seconds));
+  document.getElementById('rt-am-body').innerHTML = ams.length ? ams.map(x=>`<tr>
+    <td>${rtEsc(x.am)}</td>
+    <td class="rt-dim">${x.accounts}</td>
+    <td>${rtMixCell(x.product_mix)}</td>
+    <td class="rt-val">${fmtDur(x.median_seconds)}</td></tr>`).join('')
+    : `<tr><td colspan="4" class="rt-empty">No AMs for this filter.</td></tr>`;
+  // Footnote
+  const note=document.getElementById('rt-note');
+  if(rtData.source==='seed' || rtData.generated_at==null){
+    note.innerHTML='Awaiting first Slack sync — accounts, AMs and products are live from HubSpot; median times populate once the Slack bot token is added and the hourly job runs.';
+  } else if(rtData.source==='error'){
+    note.innerHTML='Could not load response-time data.';
+  } else {
+    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7).';
+  }
 }
 
 // ── INIT ────────────────────────────────────────────────────────

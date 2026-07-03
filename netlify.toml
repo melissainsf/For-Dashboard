@@ -19,6 +19,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/response-times"
+  to = "/.netlify/functions/response-times"
+  status = 200
+
+[[redirects]]
   from = "/hs-api/*"
   to = "https://api.hubapi.com/:splat"
   status = 200
