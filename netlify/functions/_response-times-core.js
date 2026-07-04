@@ -45,6 +45,7 @@ function median(nums) {
   const mid = Math.floor(s.length / 2);
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
+const mean = (nums) => (nums.length ? nums.reduce((s, x) => s + x, 0) / nums.length : null);
 
 async function listAllChannels(token) {
   const out = [];
@@ -141,6 +142,7 @@ async function computeAndStore(token) {
 
   const accounts = [];
   const amLat = {};
+  const amProdLat = {};
   const matched = [];
   const unmatched = [];
 
@@ -166,16 +168,32 @@ async function computeAndStore(token) {
     } catch (e) { /* channel read failed — leave latencies empty */ }
     accounts.push({
       company: acct.company, am: acct.am, product: acct.product,
-      median_seconds: median(latencies), sample: latencies.length,
+      median_seconds: median(latencies), mean_seconds: mean(latencies), sample: latencies.length,
       channel: ch.name,
     });
     (amLat[acct.am] = amLat[acct.am] || []).push(...latencies);
+    const pk = acct.product === 'EGC' ? 'EGC' : 'Full Service';
+    amProdLat[acct.am] = amProdLat[acct.am] || {};
+    (amProdLat[acct.am][pk] = amProdLat[acct.am][pk] || []).push(...latencies);
   }
 
   const ams = Object.keys(amLat).map((am) => {
     const accts = accounts.filter((a) => a.am === am);
     const mix = accts.reduce((m, a) => { const k = a.product === 'EGC' ? 'EGC' : 'FS'; m[k] = (m[k] || 0) + 1; return m; }, {});
-    return { am, accounts: accts.length, product_mix: mix, median_seconds: median(amLat[am]), sample: amLat[am].length };
+    // Pooled stats per product so filtered views stay pooled (not median-of-medians).
+    const byProduct = {};
+    for (const p of ['EGC', 'Full Service']) {
+      const lat = (amProdLat[am] && amProdLat[am][p]) || [];
+      byProduct[p] = {
+        accounts: accts.filter((a) => a.product === p).length,
+        median_seconds: median(lat), mean_seconds: mean(lat), sample: lat.length,
+      };
+    }
+    return {
+      am, accounts: accts.length, product_mix: mix,
+      median_seconds: median(amLat[am]), mean_seconds: mean(amLat[am]), sample: amLat[am].length,
+      by_product: byProduct,
+    };
   });
 
   const payload = { generated_at: new Date().toISOString(), window_days: WINDOW_DAYS, source: 'slack', roster_source: rosterSource, accounts, ams };
