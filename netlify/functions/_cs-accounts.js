@@ -13,7 +13,7 @@
 module.exports = [
   // Melissa
   { company: 'Netlify',        am: 'Melissa',    product: 'Full Service' },
-  { company: 'Runpod',         am: 'Melissa',    product: 'Full Service' },
+  { company: 'Runpod',         am: 'Jacob',      product: 'Full Service' },
   { company: 'Trimble',        am: 'Melissa',    product: 'Full Service' },
   { company: 'Preface',        am: 'Melissa',    product: 'Full Service' },
   { company: 'Minimal',        am: 'Melissa',    product: 'Full Service' },

@@ -73,6 +73,44 @@ async function channelHistory(channelId, oldest, token) {
   return out;
 }
 
+// Pull the customer list + Account Manager + Product LIVE from HubSpot each run,
+// so the widgets always match HubSpot (no static drift). Falls back to the bundled
+// snapshot (_cs-accounts.js) if HubSpot is unavailable.
+const AM_LABEL = { 'CSM 2': 'David', 'Max': 'Maxwell' };      // HubSpot csm internal name -> dropdown label
+const FORMER_AMS = new Set(['Yichen', 'Lakeisha', 'Emmett']); // former team members -> Unassigned
+function amLabel(csm) {
+  if (!csm || FORMER_AMS.has(csm)) return 'Unassigned';
+  return AM_LABEL[csm] || csm;
+}
+async function fetchRoster(hsToken) {
+  const roster = [];
+  let after;
+  do {
+    const body = {
+      filterGroups: [{ filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }] }],
+      properties: ['name', 'csm', 'product'], limit: 100, ...(after ? { after } : {}),
+    };
+    const res = await fetch('https://api.hubapi.com/crm/v3/objects/companies/search', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + hsToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('HubSpot ' + res.status + ': ' + (await res.text()).slice(0, 200));
+    const data = await res.json();
+    for (const c of (data.results || [])) {
+      const name = c.properties && c.properties.name;
+      if (!name || name === 'Virio') continue; // exclude Virio's own record
+      roster.push({
+        company: name,
+        am: amLabel(c.properties.csm),
+        product: c.properties.product === 'EGC' ? 'EGC' : 'Full Service',
+      });
+    }
+    after = data.paging && data.paging.next && data.paging.next.after;
+  } while (after);
+  return roster;
+}
+
 async function computeAndStore(token) {
   const auth = await slack('auth.test', null, token);
   const virioTeamId = auth.team_id;
@@ -80,6 +118,16 @@ async function computeAndStore(token) {
   const channels = await listAllChannels(token);
   const virioChannels = channels.filter((c) => /^virio-/.test(c.name || ''));
   const oldest = (Date.now() / 1000 - WINDOW_DAYS * 86400).toFixed(6);
+
+  // Live roster from HubSpot; fall back to the bundled snapshot on failure.
+  let roster, rosterSource = 'hubspot';
+  try {
+    roster = process.env.HUBSPOT_TOKEN ? await fetchRoster(process.env.HUBSPOT_TOKEN) : null;
+  } catch (e) {
+    console.log('response-times: HubSpot roster fetch failed, using bundled snapshot —', e.message);
+    roster = null;
+  }
+  if (!roster || !roster.length) { roster = ACCOUNTS; rosterSource = 'snapshot'; }
 
   // Cache each author's workspace so we classify internal vs external reliably.
   const userTeam = {};
@@ -96,7 +144,7 @@ async function computeAndStore(token) {
   const matched = [];
   const unmatched = [];
 
-  for (const acct of ACCOUNTS) {
+  for (const acct of roster) {
     const ch = virioChannels.find((c) => channelMatches(c.name, acct.company));
     // Exclude accounts with no Slack channel (email-only customers, or not yet
     // onboarded). They reappear automatically once a virio-<company> channel exists.
@@ -130,7 +178,7 @@ async function computeAndStore(token) {
     return { am, accounts: accts.length, product_mix: mix, median_seconds: median(amLat[am]), sample: amLat[am].length };
   });
 
-  const payload = { generated_at: new Date().toISOString(), window_days: WINDOW_DAYS, source: 'slack', accounts, ams };
+  const payload = { generated_at: new Date().toISOString(), window_days: WINDOW_DAYS, source: 'slack', roster_source: rosterSource, accounts, ams };
 
   const { getStore } = require('@netlify/blobs');
   await getStore('response-times').setJSON('latest', payload);
