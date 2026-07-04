@@ -26,6 +26,18 @@ async function slack(method, params, token) {
 }
 
 const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const tokens = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+
+// Match a `virio-<company>` channel to an account. Handles both the full/joined
+// name (e.g. "virio-innovo-commerce-x" for InnovoCommerce) and abbreviated
+// multi-word names (e.g. "virio-hume-andrew" for "Hume AI", "virio-concord-kevin"
+// for "Concord Visa"), by also matching on the company's first word.
+function channelMatches(channelName, company) {
+  if (norm(channelName).startsWith('virio' + norm(company))) return true;
+  const chTok = tokens(channelName);          // e.g. ['virio','hume','andrew']
+  const coTok = tokens(company);              // e.g. ['hume','ai']
+  return chTok[0] === 'virio' && chTok[1] && coTok[0] && chTok[1] === coTok[0];
+}
 
 function median(nums) {
   if (!nums.length) return null;
@@ -85,7 +97,7 @@ async function computeAndStore(token) {
   const unmatched = [];
 
   for (const acct of ACCOUNTS) {
-    const ch = virioChannels.find((c) => norm(c.name).startsWith('virio' + norm(acct.company)));
+    const ch = virioChannels.find((c) => channelMatches(c.name, acct.company));
     let latencies = [];
     if (ch) {
       matched.push({ company: acct.company, channel: ch.name });
