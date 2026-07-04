@@ -654,7 +654,7 @@ textarea.prt-input{resize:vertical}
     <!-- CE WORKLOAD -->
     <div class="section-header" id="ce-load-section" style="margin-top:4px">
       <span class="section-title">AM capacity</span>
-      <span class="section-note">Target posts per month per Account Manager</span>
+      <span class="section-note">Number of accounts per Account Manager</span>
     </div>
     <div class="chart-card" style="margin-bottom:20px">
       <div class="chart-card-title">Account Manager workload</div>
@@ -680,6 +680,12 @@ textarea.prt-input{resize:vertical}
         <div class="chart-card-sub">Total MRR across all active accounts per AM</div>
         <div class="chart-wrap-md"><canvas id="amMRRBar"></canvas></div>
       </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="chart-card">
+      <div class="chart-card-title">Active ARR by AM</div>
+      <div class="chart-card-sub">Annualized run-rate (MRR × 12) across all active accounts per AM</div>
+      <div class="chart-wrap-md"><canvas id="amARRBar"></canvas></div>
     </div>
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
@@ -868,7 +874,7 @@ const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned Post Conversion'];
-const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha']);
+const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha','Emmett']);
 const scrubFormer = v => (v && FORMER_TEAM_MEMBERS.has(v)) ? null : v;
 
 let allCompanies = [], lineageMap = {}, charts = {};
@@ -1586,18 +1592,18 @@ function renderTeamTab(cos) {
   ceSource.forEach(c => {
     const am = displayAM(c.csm) || 'Unassigned';
     const target = parsePostsPerMonth(c.posts_per_month);
-    if (!ceMap[am]) ceMap[am] = { total:0, accounts:[] };
-    ceMap[am].total += target;
+    if (!ceMap[am]) ceMap[am] = { accounts:[] };
     ceMap[am].accounts.push({ name: c.name, ppm: target });
   });
 
-  // AM workload chart
-  const maxLoad = Math.max(...Object.values(ceMap).map(v=>v.total), 1);
+  // AM workload chart — number of accounts per AM
+  const maxLoad = Math.max(...Object.values(ceMap).map(v=>v.accounts.length), 1);
   const ceBars = document.getElementById('ce-load-bars');
   if (ceBars) {
-    const sorted = Object.entries(ceMap).sort((a,b)=> b[1].total - a[1].total);
+    const sorted = Object.entries(ceMap).sort((a,b)=> b[1].accounts.length - a[1].accounts.length);
     ceBars.innerHTML = sorted.length ? sorted.map(([ce, data])=>{
-      const fillColor = data.total >= 50 ? 'var(--red)' : data.total >= 25 ? 'var(--amber)' : 'var(--teal-mid)';
+      const count = data.accounts.length;
+      const fillColor = count >= 8 ? 'var(--red)' : count >= 5 ? 'var(--amber)' : 'var(--teal-mid)';
       const accountsSorted = [...data.accounts].sort((a,b)=>b.ppm-a.ppm);
       const tooltipBody = accountsSorted.length
         ? `<ul class="ce-bar-tooltip-list">${accountsSorted.map(a=>`<li><span class="ce-bar-tooltip-name">${escapeHtml(a.name)}</span><span class="ce-bar-tooltip-ppm">${a.ppm}/mo</span></li>`).join('')}</ul>`
@@ -1605,11 +1611,11 @@ function renderTeamTab(cos) {
       return `<div class="ce-bar-row">
         <div class="ce-bar-wrap">
           <div class="ce-bar-label">${escapeHtml(ce)}</div>
-          <div class="ce-bar-track"><div class="ce-bar-fill" style="width:${(data.total/maxLoad*100).toFixed(1)}%;background:${fillColor}"></div></div>
-          <div class="ce-bar-count">${data.total} posts/mo · ${data.accounts.length} account${data.accounts.length!==1?'s':''}</div>
+          <div class="ce-bar-track"><div class="ce-bar-fill" style="width:${(count/maxLoad*100).toFixed(1)}%;background:${fillColor}"></div></div>
+          <div class="ce-bar-count">${count} account${count!==1?'s':''}</div>
         </div>
         <div class="ce-bar-tooltip">
-          <div class="ce-bar-tooltip-title">${escapeHtml(ce)} · ${data.accounts.length} account${data.accounts.length!==1?'s':''}</div>
+          <div class="ce-bar-tooltip-title">${escapeHtml(ce)} · ${count} account${count!==1?'s':''}</div>
           ${tooltipBody}
         </div>
       </div>`;
@@ -1627,6 +1633,14 @@ function renderTeamTab(cos) {
   if(charts['amMRRBar']) charts['amMRRBar'].destroy();
   charts['amMRRBar']=new Chart(document.getElementById('amMRRBar').getContext('2d'),{
     type:'bar',data:{labels:allAMs,datasets:[{data:amMRRData.map(d=>d.total),backgroundColor:'#7F77DD',borderRadius:4,names:amMRRData.map(d=>d.names)}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[' '+fmtBig$(ctx.raw),...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
+  // Active ARR by AM (MRR × 12)
+  const amARRData=allAMs.map(am=>{ const ac=active.filter(c=>displayAM(c.csm)===am); return {total:ac.reduce((s,c)=>s+(c.mrr+c.expansion_mrr)*12,0),names:ac.map(c=>({name:c.name,val:fmt$((c.mrr+c.expansion_mrr)*12)}))}; });
+  if(charts['amARRBar']) charts['amARRBar'].destroy();
+  const amARREl=document.getElementById('amARRBar');
+  if(amARREl) charts['amARRBar']=new Chart(amARREl.getContext('2d'),{
+    type:'bar',data:{labels:allAMs,datasets:[{data:amARRData.map(d=>d.total),backgroundColor:'#1D9E75',borderRadius:4,names:amARRData.map(d=>d.names)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[' '+fmtBig$(ctx.raw),...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
   });
   // Account health distribution by AM (stacked)

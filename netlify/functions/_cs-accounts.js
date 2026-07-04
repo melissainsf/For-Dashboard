@@ -51,9 +51,9 @@ module.exports = [
   { company: 'Concord Visa',   am: 'David',      product: 'Full Service' },
   { company: 'Hyperspell',     am: 'David',      product: 'Full Service' },
   { company: 'Freepik',        am: 'David',      product: 'Full Service' },
-  // Emmett (EGC)
-  { company: 'VitalBenefits',  am: 'Emmett',     product: 'EGC' },
-  { company: 'Othello',        am: 'Emmett',     product: 'EGC' },
+  // EGC accounts — AM unassigned (Emmett is no longer an AM)
+  { company: 'VitalBenefits',  am: 'Unassigned', product: 'EGC' },
+  { company: 'Othello',        am: 'Unassigned', product: 'EGC' },
   // Unassigned (on hold)
   { company: 'Hobbes',         am: 'Unassigned', product: 'Full Service' },
   { company: 'Koah',           am: 'Unassigned', product: 'Full Service' },
