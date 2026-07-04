@@ -47,6 +47,29 @@ function median(nums) {
 }
 const mean = (nums) => (nums.length ? nums.reduce((s, x) => s + x, 0) / nums.length : null);
 
+// "Business hours" elapsed time: counts only 07:00–22:00 local (i.e. excludes
+// 10pm–7am). Weekends ARE counted (Virio works Saturdays/Sundays). Timezone is
+// configurable below — change BUSINESS_TZ if the reference should differ.
+const BUSINESS_TZ = 'America/Los_Angeles';
+const DAY_START = 7, DAY_END = 22;
+function tzOffsetSec(epochSec) {
+  const d = new Date(epochSec * 1000);
+  const utc = new Date(d.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const loc = new Date(d.toLocaleString('en-US', { timeZone: BUSINESS_TZ }));
+  return (loc - utc) / 1000;
+}
+function businessSeconds(start, end) {
+  if (end <= start) return 0;
+  const off = tzOffsetSec(start);
+  const STEP = 300;
+  let total = 0;
+  for (let t = start; t < end; t += STEP) {
+    const h = Math.floor((((((t + off) / 3600) % 24) + 24) % 24));
+    if (h >= DAY_START && h < DAY_END) total += Math.min(STEP, end - t);
+  }
+  return total;
+}
+
 async function listAllChannels(token) {
   const out = [];
   let cursor;
@@ -142,6 +165,7 @@ async function computeAndStore(token) {
 
   const accounts = [];
   const amLat = {};
+  const amBizLat = {};
   const amProdLat = {};
   const matched = [];
   const unmatched = [];
@@ -152,7 +176,7 @@ async function computeAndStore(token) {
     // onboarded). They reappear automatically once a virio-<company> channel exists.
     if (!ch) { unmatched.push(acct.company); continue; }
     matched.push({ company: acct.company, channel: ch.name });
-    let latencies = [];
+    let latencies = [], bizLatencies = [];
     try {
       const msgs = (await channelHistory(ch.id, oldest, token))
         .filter((m) => !m.subtype && m.user) // drop joins / system / bot posts
@@ -162,7 +186,12 @@ async function computeAndStore(token) {
       for (let i = 0; i < msgs.length; i++) {
         if (isInternal(msgs[i])) continue;               // internal msg, not a customer prompt
         for (let j = i + 1; j < msgs.length; j++) {       // first Virio reply after it
-          if (isInternal(msgs[j])) { latencies.push(parseFloat(msgs[j].ts) - parseFloat(msgs[i].ts)); break; }
+          if (isInternal(msgs[j])) {
+            const s = parseFloat(msgs[i].ts), e = parseFloat(msgs[j].ts);
+            latencies.push(e - s);
+            bizLatencies.push(businessSeconds(s, e));
+            break;
+          }
         }
       }
     } catch (e) { /* channel read failed — leave latencies empty */ }
@@ -172,6 +201,7 @@ async function computeAndStore(token) {
       channel: ch.name,
     });
     (amLat[acct.am] = amLat[acct.am] || []).push(...latencies);
+    (amBizLat[acct.am] = amBizLat[acct.am] || []).push(...bizLatencies);
     const pk = acct.product === 'EGC' ? 'EGC' : 'Full Service';
     amProdLat[acct.am] = amProdLat[acct.am] || {};
     (amProdLat[acct.am][pk] = amProdLat[acct.am][pk] || []).push(...latencies);
@@ -189,9 +219,11 @@ async function computeAndStore(token) {
         median_seconds: median(lat), mean_seconds: mean(lat), sample: lat.length,
       };
     }
+    const biz = amBizLat[am] || [];
     return {
       am, accounts: accts.length, product_mix: mix,
       median_seconds: median(amLat[am]), mean_seconds: mean(amLat[am]), sample: amLat[am].length,
+      median_business_seconds: median(biz), mean_business_seconds: mean(biz),
       by_product: byProduct,
     };
   });
