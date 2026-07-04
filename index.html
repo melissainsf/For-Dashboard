@@ -816,27 +816,15 @@ textarea.prt-input{resize:vertical}
 
   <!-- TAB 6: RESPONSE TIMES -->
   <div id="tab-responses" class="tab-content">
-    <div class="section-header" style="margin-top:4px">
-      <span class="section-title">Response time by customer</span>
-      <span class="section-note">Median time from a customer message to the first Virio reply · Slack · raw 24/7</span>
-    </div>
-    <div class="prt-toolbar">
+    <div class="prt-toolbar" style="margin-top:4px">
       <div class="prt-seg" id="rt-product-filter">
         <button class="prt-seg-btn active" data-product="all">All</button>
         <button class="prt-seg-btn" data-product="EGC">EGC</button>
         <button class="prt-seg-btn" data-product="Full Service">Full Service</button>
       </div>
     </div>
-    <div class="table-card">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Customer</th><th>Account Manager</th><th>Product</th><th>Median response</th><th>Samples</th></tr></thead>
-          <tbody id="rt-customer-body"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
 
-    <div class="section-header" style="margin-top:22px">
+    <div class="section-header">
       <span class="section-title">Response time by AM</span>
       <span class="section-note">Fastest first · pooled across each AM's accounts</span>
     </div>
@@ -845,6 +833,19 @@ textarea.prt-input{resize:vertical}
         <table>
           <thead><tr><th>Account Manager</th><th># Accounts</th><th>Product</th><th>Median response</th></tr></thead>
           <tbody id="rt-am-body"><tr><td colspan="4" class="rt-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:22px">
+      <span class="section-title">Response time by customer</span>
+      <span class="section-note">Median time from a customer message to the first Virio reply · Slack · raw 24/7</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Customer</th><th>Account Manager</th><th>Product</th><th>Median response</th><th>Samples</th></tr></thead>
+          <tbody id="rt-customer-body"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
