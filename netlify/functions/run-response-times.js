@@ -1,7 +1,8 @@
-// Manual trigger: GET /api/run-response-times?key=<RT_TRIGGER_KEY>
+// Manual trigger: GET /api/run-response-times?key=<last 6 chars of SLACK_BOT_TOKEN>
 // Runs the response-time computation on demand (so we don't wait for the hourly
-// job) and returns a debug summary. Gated by RT_TRIGGER_KEY so the customer data
-// in the response isn't exposed publicly.
+// job) and returns a debug summary. Gated by the last 6 characters of the bot
+// token — so no separate env var is needed, and the customer data in the response
+// isn't exposed publicly.
 //
 // This is a convenience/validation endpoint — safe to remove once the scheduled
 // job is confirmed working.
@@ -10,12 +11,11 @@ const { computeAndStore } = require('./_response-times-core');
 
 exports.handler = async function (event) {
   const token = process.env.SLACK_BOT_TOKEN;
-  const gate = process.env.RT_TRIGGER_KEY;
   const key = (event && event.queryStringParameters && event.queryStringParameters.key) || '';
 
   if (!token) return json(500, { error: 'SLACK_BOT_TOKEN not set' });
-  if (!gate) return json(500, { error: 'RT_TRIGGER_KEY not set' });
-  if (key !== gate) return json(401, { error: 'unauthorized' });
+  // Gate on the last 6 chars of the bot token (avoids needing a separate env var).
+  if (key !== token.slice(-6)) return json(401, { error: 'unauthorized — key must be the last 6 characters of the Slack bot token' });
 
   try {
     const { payload, matched, unmatched } = await computeAndStore(token);
