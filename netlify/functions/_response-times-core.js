@@ -98,29 +98,28 @@ async function computeAndStore(token) {
 
   for (const acct of ACCOUNTS) {
     const ch = virioChannels.find((c) => channelMatches(c.name, acct.company));
+    // Exclude accounts with no Slack channel (email-only customers, or not yet
+    // onboarded). They reappear automatically once a virio-<company> channel exists.
+    if (!ch) { unmatched.push(acct.company); continue; }
+    matched.push({ company: acct.company, channel: ch.name });
     let latencies = [];
-    if (ch) {
-      matched.push({ company: acct.company, channel: ch.name });
-      try {
-        const msgs = (await channelHistory(ch.id, oldest, token))
-          .filter((m) => !m.subtype && m.user) // drop joins / system / bot posts
-          .sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts));
-        for (const uid of [...new Set(msgs.map((m) => m.user))]) await teamOf(uid); // warm cache
-        const isInternal = (m) => userTeam[m.user] === virioTeamId;
-        for (let i = 0; i < msgs.length; i++) {
-          if (isInternal(msgs[i])) continue;               // internal msg, not a customer prompt
-          for (let j = i + 1; j < msgs.length; j++) {       // first Virio reply after it
-            if (isInternal(msgs[j])) { latencies.push(parseFloat(msgs[j].ts) - parseFloat(msgs[i].ts)); break; }
-          }
+    try {
+      const msgs = (await channelHistory(ch.id, oldest, token))
+        .filter((m) => !m.subtype && m.user) // drop joins / system / bot posts
+        .sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts));
+      for (const uid of [...new Set(msgs.map((m) => m.user))]) await teamOf(uid); // warm cache
+      const isInternal = (m) => userTeam[m.user] === virioTeamId;
+      for (let i = 0; i < msgs.length; i++) {
+        if (isInternal(msgs[i])) continue;               // internal msg, not a customer prompt
+        for (let j = i + 1; j < msgs.length; j++) {       // first Virio reply after it
+          if (isInternal(msgs[j])) { latencies.push(parseFloat(msgs[j].ts) - parseFloat(msgs[i].ts)); break; }
         }
-      } catch (e) { /* channel read failed — leave latencies empty */ }
-    } else {
-      unmatched.push(acct.company);
-    }
+      }
+    } catch (e) { /* channel read failed — leave latencies empty */ }
     accounts.push({
       company: acct.company, am: acct.am, product: acct.product,
       median_seconds: median(latencies), sample: latencies.length,
-      channel: ch ? ch.name : null,
+      channel: ch.name,
     });
     (amLat[acct.am] = amLat[acct.am] || []).push(...latencies);
   }

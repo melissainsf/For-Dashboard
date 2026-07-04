@@ -2202,7 +2202,7 @@ function rtRender(){
   } else if(rtData.source==='error'){
     note.innerHTML='Could not load response-time data.';
   } else {
-    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7).';
+    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). Accounts without a Slack channel (e.g. email-only or not yet onboarded) are excluded.';
   }
 }
 
