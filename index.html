@@ -839,8 +839,8 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Account Manager</th><th># Accounts</th><th>Product</th><th>Median</th><th>Average</th></tr></thead>
-          <tbody id="rt-am-body"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
+          <thead><tr><th>Account Manager</th><th># Accounts</th><th>Product</th><th>Median response</th></tr></thead>
+          <tbody id="rt-am-body"><tr><td colspan="4" class="rt-empty">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -852,8 +852,8 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Customer</th><th>Account Manager</th><th>Product</th><th>Median</th><th>Average</th><th>Samples</th></tr></thead>
-          <tbody id="rt-customer-body"><tr><td colspan="6" class="rt-empty">Loading…</td></tr></tbody>
+          <thead><tr><th>Customer</th><th>Account Manager</th><th>Product</th><th>Median response</th><th>Samples</th></tr></thead>
+          <tbody id="rt-customer-body"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2156,17 +2156,6 @@ function rtMedCell(sec,sample){
   const low = sample && sample<5 && sec!=null;
   return `<td class="rt-val"><span class="rt-med${low?' rt-lowconf':''}" title="${rtEsc(rtMedianTitle(sec,sample))}">${fmtDur(sec)}</span></td>`;
 }
-function rtMeanTitle(sec,sample){
-  if(sec==null||!sample) return 'No customer replies measured in the last 30 days yet.';
-  if(sample<5) return 'Based on only '+sample+' measured repl'+(sample===1?'y':'ies')+' — low-confidence.';
-  let t='Average (mean) of '+sample+' measured replies — more sensitive to slow outliers than the median.';
-  if(sec>=4*3600) t+=' The 24/7 clock counts overnight and weekend gaps, which pull the average up.';
-  return t;
-}
-function rtMeanCell(sec,sample){
-  const low = sample && sample<5 && sec!=null;
-  return `<td class="rt-val"><span class="rt-med${low?' rt-lowconf':''}" title="${rtEsc(rtMeanTitle(sec,sample))}">${fmtDur(sec)}</span></td>`;
-}
 function rtMixCell(mix){
   const egc=mix&&mix.EGC||0, fs=mix&&mix.FS||0, out=[];
   if(egc) out.push('<span class="rt-chip egc">EGC ×'+egc+'</span>');
@@ -2210,9 +2199,8 @@ function rtRender(){
     <td>${rtEsc(a.am||'Unassigned')}</td>
     <td>${rtProdChip(a.product)}</td>
     ${rtMedCell(a.median_seconds,a.sample)}
-    ${rtMeanCell(a.mean_seconds,a.sample)}
     <td class="rt-dim">${a.sample||0}</td></tr>`).join('')
-    : `<tr><td colspan="6" class="rt-empty">No accounts for this filter.</td></tr>`;
+    : `<tr><td colspan="5" class="rt-empty">No accounts for this filter.</td></tr>`;
   // Widget 2 — by AM. Pooled server stats; by_product keeps filtered views pooled
   // too (not median-of-medians), so the number matches across All / EGC / Full Service.
   let ams;
@@ -2237,9 +2225,8 @@ function rtRender(){
     <td>${rtEsc(x.am)}</td>
     <td class="rt-dim">${x.accounts}</td>
     <td>${rtMixCell(x.product_mix)}</td>
-    ${rtMedCell(x.median_seconds,x.sample)}
-    ${rtMeanCell(x.mean_seconds,x.sample)}</tr>`).join('')
-    : `<tr><td colspan="5" class="rt-empty">No AMs for this filter.</td></tr>`;
+    ${rtMedCell(x.median_seconds,x.sample)}</tr>`).join('')
+    : `<tr><td colspan="4" class="rt-empty">No AMs for this filter.</td></tr>`;
   // Footnote
   const note=document.getElementById('rt-note');
   if(rtData.source==='seed' || rtData.generated_at==null){
