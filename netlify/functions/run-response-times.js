@@ -18,6 +18,8 @@ exports.handler = async function (event) {
   if (key !== token.slice(-6)) return json(401, { error: 'unauthorized — key must be the last 6 characters of the Slack bot token' });
 
   try {
+    const { connectLambda } = require('@netlify/blobs');
+    if (typeof connectLambda === 'function') connectLambda(event);
     const { payload, matched, unmatched } = await computeAndStore(token);
     // Summary for validation: per-account medians + which channels matched.
     return json(200, {

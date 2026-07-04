@@ -22,10 +22,11 @@ function seedPayload() {
   return { generated_at: null, window_days: 30, source: 'seed', accounts, ams: null };
 }
 
-exports.handler = async function () {
+exports.handler = async function (event) {
   let payload = null;
   try {
-    const { getStore } = require('@netlify/blobs');
+    const { connectLambda, getStore } = require('@netlify/blobs');
+    if (typeof connectLambda === 'function') connectLambda(event);
     const store = getStore('response-times');
     const stored = await store.get('latest', { type: 'json' });
     if (stored && Array.isArray(stored.accounts) && stored.accounts.length) {
