@@ -58,6 +58,8 @@ header{background:var(--header-bg);color:var(--header-ink);padding:18px 32px;dis
 .tab-btn:hover{color:rgba(245,243,238,0.7)}
 .tab-btn.active{color:var(--header-ink);border-bottom-color:var(--teal-mid)}
 .rt-val{font-variant-numeric:tabular-nums;font-weight:600}
+.rt-med[title]{cursor:help}
+.rt-lowconf{border-bottom:1px dotted rgba(20,20,20,0.45)}
 .rt-dim{color:rgba(20,20,20,0.4);font-variant-numeric:tabular-nums}
 .rt-empty{text-align:center;color:rgba(20,20,20,0.45);padding:18px 0}
 .rt-pending{color:rgba(20,20,20,0.35)}
@@ -2142,6 +2144,18 @@ function fmtDur(sec){
   const d=Math.floor(sec/86400), h=Math.floor((sec%86400)/3600); return h?`${d}d ${h}h`:`${d}d`;
 }
 function rtProdChip(p){ return p==='EGC' ? '<span class="rt-chip egc">EGC</span>' : '<span class="rt-chip fs">Full Service</span>'; }
+function rtMedianTitle(sec,sample){
+  if(sec==null||!sample) return 'No customer replies measured in the last 30 days yet.';
+  const parts=[];
+  if(sample<5) parts.push('Based on only '+sample+' measured repl'+(sample===1?'y':'ies')+' — a single slow reply skews this, so treat it as low-confidence.');
+  if(sec>=4*3600) parts.push('Measured 24/7, so overnight and weekend gaps count — e.g. a late-evening message answered the next morning adds hours.');
+  if(!parts.length) parts.push('Median of '+sample+' measured first-reply times over the last 30 days.');
+  return parts.join(' ');
+}
+function rtMedCell(sec,sample){
+  const low = sample && sample<5 && sec!=null;
+  return `<td class="rt-val"><span class="rt-med${low?' rt-lowconf':''}" title="${rtEsc(rtMedianTitle(sec,sample))}">${fmtDur(sec)}</span></td>`;
+}
 function rtMixCell(mix){
   const egc=mix&&mix.EGC||0, fs=mix&&mix.FS||0, out=[];
   if(egc) out.push('<span class="rt-chip egc">EGC ×'+egc+'</span>');
@@ -2156,7 +2170,8 @@ function rtDeriveAms(accts){
     const mix=list.reduce((m,a)=>{ const k=a.product==='EGC'?'EGC':'FS'; m[k]=(m[k]||0)+1; return m; },{});
     const meds=list.map(a=>a.median_seconds).filter(v=>v!=null).sort((x,y)=>x-y);
     let med=null; if(meds.length){ const mid=Math.floor(meds.length/2); med=meds.length%2?meds[mid]:(meds[mid-1]+meds[mid])/2; }
-    return { am, accounts:list.length, product_mix:mix, median_seconds:med };
+    const sample=list.reduce((s,a)=>s+(a.sample||0),0);
+    return { am, accounts:list.length, product_mix:mix, median_seconds:med, sample };
   });
 }
 async function rtEnsureLoaded(){
@@ -2183,7 +2198,7 @@ function rtRender(){
     <td>${rtEsc(a.company)}</td>
     <td>${rtEsc(a.am||'Unassigned')}</td>
     <td>${rtProdChip(a.product)}</td>
-    <td class="rt-val">${fmtDur(a.median_seconds)}</td>
+    ${rtMedCell(a.median_seconds,a.sample)}
     <td class="rt-dim">${a.sample||0}</td></tr>`).join('')
     : `<tr><td colspan="5" class="rt-empty">No accounts for this filter.</td></tr>`;
   // Widget 2 — by AM (server-pooled medians when unfiltered; else derived from accounts)
@@ -2193,7 +2208,7 @@ function rtRender(){
     <td>${rtEsc(x.am)}</td>
     <td class="rt-dim">${x.accounts}</td>
     <td>${rtMixCell(x.product_mix)}</td>
-    <td class="rt-val">${fmtDur(x.median_seconds)}</td></tr>`).join('')
+    ${rtMedCell(x.median_seconds,x.sample)}</tr>`).join('')
     : `<tr><td colspan="4" class="rt-empty">No AMs for this filter.</td></tr>`;
   // Footnote
   const note=document.getElementById('rt-note');
