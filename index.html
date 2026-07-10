@@ -1676,10 +1676,11 @@ function renderTeamTab(cos) {
   const tExp=tEver.reduce((s,c)=>s+c.expansion_mrr,0);
   const tChurn=tChurnedPost.reduce((s,c)=>s+c.churned_mrr,0);
   const tNRR=tStart?(tStart+tExp-tChurn)/tStart*100:0;
+  // Position helper for the NRR scale — shared by the team-wide thermometer and the by-AM rows below.
+  const span=NRR_NORTHSTAR-NRR_FLOOR;
+  const pos=v=>Math.max(0,Math.min(100,(v-NRR_FLOOR)/span*100)).toFixed(1);
   const thermoEl=document.getElementById('nrr-thermo');
   if(thermoEl){
-    const span=NRR_NORTHSTAR-NRR_FLOOR;
-    const pos=v=>Math.max(0,Math.min(100,(v-NRR_FLOOR)/span*100)).toFixed(1);
     // Additional expansion MRR still needed to reach a target NRR %:
     //   need = (T% × startingMRR) − startingMRR + churnedMRR, minus expansion already booked.
     const addlFor=T=>Math.max(0,((T/100)*tStart - tStart + tChurn) - tExp);
