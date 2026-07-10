@@ -211,6 +211,51 @@ tbody td:first-child{font-weight:500}
 .foc-input::placeholder{color:var(--ink3)}
 .foc-input:hover{border-color:var(--ink3)}
 .foc-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+/* NRR THERMOMETER */
+.nrr-thermo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px 22px;margin-bottom:20px}
+.nrr-thermo-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:2px}
+.nrr-thermo-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--ink)}
+.nrr-thermo-now{font-family:'Syne',sans-serif;font-weight:600;color:var(--ink2);white-space:nowrap}
+.nrr-thermo-now b{font-size:24px;color:var(--ink);margin-right:4px}
+.nrr-thermo-sub{font-size:11px;color:var(--ink3);margin-bottom:8px}
+.nrr-thermo-sub b{color:var(--ink2);font-weight:600}
+.nrr-thermo-rail{position:relative;padding:34px 8px 48px}
+.nrr-thermo{display:flex;align-items:center;gap:0}
+.nrr-thermo-bulb{width:30px;height:30px;border-radius:50%;flex-shrink:0;margin-right:-10px;z-index:2;border:1px solid rgba(26,25,22,0.10)}
+.nrr-thermo-tube{position:relative;flex:1;height:20px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)}
+.nrr-thermo-fill{position:absolute;left:0;top:0;bottom:0;min-width:20px;border-radius:10px;z-index:1;transition:width 0.7s cubic-bezier(0.22,1,0.36,1)}
+.nrr-thermo-cur{position:absolute;top:-30px;z-index:4;transform:translateX(-50%);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;transition:left 0.7s cubic-bezier(0.22,1,0.36,1)}
+.nrr-thermo-cur::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--ink)}
+.nrr-thermo-mark{position:absolute;top:-5px;height:30px;width:2px;z-index:3;background:var(--ink3);opacity:0.55}
+.nrr-thermo-mark.northstar{background:var(--teal);opacity:0.9}
+.nrr-thermo-mark-lab{position:absolute;top:31px;transform:translateX(-50%);text-align:center;font-size:10px;line-height:1.3;color:var(--ink3);white-space:nowrap}
+.nrr-thermo-mark-lab b{display:block;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--ink2)}
+.nrr-thermo-mark-lab.northstar b{color:var(--teal)}
+.nrr-thermo-goals{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.nrr-thermo-goal{background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px}
+.nrr-thermo-goal.hit{background:var(--teal-light)}
+.nrr-thermo-goal-lab{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink3);margin-bottom:4px}
+.nrr-thermo-goal.hit .nrr-thermo-goal-lab{color:var(--teal)}
+.nrr-thermo-goal-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--ink)}
+.nrr-thermo-goal.hit .nrr-thermo-goal-val{color:var(--teal)}
+.nrr-thermo-goal-sub{font-size:11px;color:var(--ink2);margin-top:2px}
+@media(max-width:560px){.nrr-thermo-goals{grid-template-columns:1fr}}
+.nrr-am-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:8px 18px;margin-bottom:20px}
+.nrr-am-row{display:flex;align-items:center;gap:12px;padding:9px 2px;border-bottom:1px solid var(--border)}
+.nrr-am-row:last-child{border-bottom:none}
+.nrr-am-name{width:92px;flex-shrink:0;font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrr-am-track{position:relative;flex:1;height:14px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)}
+.nrr-am-fill{position:absolute;left:0;top:0;bottom:0;min-width:6px;border-radius:7px;transition:width 0.7s cubic-bezier(0.22,1,0.36,1)}
+.nrr-am-tick{position:absolute;top:-3px;height:20px;width:2px;background:var(--ink3);opacity:0.5}
+.nrr-am-tick.northstar{background:var(--teal);opacity:0.85}
+.nrr-am-pct{width:54px;flex-shrink:0;text-align:right;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ink)}
+.nrr-am-need{width:122px;flex-shrink:0;text-align:right;font-size:11px;color:var(--ink2)}
+.nrr-am-need b{font-weight:600;color:var(--ink)}
+.nrr-am-empty .nrr-am-name{color:var(--ink2)}
+.nrr-am-empty .nrr-am-track{opacity:0.5}
+.nrr-am-empty .nrr-am-pct{color:var(--ink3)}
+.nrr-am-empty .nrr-am-need{font-style:italic;color:var(--ink3)}
+@media(max-width:560px){.nrr-am-need{display:none}}
 .foc-input:disabled{opacity:0.5;cursor:wait}
 /* PRODUCT REQUEST TRACKER */
 .prt-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
@@ -653,8 +698,21 @@ textarea.prt-input{resize:vertical}
 
   <!-- TAB 4: TEAM -->
   <div id="tab-team" class="tab-content">
+    <!-- NRR THERMOMETER -->
+    <div class="section-header" style="margin-top:4px">
+      <span class="section-title">NRR goal</span>
+      <span class="section-note">How much expansion revenue stands between us and 150% Net Revenue Retention</span>
+    </div>
+    <div id="nrr-thermo" class="nrr-thermo-card"><div class="team-loading">Loading...</div></div>
+
+    <div class="section-header">
+      <span class="section-title">NRR by Account Manager</span>
+      <span class="section-note">Each AM's converted book climbing to 150% · ticks mark the 120% milestone and 150% goal</span>
+    </div>
+    <div id="nrr-am-thermo" class="nrr-am-card"><div class="team-loading">Loading...</div></div>
+
     <!-- CE WORKLOAD -->
-    <div class="section-header" id="ce-load-section" style="margin-top:4px">
+    <div class="section-header" id="ce-load-section">
       <span class="section-title">AM capacity</span>
       <span class="section-note">Number of accounts per Account Manager</span>
     </div>
@@ -1009,7 +1067,25 @@ function fmtBig$(n) {
 function set(id,v) { const el=document.getElementById(id); if(el) el.textContent=v; }
 function escapeHtml(s) { return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function normalizeName(n) { return (n||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
-function displayAM(csm) { return csm==='CSM 2'?'David':(csm||'Unassigned'); }
+// HubSpot stores internal AM values that differ from the display label; the
+// dashboard always shows the label, and only ever uses the internal value as
+// the value written back to HubSpot.
+const AM_LABELS = { 'CSM 2':'David', 'Max':'Maxwell' };
+function displayAM(csm) { return csm ? (AM_LABELS[csm]||csm) : 'Unassigned'; }
+// Current Account Managers, by HubSpot internal value — the single source of
+// truth for who's on the team. New AMs go here so they appear across every AM
+// widget (and are assignable) before any account is assigned to them.
+const CURRENT_AM_VALUES = ['Melissa','Marghi','Jacob','Max','CSM 2','Emily'];
+const CURRENT_AMS = CURRENT_AM_VALUES.map(displayAM);  // display labels
+function amDisplayList(cos) {
+  const set = new Set(CURRENT_AMS);
+  (cos||[]).forEach(c => { const a = displayAM(c.csm); if(a) set.add(a); });
+  return [...set].sort((a,b) => {
+    const au=a==='Unassigned', bu=b==='Unassigned';
+    if(au!==bu) return au?1:-1;
+    return a.localeCompare(b);
+  });
+}
 function calcTTV(k,f) { if(!k||!f) return null; const d=Math.round((new Date(f)-new Date(k))/86400000); return d>=0?d:null; }
 function fmtTTV(k,f) { const d=calcTTV(k,f); return d!==null?d+' days':'—'; }
 function parsePostsPerMonth(val) { if(!val) return 0; const m=val.match(/\d+/); return m?parseInt(m[0]):0; }
@@ -1193,7 +1269,7 @@ function recompute() {
   renderHealthWidget('post-health-rows','post-health-summary',converted);
 
   const allStages=[...new Set(cos.map(c=>c.stage).filter(Boolean))].sort();
-  const allAMs=[...new Set(cos.map(c=>displayAM(c.csm)).filter(Boolean))].sort();
+  const allAMs=amDisplayList(cos);
 
   renderPie('pilotOutcomePie',[inProgress.length,pilotConv.length,exited.length],['In progress','Converted','Exited'],OUTCOME_COLORS,'legend-pilot-outcome',
     [inProgress.map(c=>({name:c.name,val:fmt$(c.mrr)})),pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)})),exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))]);
@@ -1296,7 +1372,9 @@ function journeySelect(c) {
 }
 function amSelect(c, allCsms) {
   const cur=c.csm||'';
-  const opts=[...allCsms];
+  // Always offer the current team (by internal value), plus whatever values already
+  // exist in the data, plus this record's current value if it's an older/former one.
+  const opts=[...new Set([...CURRENT_AM_VALUES, ...allCsms])].sort((a,b)=>displayAM(a).localeCompare(displayAM(b)));
   if(cur&&!opts.includes(cur)) opts.unshift(cur);
   const options=['<option value="">Unassigned</option>',...opts.map(v=>`<option value="${escapeHtml(v)}"${v===cur?' selected':''}>${escapeHtml(displayAM(v))}</option>`)].join('');
   return `<select class="hs-select" data-cid="${escapeHtml(c.id||'')}" data-prop="csm" data-prev="${escapeHtml(cur)}" onchange="updateHubspotField(this)">${options}</select>`;
@@ -1588,11 +1666,110 @@ function renderTeamTab(cos) {
   const exclude=document.getElementById('exclude-virio').checked;
   const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
 
+  // NRR thermometer — Post-Pilot NRR climbing toward a 150% north star.
+  // Uses the same ever-converted cohort + formula as the headline NRR card, so
+  // the reading here always matches the "Post-Pilot NRR" metric on the Metrics tab.
+  const NRR_FLOOR=90, NRR_MILESTONE=120, NRR_NORTHSTAR=150;
+  const tEver=cos.filter(c=>c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion');
+  const tChurnedPost=cos.filter(c=>c.pilot_status==='Churned Post Conversion');
+  const tStart=tEver.reduce((s,c)=>s+c.mrr,0);
+  const tExp=tEver.reduce((s,c)=>s+c.expansion_mrr,0);
+  const tChurn=tChurnedPost.reduce((s,c)=>s+c.churned_mrr,0);
+  const tNRR=tStart?(tStart+tExp-tChurn)/tStart*100:0;
+  const thermoEl=document.getElementById('nrr-thermo');
+  if(thermoEl){
+    const span=NRR_NORTHSTAR-NRR_FLOOR;
+    const pos=v=>Math.max(0,Math.min(100,(v-NRR_FLOOR)/span*100)).toFixed(1);
+    // Additional expansion MRR still needed to reach a target NRR %:
+    //   need = (T% × startingMRR) − startingMRR + churnedMRR, minus expansion already booked.
+    const addlFor=T=>Math.max(0,((T/100)*tStart - tStart + tChurn) - tExp);
+    const fillColor=tNRR>=NRR_NORTHSTAR?'var(--teal)':tNRR>=NRR_MILESTONE?'var(--teal-mid)':'var(--amber)';
+    const goal=(T,label,hit)=>{
+      const addl=addlFor(T);
+      return `<div class="nrr-thermo-goal${hit?' hit':''}">
+        <div class="nrr-thermo-goal-lab">${label} · ${T}% NRR</div>
+        <div class="nrr-thermo-goal-val">${hit?'Reached 🎉':'+'+fmt$(addl)+'/mo'}</div>
+        <div class="nrr-thermo-goal-sub">${hit?'Milestone cleared — keep going':'more expansion revenue · +'+fmtBig$(addl*12)+' ARR/yr'}</div>
+      </div>`;
+    };
+    thermoEl.innerHTML=`
+      <div class="nrr-thermo-head">
+        <div class="nrr-thermo-title">🌡️ Road to 150% NRR</div>
+        <div class="nrr-thermo-now"><b>${tNRR.toFixed(1)}%</b>Post-Pilot NRR today</div>
+      </div>
+      <div class="nrr-thermo-sub">Converted book <b>${fmt$(tStart)}/mo</b> · expansion booked <b>${fmt$(tExp)}/mo</b> · churned <b>${fmt$(tChurn)}/mo</b></div>
+      <div class="nrr-thermo-rail">
+        <div class="nrr-thermo">
+          <div class="nrr-thermo-bulb" style="background:${fillColor}"></div>
+          <div class="nrr-thermo-tube">
+            <div class="nrr-thermo-fill" style="width:${pos(tNRR)}%;background:${fillColor}"></div>
+            <div class="nrr-thermo-cur" style="left:${pos(tNRR)}%">${tNRR.toFixed(1)}%</div>
+            <div class="nrr-thermo-mark" style="left:${pos(NRR_MILESTONE)}%"></div>
+            <div class="nrr-thermo-mark-lab" style="left:${pos(NRR_MILESTONE)}%"><b>${NRR_MILESTONE}%</b>milestone</div>
+            <div class="nrr-thermo-mark northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
+            <div class="nrr-thermo-mark-lab northstar" style="left:${pos(NRR_NORTHSTAR)}%"><b>${NRR_NORTHSTAR}%</b>north star 🎯</div>
+          </div>
+        </div>
+      </div>
+      <div class="nrr-thermo-goals">
+        ${goal(NRR_MILESTONE,'Next milestone',tNRR>=NRR_MILESTONE)}
+        ${goal(NRR_NORTHSTAR,'North star',tNRR>=NRR_NORTHSTAR)}
+      </div>`;
+  }
+
+  // NRR thermometer by Account Manager — same cohort/formula split by AM.
+  // Each AM's gap to 150% (0.5×book + churn − expansion) sums to the team-wide gap.
+  const amThermoEl=document.getElementById('nrr-am-thermo');
+  if(amThermoEl){
+    const groups={};
+    amDisplayList(cos).forEach(am=>{ groups[am]=[]; });  // seed every current AM (incl. those with no converted book yet)
+    tEver.forEach(c=>{ const am=displayAM(c.csm); (groups[am]=groups[am]||[]).push(c); });
+    const rows=Object.entries(groups).map(([am,list])=>{
+      const s=list.reduce((a,c)=>a+c.mrr,0);
+      const e=list.reduce((a,c)=>a+c.expansion_mrr,0);
+      const ch=list.filter(c=>c.pilot_status==='Churned Post Conversion').reduce((a,c)=>a+c.churned_mrr,0);
+      const nrr=s?(s+e-ch)/s*100:0;
+      const addl=Math.max(0,0.5*s+ch-e);
+      return {am,nrr,addl,n:list.length,hasBook:s>0};
+    }).sort((a,b)=>{
+      const au=a.am==='Unassigned', bu=b.am==='Unassigned';
+      if(au!==bu) return au?1:-1;                         // Unassigned always last
+      if(a.hasBook!==b.hasBook) return a.hasBook?-1:1;    // AMs with a converted book first
+      if(a.hasBook) return b.addl-a.addl;                 // then by opportunity (largest gap first)
+      return a.am.localeCompare(b.am);                    // no-book AMs alphabetical
+    });
+    amThermoEl.innerHTML=rows.map(r=>{
+      if(!r.hasBook){
+        return `<div class="nrr-am-row nrr-am-empty">
+          <div class="nrr-am-name" title="${escapeHtml(r.am)} · no converted accounts yet">${escapeHtml(r.am)}</div>
+          <div class="nrr-am-track">
+            <div class="nrr-am-tick" style="left:${pos(NRR_MILESTONE)}%"></div>
+            <div class="nrr-am-tick northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
+          </div>
+          <div class="nrr-am-pct">—</div>
+          <div class="nrr-am-need">no converted book yet</div>
+        </div>`;
+      }
+      const fc=r.nrr>=NRR_NORTHSTAR?'var(--teal)':r.nrr>=NRR_MILESTONE?'var(--teal-mid)':'var(--amber)';
+      return `<div class="nrr-am-row">
+        <div class="nrr-am-name" title="${escapeHtml(r.am)} · ${r.n} account${r.n!==1?'s':''}">${escapeHtml(r.am)}</div>
+        <div class="nrr-am-track">
+          <div class="nrr-am-fill" style="width:${pos(r.nrr)}%;background:${fc}"></div>
+          <div class="nrr-am-tick" style="left:${pos(NRR_MILESTONE)}%"></div>
+          <div class="nrr-am-tick northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
+        </div>
+        <div class="nrr-am-pct">${r.nrr.toFixed(1)}%</div>
+        <div class="nrr-am-need">${r.addl>0?'<b>+'+fmt$(r.addl)+'</b>/mo to 150%':'at 150% 🎉'}</div>
+      </div>`;
+    }).join('')||'<div class="empty-hint">No account managers to show.</div>';
+  }
+
   // AM aggregates by post target — always include Virio so internal workload is reflected
   const ceSource=allCompanies.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
   const ceMap = {};
+  amDisplayList(ceSource).forEach(am => { ceMap[am] = { accounts:[] }; });  // seed every current AM
   ceSource.forEach(c => {
-    const am = displayAM(c.csm) || 'Unassigned';
+    const am = displayAM(c.csm);
     const target = parsePostsPerMonth(c.posts_per_month);
     if (!ceMap[am]) ceMap[am] = { accounts:[] };
     ceMap[am].accounts.push({ name: c.name, ppm: target });
@@ -1625,7 +1802,7 @@ function renderTeamTab(cos) {
   }
 
   // AM charts
-  const allAMs=[...new Set(cos.map(c=>displayAM(c.csm)).filter(Boolean))].sort();
+  const allAMs=amDisplayList(cos);
   const converted=cos.filter(c=>c.pilot_status==='Converted');
   const churnedPost=cos.filter(c=>c.pilot_status==='Churned Post Conversion');
   renderGroupedBar('postAMBar',allAMs,[
@@ -1662,6 +1839,7 @@ function renderTeamTab(cos) {
   set('m-roi-quarterly',fmtBig$(totalMRR*3));
   set('m-roi-annual',fmtBig$(totalMRR*12));
   const roiGroups={};
+  amDisplayList(active).forEach(am=>{ roiGroups[am]=[]; });  // seed every current AM
   roiRows.forEach(c=>{ const am=displayAM(c.csm); (roiGroups[am]=roiGroups[am]||[]).push(c); });
   const sortedAMs=Object.keys(roiGroups).sort((a,b)=>{
     const aUn=a.toLowerCase()==='unassigned', bUn=b.toLowerCase()==='unassigned';
