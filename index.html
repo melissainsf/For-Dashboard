@@ -240,6 +240,18 @@ tbody td:first-child{font-weight:500}
 .nrr-thermo-goal.hit .nrr-thermo-goal-val{color:var(--teal)}
 .nrr-thermo-goal-sub{font-size:11px;color:var(--ink2);margin-top:2px}
 @media(max-width:560px){.nrr-thermo-goals{grid-template-columns:1fr}}
+.nrr-am-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:8px 18px;margin-bottom:20px}
+.nrr-am-row{display:flex;align-items:center;gap:12px;padding:9px 2px;border-bottom:1px solid var(--border)}
+.nrr-am-row:last-child{border-bottom:none}
+.nrr-am-name{width:92px;flex-shrink:0;font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrr-am-track{position:relative;flex:1;height:14px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)}
+.nrr-am-fill{position:absolute;left:0;top:0;bottom:0;min-width:6px;border-radius:7px;transition:width 0.7s cubic-bezier(0.22,1,0.36,1)}
+.nrr-am-tick{position:absolute;top:-3px;height:20px;width:2px;background:var(--ink3);opacity:0.5}
+.nrr-am-tick.northstar{background:var(--teal);opacity:0.85}
+.nrr-am-pct{width:54px;flex-shrink:0;text-align:right;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ink)}
+.nrr-am-need{width:122px;flex-shrink:0;text-align:right;font-size:11px;color:var(--ink2)}
+.nrr-am-need b{font-weight:600;color:var(--ink)}
+@media(max-width:560px){.nrr-am-need{display:none}}
 .foc-input:disabled{opacity:0.5;cursor:wait}
 /* PRODUCT REQUEST TRACKER */
 .prt-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
@@ -688,6 +700,12 @@ textarea.prt-input{resize:vertical}
       <span class="section-note">How much expansion revenue stands between us and 150% Net Revenue Retention</span>
     </div>
     <div id="nrr-thermo" class="nrr-thermo-card"><div class="team-loading">Loading...</div></div>
+
+    <div class="section-header">
+      <span class="section-title">NRR by Account Manager</span>
+      <span class="section-note">Each AM's converted book climbing to 150% · ticks mark the 120% milestone and 150% goal</span>
+    </div>
+    <div id="nrr-am-thermo" class="nrr-am-card"><div class="team-loading">Loading...</div></div>
 
     <!-- CE WORKLOAD -->
     <div class="section-header" id="ce-load-section">
@@ -1673,6 +1691,39 @@ function renderTeamTab(cos) {
         ${goal(NRR_MILESTONE,'Next milestone',tNRR>=NRR_MILESTONE)}
         ${goal(NRR_NORTHSTAR,'North star',tNRR>=NRR_NORTHSTAR)}
       </div>`;
+  }
+
+  // NRR thermometer by Account Manager — same cohort/formula split by AM.
+  // Each AM's gap to 150% (0.5×book + churn − expansion) sums to the team-wide gap.
+  const amThermoEl=document.getElementById('nrr-am-thermo');
+  if(amThermoEl){
+    const groups={};
+    tEver.forEach(c=>{ const am=displayAM(c.csm)||'Unassigned'; (groups[am]=groups[am]||[]).push(c); });
+    const rows=Object.entries(groups).map(([am,list])=>{
+      const s=list.reduce((a,c)=>a+c.mrr,0);
+      const e=list.reduce((a,c)=>a+c.expansion_mrr,0);
+      const ch=list.filter(c=>c.pilot_status==='Churned Post Conversion').reduce((a,c)=>a+c.churned_mrr,0);
+      const nrr=s?(s+e-ch)/s*100:0;
+      const addl=Math.max(0,0.5*s+ch-e);
+      return {am,nrr,addl,n:list.length};
+    }).sort((a,b)=>{
+      const au=a.am.toLowerCase()==='unassigned', bu=b.am.toLowerCase()==='unassigned';
+      if(au!==bu) return au?1:-1;
+      return b.addl-a.addl;
+    });
+    amThermoEl.innerHTML=rows.length?rows.map(r=>{
+      const fc=r.nrr>=NRR_NORTHSTAR?'var(--teal)':r.nrr>=NRR_MILESTONE?'var(--teal-mid)':'var(--amber)';
+      return `<div class="nrr-am-row">
+        <div class="nrr-am-name" title="${escapeHtml(r.am)} · ${r.n} account${r.n!==1?'s':''}">${escapeHtml(r.am)}</div>
+        <div class="nrr-am-track">
+          <div class="nrr-am-fill" style="width:${pos(r.nrr)}%;background:${fc}"></div>
+          <div class="nrr-am-tick" style="left:${pos(NRR_MILESTONE)}%"></div>
+          <div class="nrr-am-tick northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
+        </div>
+        <div class="nrr-am-pct">${r.nrr.toFixed(1)}%</div>
+        <div class="nrr-am-need">${r.addl>0?'<b>+'+fmt$(r.addl)+'</b>/mo to 150%':'at 150% 🎉'}</div>
+      </div>`;
+    }).join(''):'<div class="empty-hint">No converted accounts yet.</div>';
   }
 
   // AM aggregates by post target — always include Virio so internal workload is reflected
