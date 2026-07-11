@@ -944,7 +944,11 @@ const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned Post Conversion'];
-const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha','Emmett']);
+// No longer Account Managers — their csm/content_manager assignments are scrubbed
+// so they drop out of every AM widget. (Millie moved to a content-specialist role.)
+// Note: the response-time widgets pull from /api/response-times, not this path, so
+// people removed here still appear there.
+const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha','Emmett','Millie']);
 const scrubFormer = v => (v && FORMER_TEAM_MEMBERS.has(v)) ? null : v;
 
 let allCompanies = [], lineageMap = {}, charts = {};
