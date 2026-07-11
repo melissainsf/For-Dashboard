@@ -711,6 +711,16 @@ textarea.prt-input{resize:vertical}
     </div>
     <div id="nrr-am-thermo" class="nrr-am-card"><div class="team-loading">Loading...</div></div>
 
+    <div class="section-header">
+      <span class="section-title">Upsell products by AM</span>
+      <span class="section-note">Products beyond the base package (EGC / Full Service) across active accounts</span>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-card-title">Upsell products per Account Manager</div>
+      <div class="chart-card-sub">Every product beyond the base counts as one upsell · hover a bar for the accounts</div>
+      <div class="chart-wrap-md"><canvas id="upsellAMBar"></canvas></div>
+    </div>
+
     <!-- CE WORKLOAD -->
     <div class="section-header" id="ce-load-section">
       <span class="section-title">AM capacity</span>
@@ -1832,6 +1842,24 @@ function renderTeamTab(cos) {
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
     });
   }
+
+  // Upsell products by AM — count of products beyond the base (EGC / Full Service).
+  // `product` is a HubSpot checkbox field (semicolon-joined); each option beyond
+  // the one base package counts as one upsell.
+  const countUpsells=c=>{ const n=(c.product||'').split(';').map(s=>s.trim()).filter(Boolean).length; return n>1?n-1:0; };
+  const upsellData=allAMs.map(am=>{
+    const ac=active.filter(c=>displayAM(c.csm)===am);
+    const total=ac.reduce((s,c)=>s+countUpsells(c),0);
+    const names=ac.filter(c=>countUpsells(c)>0).sort((a,b)=>countUpsells(b)-countUpsells(a))
+      .map(c=>({name:c.name,val:countUpsells(c)+(countUpsells(c)===1?' upsell':' upsells')}));
+    return {total,names};
+  });
+  if(charts['upsellAMBar']) charts['upsellAMBar'].destroy();
+  const upsellEl=document.getElementById('upsellAMBar');
+  if(upsellEl) charts['upsellAMBar']=new Chart(upsellEl.getContext('2d'),{
+    type:'bar',data:{labels:allAMs,datasets:[{data:upsellData.map(d=>d.total),backgroundColor:'#7F77DD',borderRadius:4,names:upsellData.map(d=>d.names)}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[' '+ctx.raw+(ctx.raw===1?' upsell':' upsells'),...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{size:10},stepSize:1,precision:0},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
 
   // ROI calculator — closed-deal targets per active customer at 1× MRR, grouped by AM
   const roiRows=[...active].filter(c=>c.mrr>0);
