@@ -259,6 +259,7 @@ tbody td:first-child{font-weight:500}
 .nrr-am-empty .nrr-am-need{font-style:italic;color:var(--ink3)}
 @media(max-width:560px){.nrr-am-need{display:none}}
 .nrr-thermo-mark-lab.edgegoal{left:auto;right:0;transform:none;text-align:right}
+.nrr-thermo-foot{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--ink2)}
 @media(max-width:900px){.chart-row-3{grid-template-columns:1fr}}
 .foc-input:disabled{opacity:0.5;cursor:wait}
 /* PRODUCT REQUEST TRACKER */
@@ -710,7 +711,7 @@ textarea.prt-input{resize:vertical}
     <div id="nrr-thermo" class="nrr-thermo-card"><div class="team-loading">Loading...</div></div>
 
     <div class="section-header">
-      <span class="section-title">NRR by Account Manager</span>
+      <span class="section-title">Individual 2026 NRR Progress Toward Goal</span>
       <span class="section-note">Each AM's book climbing to the EOY 2026 checkpoint (~161% NRR) · fill = current NRR, marker = the goal</span>
     </div>
     <div id="nrr-am-thermo" class="nrr-am-card"><div class="team-loading">Loading...</div></div>
@@ -1773,7 +1774,7 @@ function renderTeamTab(cos) {
     const fillColor=bookNRR>=NRR_CHECKPOINT?'var(--teal)':'var(--teal-mid)';
     thermoEl.innerHTML=`
       <div class="nrr-thermo-head">
-        <div class="nrr-thermo-title">🌡️ Road to EOY 2026 · ~${cpRound}% NRR</div>
+        <div class="nrr-thermo-title">🌡️ Team 2026 NRR Progress Toward Goal</div>
         <div class="nrr-thermo-now"><b>${bookNRR.toFixed(1)}%</b>NRR today</div>
       </div>
       <div class="nrr-thermo-sub">Current book <b>${fmt$(currentBook)}/mo</b> · expansion booked <b>${fmt$(bookExp)}/mo</b> · churned <b>${fmt$(bookChurn)}/mo</b> · ${custPop.length} current customers</div>
@@ -1797,9 +1798,10 @@ function renderTeamTab(cos) {
         <div class="nrr-thermo-goal">
           <div class="nrr-thermo-goal-lab">North star · ${NRR_NORTHSTAR}% NRR (${fmtMonthYear(NRR_CONFIG.northStarDate)})</div>
           <div class="nrr-thermo-goal-val">+${fmt$(northStarGap)}/mo</div>
-          <div class="nrr-thermo-goal-sub">book to ${fmt$(northStarBook)}/mo by ${fmtMonthYear(NRR_CONFIG.northStarDate)} · +${fmtBig$(northStarGap*12)} ARR · ${NRR_CONFIG.stretchPct}% stretch beyond</div>
+          <div class="nrr-thermo-goal-sub">book to ${fmt$(northStarBook)}/mo by ${fmtMonthYear(NRR_CONFIG.northStarDate)} · +${fmtBig$(northStarGap*12)} ARR · ${NRR_CONFIG.stretchPct}% stretch by EOY 2027</div>
         </div>
-      </div>`;
+      </div>
+      <div class="nrr-thermo-foot">Goal is to hit ${NRR_NORTHSTAR}% by July 2027, and ${NRR_CONFIG.stretchPct}% by EOY 2027.</div>`;
   }
 
   // ── NRR by Account Manager — same bar/tick pattern, retargeted to 300% ──────
