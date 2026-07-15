@@ -10,15 +10,29 @@ exports.handler = async function(event, context) {
   }
 
   const requestBody = {
-    filterGroups: [{
-      filters: [{
-        propertyName: 'pilot_status',
-        operator: 'IN',
-        values: ['In progress', 'Converted', 'Exited During Pilot', 'Churned Post Conversion']
-      }]
-    }],
+    // Two filter groups are OR'd together: keep every pilot-tracked company the
+    // dashboard already shows, PLUS every current customer (lifecyclestage =
+    // customer) so the NRR-goal widgets can scope to the full customer book even
+    // for accounts without a pilot_status set. Opportunity-stage records are
+    // never matched by either group, so they stay off the dashboard.
+    filterGroups: [
+      {
+        filters: [{
+          propertyName: 'pilot_status',
+          operator: 'IN',
+          values: ['In progress', 'Converted', 'Exited During Pilot', 'Churned Post Conversion']
+        }]
+      },
+      {
+        filters: [{
+          propertyName: 'lifecyclestage',
+          operator: 'EQ',
+          value: 'customer'
+        }]
+      }
+    ],
     properties: [
-      'name', 'pilot_status', 'stage', 'mrr', 'expansion_mrr',
+      'name', 'pilot_status', 'lifecyclestage', 'stage', 'mrr', 'expansion_mrr',
       'churned_mrr_value', 'churn_reason', 'domain', 'csm',
       'kickoff_call_date', 'first_post_date', 'vertical', 'customer_journey',
       'content_manager', 'posts_per_month', 'product'
