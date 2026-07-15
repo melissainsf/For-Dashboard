@@ -258,7 +258,7 @@ tbody td:first-child{font-weight:500}
 .nrr-am-empty .nrr-am-pct{color:var(--ink3)}
 .nrr-am-empty .nrr-am-need{font-style:italic;color:var(--ink3)}
 @media(max-width:560px){.nrr-am-need{display:none}}
-.nrr-thermo-stretch{position:absolute;right:8px;bottom:20px;font-size:10px;font-style:italic;color:var(--ink3);opacity:0.75}
+.nrr-thermo-mark-lab.edgegoal{left:auto;right:0;transform:none;text-align:right}
 /* GROWTH SIGNAL CALLOUTS (at-risk / coverage / unassigned) */
 .signal-card{display:flex;flex-direction:column;margin-bottom:0}
 .signal-label{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
@@ -737,7 +737,7 @@ textarea.prt-input{resize:vertical}
 
     <div class="section-header">
       <span class="section-title">NRR by Account Manager</span>
-      <span class="section-note">Each AM's book climbing to 300% · ticks mark the EOY 2026 checkpoint (~161%) and the 300% north star</span>
+      <span class="section-note">Each AM's book climbing to the EOY 2026 checkpoint (~161% NRR) · fill = current NRR, marker = the goal</span>
     </div>
     <div id="nrr-am-thermo" class="nrr-am-card"><div class="team-loading">Loading...</div></div>
 
@@ -1782,10 +1782,13 @@ function renderTeamTab(cos) {
   const bookChurn = custPop.reduce((s,c)=>s+c.churned_mrr,0);
   const bookNRR = currentBook?(currentBook+bookExp-bookChurn)/currentBook*100:0;
 
-  // Thermometer scale runs 100% (today's book) → the north star; the checkpoint
-  // sits on the same curve. Shared by the team-wide bar and the by-AM rows below.
+  // Thermometers foreground the NEAR-TERM target: they run 100% (today's book) →
+  // the reverse-engineered EOY 2026 checkpoint (~161%), the proof point on the way
+  // to the 300% July-2027 north star. The 300% goal lives in the milestone card
+  // below, not on the bar, so today's ~108% reads as real near-term progress rather
+  // than a sliver against a far-off number. Scale shared by hero + by-AM rows.
   const NRR_FLOOR=100, NRR_CHECKPOINT=CHECKPOINT_PCT, NRR_NORTHSTAR=NRR_CONFIG.northStarPct;
-  const span=NRR_NORTHSTAR-NRR_FLOOR;
+  const span=NRR_CHECKPOINT-NRR_FLOOR;
   const pos=v=>Math.max(0,Math.min(100,(v-NRR_FLOOR)/span*100)).toFixed(1);
   const checkpointBook=targetBook(currentBook,NRR_CONFIG.checkpointDate);
   const northStarBook=targetBook(currentBook,NRR_CONFIG.northStarDate);
@@ -1796,10 +1799,10 @@ function renderTeamTab(cos) {
 
   const thermoEl=document.getElementById('nrr-thermo');
   if(thermoEl){
-    const fillColor=bookNRR>=NRR_NORTHSTAR?'var(--teal)':bookNRR>=NRR_CHECKPOINT?'var(--teal-mid)':'var(--amber)';
+    const fillColor=bookNRR>=NRR_CHECKPOINT?'var(--teal)':'var(--teal-mid)';
     thermoEl.innerHTML=`
       <div class="nrr-thermo-head">
-        <div class="nrr-thermo-title">🌡️ Road to ${NRR_NORTHSTAR}% NRR</div>
+        <div class="nrr-thermo-title">🌡️ Road to EOY 2026 · ~${cpRound}% NRR</div>
         <div class="nrr-thermo-now"><b>${bookNRR.toFixed(1)}%</b>NRR today</div>
       </div>
       <div class="nrr-thermo-sub">Current book <b>${fmt$(currentBook)}/mo</b> · expansion booked <b>${fmt$(bookExp)}/mo</b> · churned <b>${fmt$(bookChurn)}/mo</b> · ${custPop.length} current customers</div>
@@ -1809,13 +1812,10 @@ function renderTeamTab(cos) {
           <div class="nrr-thermo-tube">
             <div class="nrr-thermo-fill" style="width:${pos(bookNRR)}%;background:${fillColor}"></div>
             <div class="nrr-thermo-cur" style="left:${pos(bookNRR)}%">${bookNRR.toFixed(1)}%</div>
-            <div class="nrr-thermo-mark" style="left:${pos(NRR_CHECKPOINT)}%"></div>
-            <div class="nrr-thermo-mark-lab" style="left:${pos(NRR_CHECKPOINT)}%"><b>~${cpRound}%</b>EOY 2026</div>
-            <div class="nrr-thermo-mark northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
-            <div class="nrr-thermo-mark-lab northstar" style="left:${pos(NRR_NORTHSTAR)}%"><b>${NRR_NORTHSTAR}%</b>north star 🎯</div>
+            <div class="nrr-thermo-mark northstar" style="left:calc(100% - 2px)"></div>
+            <div class="nrr-thermo-mark-lab northstar edgegoal"><b>~${cpRound}%</b>EOY 2026 🎯</div>
           </div>
         </div>
-        <div class="nrr-thermo-stretch" title="Optional stretch case, no fixed date yet">${NRR_CONFIG.stretchPct}% stretch →</div>
       </div>
       <div class="nrr-thermo-goals">
         <div class="nrr-thermo-goal">
@@ -1826,7 +1826,7 @@ function renderTeamTab(cos) {
         <div class="nrr-thermo-goal">
           <div class="nrr-thermo-goal-lab">North star · ${NRR_NORTHSTAR}% NRR (${fmtMonthYear(NRR_CONFIG.northStarDate)})</div>
           <div class="nrr-thermo-goal-val">+${fmt$(northStarGap)}/mo</div>
-          <div class="nrr-thermo-goal-sub">book to ${fmt$(northStarBook)}/mo by ${fmtMonthYear(NRR_CONFIG.northStarDate)} · +${fmtBig$(northStarGap*12)} ARR</div>
+          <div class="nrr-thermo-goal-sub">book to ${fmt$(northStarBook)}/mo by ${fmtMonthYear(NRR_CONFIG.northStarDate)} · +${fmtBig$(northStarGap*12)} ARR · ${NRR_CONFIG.stretchPct}% stretch beyond</div>
         </div>
       </div>`;
   }
@@ -1922,20 +1922,18 @@ function renderTeamTab(cos) {
         return `<div class="nrr-am-row nrr-am-empty">
           ${nameCell(r,`${escapeHtml(r.am)} · no customer book yet`)}
           <div class="nrr-am-track">
-            <div class="nrr-am-tick" style="left:${pos(NRR_CHECKPOINT)}%"></div>
-            <div class="nrr-am-tick northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
+            <div class="nrr-am-tick northstar" style="left:calc(100% - 2px)"></div>
           </div>
           <div class="nrr-am-pct">—</div>
           <div class="nrr-am-need">no customer book yet</div>
         </div>`;
       }
-      const fc=r.nrr>=NRR_NORTHSTAR?'var(--teal)':r.nrr>=NRR_CHECKPOINT?'var(--teal-mid)':'var(--amber)';
+      const fc=r.nrr>=NRR_CHECKPOINT?'var(--teal)':'var(--teal-mid)';
       return `<div class="nrr-am-row">
         ${nameCell(r,`${escapeHtml(r.am)} · ${r.n} account${r.n!==1?'s':''}`)}
         <div class="nrr-am-track">
           <div class="nrr-am-fill" style="width:${pos(r.nrr)}%;background:${fc}"></div>
-          <div class="nrr-am-tick" style="left:${pos(NRR_CHECKPOINT)}%"></div>
-          <div class="nrr-am-tick northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
+          <div class="nrr-am-tick northstar" style="left:calc(100% - 2px)"></div>
         </div>
         <div class="nrr-am-pct">${r.nrr.toFixed(1)}%</div>
         <div class="nrr-am-need">${r.gap>0?'<b>+'+fmt$(r.gap)+'</b>/mo to EOY':'at EOY 🎉'}</div>
