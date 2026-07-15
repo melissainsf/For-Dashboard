@@ -994,6 +994,16 @@ function monthsElapsed(fromISO, toISO) {
 // otherwise Full Service (blank = Full Service, confirmed by Melissa). Rev Share,
 // Launch, etc. are upsells layered on top, not tier indicators.
 function tierOf(c) { return /EGC/i.test(c.product || '') ? 'EGC' : 'Full Service'; }
+// Lifecyclestage is the source of truth for the NRR cohort. HubSpot returns the
+// internal value: "customer" for current customers (in-pilot or post-pilot), and
+// the custom-stage id "1271359806" for "Churned". A churned customer must stay in
+// the cohort (its churned_mrr drags NRR below 100%); a lost opportunity mis-tagged
+// as "other" is NOT a churned customer and is excluded until re-tagged.
+const CHURNED_STAGE = '1271359806';
+function inNrrCohort(c) {
+  const ls = (c.lifecyclestage || '');
+  return (ls === 'customer' || ls === CHURNED_STAGE) && c.domain !== 'virio.ai' && c.name !== 'Virio';
+}
 
 let allCompanies = [], lineageMap = {}, charts = {};
 
@@ -1726,15 +1736,15 @@ function renderTeamTab(cos) {
   const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
 
   // ── Whole-cohort NRR (Team tab) ────────────────────────────────
-  // NRR must include churn to be NRR. Cohort = every customer in the book:
-  // in-pilot, post-pilot, and those who churned in pilot or after converting.
+  // NRR must include churn to be NRR. Cohort = every customer by lifecyclestage
+  // (source of truth): "customer" (in-pilot + post-pilot) and "Churned".
   //   NRR = (Σ starting MRR + Σ expansion − Σ churn) / Σ starting MRR
   // Churned members STAY in the cohort (they end near $0), so churn pulls it
   // below 100% — this ties out with the "Net Revenue Retention" figure on the
   // Whole Portfolio tab. NOTE: no historical MRR snapshots are stored, so this is
   // an inception-to-date cohort NRR (each account's own start vs. now), not a
   // strict trailing-period NRR, and progress-over-time can't be trended yet.
-  const cohort = cos;                                             // all pilot statuses (cos is exclude-filtered)
+  const cohort = cos.filter(inNrrCohort);                        // lifecyclestage = customer or churned
   const cohortStart = cohort.reduce((s,c)=>s+c.mrr,0);            // Σ starting MRR (denominator)
   const cohortExp   = cohort.reduce((s,c)=>s+c.expansion_mrr,0);
   const cohortChurn = cohort.reduce((s,c)=>s+c.churned_mrr,0);
