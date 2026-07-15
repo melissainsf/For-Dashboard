@@ -11,10 +11,12 @@ exports.handler = async function(event, context) {
 
   const requestBody = {
     // Two filter groups are OR'd together: keep every pilot-tracked company the
-    // dashboard already shows, PLUS every current customer (lifecyclestage =
-    // customer) so the NRR-goal widgets can scope to the full customer book even
-    // for accounts without a pilot_status set. Opportunity-stage records are
-    // never matched by either group, so they stay off the dashboard.
+    // dashboard already shows, PLUS every account whose lifecyclestage is the
+    // source of truth for the NRR cohort — "customer" (current, in-pilot or post-
+    // pilot) or "Churned" (HubSpot custom-stage internal id 1271359806). Pulling
+    // churned accounts via the lifecycle field means their churn is captured even
+    // if pilot_status is missing. Opportunity/lead/other stages are never matched
+    // here, so a mis-tagged churn (lifecyclestage=other) stays off until re-tagged.
     filterGroups: [
       {
         filters: [{
@@ -26,8 +28,8 @@ exports.handler = async function(event, context) {
       {
         filters: [{
           propertyName: 'lifecyclestage',
-          operator: 'EQ',
-          value: 'customer'
+          operator: 'IN',
+          values: ['customer', '1271359806']
         }]
       }
     ],
