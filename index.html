@@ -259,22 +259,6 @@ tbody td:first-child{font-weight:500}
 .nrr-am-empty .nrr-am-need{font-style:italic;color:var(--ink3)}
 @media(max-width:560px){.nrr-am-need{display:none}}
 .nrr-thermo-mark-lab.edgegoal{left:auto;right:0;transform:none;text-align:right}
-/* GROWTH SIGNAL CALLOUTS (at-risk / coverage / unassigned) */
-.signal-card{display:flex;flex-direction:column;margin-bottom:0}
-.signal-label{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
-.signal-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;line-height:1;letter-spacing:-0.02em;color:var(--ink)}
-.signal-value.coral{color:var(--coral-mid)}
-.signal-value.amber{color:var(--amber)}
-.signal-value.teal{color:var(--teal)}
-.signal-value.ink{color:var(--ink)}
-.signal-sub{font-size:11px;color:var(--ink2);margin-top:6px;line-height:1.5}
-.signal-brk{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px}
-.signal-brk-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--ink2)}
-.signal-brk-row b{font-family:'Syne',sans-serif;font-weight:600;color:var(--ink)}
-.signal-brk-row a{color:var(--blue);text-decoration:none}
-.signal-brk-row a:hover{text-decoration:underline}
-.signal-brk-empty{font-size:11px;color:var(--ink3);font-style:italic}
-.signal-hint{cursor:help;color:var(--ink3);font-size:10px}
 @media(max-width:900px){.chart-row-3{grid-template-columns:1fr}}
 .foc-input:disabled{opacity:0.5;cursor:wait}
 /* PRODUCT REQUEST TRACKER */
@@ -726,16 +710,6 @@ textarea.prt-input{resize:vertical}
     <div id="nrr-thermo" class="nrr-thermo-card"><div class="team-loading">Loading...</div></div>
 
     <div class="section-header">
-      <span class="section-title">Growth signals</span>
-      <span class="section-note">Read the book-wide target net of these · churn drag, pipeline coverage, and unowned revenue across current customers</span>
-    </div>
-    <div class="chart-row-3">
-      <div class="chart-card signal-card" id="signal-atrisk"><div class="team-loading">Loading...</div></div>
-      <div class="chart-card signal-card" id="signal-coverage"><div class="team-loading">Loading...</div></div>
-      <div class="chart-card signal-card" id="signal-unassigned"><div class="team-loading">Loading...</div></div>
-    </div>
-
-    <div class="section-header">
       <span class="section-title">NRR by Account Manager</span>
       <span class="section-note">Each AM's book climbing to the EOY 2026 checkpoint (~161% NRR) · fill = current NRR, marker = the goal</span>
     </div>
@@ -1008,9 +982,6 @@ const NRR_CONFIG = {
   checkpointDate:    '2026-12-31',  // EOY 2026 near-term proof point (~161%)
   stretchPct:        500            // optional secondary reference, no fixed date yet
 };
-// HubSpot portal id — set this to deep-link the "Unassigned Revenue" callout
-// straight to each company record. Left blank, the callout lists names only.
-const HUBSPOT_PORTAL_ID = '';
 
 // Whole calendar months between two ISO dates (year·12 + month diff), matching
 // the brief's "months out" column: Jul 2026 → Dec 2026 = 5, → Jul 2027 = 12.
@@ -1829,61 +1800,6 @@ function renderTeamTab(cos) {
           <div class="nrr-thermo-goal-sub">book to ${fmt$(northStarBook)}/mo by ${fmtMonthYear(NRR_CONFIG.northStarDate)} · +${fmtBig$(northStarGap*12)} ARR · ${NRR_CONFIG.stretchPct}% stretch beyond</div>
         </div>
       </div>`;
-  }
-
-  // ── Growth signal callouts: At-Risk Drag / Instrumentation Coverage / Unassigned ──
-  // At-Risk Drag — MRR under an active churn-risk flag (account_health red/yellow),
-  // broken out by AM. Growth targets should be read net of expected churn.
-  const atRiskEl=document.getElementById('signal-atrisk');
-  if(atRiskEl){
-    const flagged=custPop.filter(c=>['red','yellow'].includes(normalizeHealth(c.account_health)));
-    const totalRisk=flagged.reduce((s,c)=>s+c.mrr,0);
-    const byAM={};
-    flagged.forEach(c=>{ const am=displayAM(c.csm); byAM[am]=(byAM[am]||0)+c.mrr; });
-    const amRows=Object.entries(byAM).sort((a,b)=>b[1]-a[1])
-      .map(([am,v])=>`<div class="signal-brk-row"><span>${escapeHtml(am)}</span><b>${fmt$(v)}/mo</b></div>`).join('');
-    atRiskEl.innerHTML=`
-      <div class="signal-label">At-Risk Drag</div>
-      <div class="signal-value coral">${fmt$(totalRisk)}/mo</div>
-      <div class="signal-sub">${flagged.length} account${flagged.length!==1?'s':''} flagged red/yellow · ${fmtBig$(totalRisk*12)} ARR at risk — targets should be read net of this, not gross</div>
-      <div class="signal-brk">${amRows||'<div class="signal-brk-empty">No at-risk accounts flagged 🎉</div>'}</div>`;
-  }
-
-  // Instrumentation Coverage — share of current customers with a tracked expansion
-  // motion in flight (non-null expansion value). Split by tier: EGC expansion is
-  // more product-led/passive, so lower coverage there is structural, not neglect.
-  const covEl=document.getElementById('signal-coverage');
-  if(covEl){
-    const hasMotion=c=>c.expansion_mrr>0;
-    const Y=custPop.length, X=custPop.filter(hasMotion).length;
-    const pct=Y?X/Y*100:0;
-    const egcPop=custPop.filter(c=>tierOf(c)==='EGC'), fsPop=custPop.filter(c=>tierOf(c)==='Full Service');
-    const egcX=egcPop.filter(hasMotion).length, fsX=fsPop.filter(hasMotion).length;
-    covEl.innerHTML=`
-      <div class="signal-label">Instrumentation Coverage</div>
-      <div class="signal-value ${pct<50?'amber':'teal'}">${X} / ${Y}</div>
-      <div class="signal-sub">${pct.toFixed(0)}% of current customers have a tracked expansion motion in flight — the leading indicator behind the whole growth plan</div>
-      <div class="signal-brk">
-        <div class="signal-brk-row"><span>Full Service</span><b>${fsX}/${fsPop.length}</b></div>
-        <div class="signal-brk-row"><span>EGC <span class="signal-hint" title="EGC expansion is more product-led/passive — lower tracked motion here is a structural difference, not underperformance">ⓘ</span></span><b>${egcX}/${egcPop.length}</b></div>
-      </div>`;
-  }
-
-  // Unassigned Revenue — current customers with no CSM owner in HubSpot. Small in
-  // absolute terms today, but worth catching before it's folded into someone's
-  // target with nobody actually accountable.
-  const unEl=document.getElementById('signal-unassigned');
-  if(unEl){
-    const orphans=custPop.filter(c=>!c.csm).sort((a,b)=>b.mrr-a.mrr);
-    const totalUn=orphans.reduce((s,c)=>s+c.mrr,0);
-    const link=c=>HUBSPOT_PORTAL_ID?`https://app.hubspot.com/contacts/${HUBSPOT_PORTAL_ID}/company/${c.id}`:null;
-    const rows=orphans.map(c=>{ const l=link(c); const nm=escapeHtml(c.name);
-      return `<div class="signal-brk-row"><span>${l?`<a href="${l}" target="_blank" rel="noopener">${nm}</a>`:nm}</span><b>${fmt$(c.mrr)}/mo</b></div>`; }).join('');
-    unEl.innerHTML=`
-      <div class="signal-label">Unassigned Revenue</div>
-      <div class="signal-value ${totalUn>0?'amber':'ink'}">${fmt$(totalUn)}/mo</div>
-      <div class="signal-sub">${orphans.length} current customer${orphans.length!==1?'s':''} with no CSM assigned · ${fmtBig$(totalUn*12)} ARR with nobody accountable</div>
-      <div class="signal-brk">${rows||'<div class="signal-brk-empty">Every customer has an owner 🎉</div>'}</div>`;
   }
 
   // ── NRR by Account Manager — same bar/tick pattern, retargeted to 300% ──────
