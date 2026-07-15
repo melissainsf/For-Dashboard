@@ -1826,7 +1826,9 @@ function renderTeamTab(cos) {
       const egc=list.filter(c=>tierOf(c)==='EGC'), fs=list.filter(c=>tierOf(c)==='Full Service');
       const tierMix=(egc.length&&fs.length)
         ? {egc:egc.reduce((a,c)=>a+c.mrr,0), fs:fs.reduce((a,c)=>a+c.mrr,0)} : null;
-      return {am,nrr,gap,n:list.length,hasBook:s>0,tierMix};
+      // Accounts for the hover tooltip — ARR = MRR × 12, largest first.
+      const accounts=list.map(c=>({name:c.name, arr:c.mrr*12})).sort((a,b)=>b.arr-a.arr);
+      return {am,nrr,gap,n:list.length,hasBook:s>0,tierMix,book:s,accounts};
     }).sort((a,b)=>{
       const au=a.am==='Unassigned', bu=b.am==='Unassigned';
       if(au!==bu) return au?1:-1;                         // Unassigned always last
@@ -1857,6 +1859,18 @@ function renderTeamTab(cos) {
         <div class="nrr-am-need">${r.gap>0?'<b>+'+fmt$(r.gap)+'</b>/mo to EOY':'at EOY 🎉'}</div>
       </div>`;
     }).join('')||'<div class="empty-hint">No account managers to show.</div>';
+    // Hover a row to see that AM's accounts and their ARR (MRR × 12). DOM row
+    // order matches `rows`, so bind by index.
+    amThermoEl.querySelectorAll('.nrr-am-row').forEach((el,i)=>{
+      const r=rows[i]; if(!r) return;
+      const tipRows=r.accounts.length
+        ? r.accounts.map(a=>({name:a.name, val:fmtBig$(a.arr)}))
+        : [{name:'No accounts yet', val:''}];
+      const title=r.hasBook?`${r.am} · ${fmtBig$(r.book*12)} ARR`:`${r.am} · no book yet`;
+      el.addEventListener('mouseenter', e=>showTip(e,title,tipRows));
+      el.addEventListener('mousemove', posTip);
+      el.addEventListener('mouseleave', hideTip);
+    });
   }
 
   // ── Monthly Pacing — required expansion each month vs. booked run-rate ──────
