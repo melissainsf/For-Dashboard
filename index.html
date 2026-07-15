@@ -243,7 +243,9 @@ tbody td:first-child{font-weight:500}
 .nrr-am-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:8px 18px;margin-bottom:20px}
 .nrr-am-row{display:flex;align-items:center;gap:12px;padding:9px 2px;border-bottom:1px solid var(--border)}
 .nrr-am-row:last-child{border-bottom:none}
-.nrr-am-name{width:92px;flex-shrink:0;font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrr-am-name{width:110px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:1px;overflow:hidden}
+.nrr-am-name-main{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrr-am-tier{font-size:9px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nrr-am-track{position:relative;flex:1;height:14px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)}
 .nrr-am-fill{position:absolute;left:0;top:0;bottom:0;min-width:6px;border-radius:7px;transition:width 0.7s cubic-bezier(0.22,1,0.36,1)}
 .nrr-am-tick{position:absolute;top:-3px;height:20px;width:2px;background:var(--ink3);opacity:0.5}
@@ -256,6 +258,24 @@ tbody td:first-child{font-weight:500}
 .nrr-am-empty .nrr-am-pct{color:var(--ink3)}
 .nrr-am-empty .nrr-am-need{font-style:italic;color:var(--ink3)}
 @media(max-width:560px){.nrr-am-need{display:none}}
+.nrr-thermo-stretch{position:absolute;right:8px;bottom:20px;font-size:10px;font-style:italic;color:var(--ink3);opacity:0.75}
+/* GROWTH SIGNAL CALLOUTS (at-risk / coverage / unassigned) */
+.signal-card{display:flex;flex-direction:column;margin-bottom:0}
+.signal-label{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.signal-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;line-height:1;letter-spacing:-0.02em;color:var(--ink)}
+.signal-value.coral{color:var(--coral-mid)}
+.signal-value.amber{color:var(--amber)}
+.signal-value.teal{color:var(--teal)}
+.signal-value.ink{color:var(--ink)}
+.signal-sub{font-size:11px;color:var(--ink2);margin-top:6px;line-height:1.5}
+.signal-brk{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px}
+.signal-brk-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--ink2)}
+.signal-brk-row b{font-family:'Syne',sans-serif;font-weight:600;color:var(--ink)}
+.signal-brk-row a{color:var(--blue);text-decoration:none}
+.signal-brk-row a:hover{text-decoration:underline}
+.signal-brk-empty{font-size:11px;color:var(--ink3);font-style:italic}
+.signal-hint{cursor:help;color:var(--ink3);font-size:10px}
+@media(max-width:900px){.chart-row-3{grid-template-columns:1fr}}
 .foc-input:disabled{opacity:0.5;cursor:wait}
 /* PRODUCT REQUEST TRACKER */
 .prt-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
@@ -701,15 +721,39 @@ textarea.prt-input{resize:vertical}
     <!-- NRR THERMOMETER -->
     <div class="section-header" style="margin-top:4px">
       <span class="section-title">NRR goal</span>
-      <span class="section-note">How much expansion revenue stands between us and 150% Net Revenue Retention</span>
+      <span class="section-note">The compounding road to 300% NRR by July 2027 · near-term proof point is the EOY 2026 checkpoint</span>
     </div>
     <div id="nrr-thermo" class="nrr-thermo-card"><div class="team-loading">Loading...</div></div>
 
     <div class="section-header">
+      <span class="section-title">Growth signals</span>
+      <span class="section-note">Read the book-wide target net of these · churn drag, pipeline coverage, and unowned revenue across current customers</span>
+    </div>
+    <div class="chart-row-3">
+      <div class="chart-card signal-card" id="signal-atrisk"><div class="team-loading">Loading...</div></div>
+      <div class="chart-card signal-card" id="signal-coverage"><div class="team-loading">Loading...</div></div>
+      <div class="chart-card signal-card" id="signal-unassigned"><div class="team-loading">Loading...</div></div>
+    </div>
+
+    <div class="section-header">
       <span class="section-title">NRR by Account Manager</span>
-      <span class="section-note">Each AM's converted book climbing to 150% · ticks mark the 120% milestone and 150% goal</span>
+      <span class="section-note">Each AM's book climbing to 300% · ticks mark the EOY 2026 checkpoint (~161%) and the 300% north star</span>
     </div>
     <div id="nrr-am-thermo" class="nrr-am-card"><div class="team-loading">Loading...</div></div>
+
+    <div class="section-header">
+      <span class="section-title">Monthly pacing</span>
+      <span class="section-note">Required expansion each month (10%/mo on a compounding book) vs. expansion booked today — the bar keeps rising</span>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-card-title">Required vs. booked expansion · Jul 2026 → Jul 2027</div>
+      <div class="chart-card-sub">Required = book × 1.1^(m−1) × 10% for each month · booked = current expansion run-rate held flat</div>
+      <div class="chart-wrap-md"><canvas id="pacingChart"></canvas></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Required expansion (this month)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Expansion booked (current run-rate)</span>
+      </div>
+    </div>
 
     <div class="section-header">
       <span class="section-title">Upsell products by AM</span>
@@ -951,6 +995,51 @@ const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned
 const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha','Emmett','Millie']);
 const scrubFormer = v => (v && FORMER_TEAM_MEMBERS.has(v)) ? null : v;
 
+// ── NRR GROWTH TRAJECTORY CONFIG ───────────────────────────────
+// Goalposts for the "Road to 300% NRR" widgets. Leadership moved the target
+// from a flat 150% NRR to a compounding 10%/mo expansion curve, and it has
+// already moved once (150% → 300%) and will likely move again — so every
+// number the widgets key off lives here rather than being hardcoded downstream.
+const NRR_CONFIG = {
+  monthlyGrowthRate: 0.10,          // 10%/month compounding expansion on the book
+  baselineDate:      '2026-07-15',  // "today" when this trajectory was set
+  northStarPct:      300,           // display label (precise ≈313.8% at month 12)
+  northStarDate:     '2027-07-15',
+  checkpointDate:    '2026-12-31',  // EOY 2026 near-term proof point (~161%)
+  stretchPct:        500            // optional secondary reference, no fixed date yet
+};
+// HubSpot portal id — set this to deep-link the "Unassigned Revenue" callout
+// straight to each company record. Left blank, the callout lists names only.
+const HUBSPOT_PORTAL_ID = '';
+
+// Whole calendar months between two ISO dates (year·12 + month diff), matching
+// the brief's "months out" column: Jul 2026 → Dec 2026 = 5, → Jul 2027 = 12.
+function monthsElapsed(fromISO, toISO) {
+  const a = new Date(fromISO), b = new Date(toISO);
+  return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
+}
+// Compounding multiplier after N months at the configured monthly rate.
+function targetMultiplier(months) { return Math.pow(1 + NRR_CONFIG.monthlyGrowthRate, months); }
+// Target book value at any date = current book × multiplier(months since baseline).
+function targetBook(book, toISO) { return book * targetMultiplier(monthsElapsed(NRR_CONFIG.baselineDate, toISO)); }
+// The EOY 2026 checkpoint % derives from the formula, never hardcoded (≈161%).
+const CHECKPOINT_PCT = targetMultiplier(monthsElapsed(NRR_CONFIG.baselineDate, NRR_CONFIG.checkpointDate)) * 100;
+// Product tier: EGC if the (multi-select) product field contains "EGC";
+// otherwise Full Service (blank = Full Service, confirmed by Melissa). Rev Share,
+// Launch, etc. are upsells layered on top, not tier indicators.
+function tierOf(c) { return /EGC/i.test(c.product || '') ? 'EGC' : 'Full Service'; }
+// The current-customer population this dashboard's growth widgets track:
+// lifecyclestage = customer, excluding the internal Virio account. Falls back to
+// active pilots (in-progress + converted) if lifecyclestage isn't flowing yet, so
+// the widgets never blank out on a partial sync.
+function customerPopulation(cos) {
+  const hasLifecycle = (cos || []).some(c => c.lifecyclestage);
+  const pop = hasLifecycle
+    ? cos.filter(c => (c.lifecyclestage || '').toLowerCase() === 'customer')
+    : cos.filter(c => c.pilot_status === 'In progress' || c.pilot_status === 'Converted');
+  return pop.filter(c => c.domain !== 'virio.ai' && c.name !== 'Virio');
+}
+
 let allCompanies = [], lineageMap = {}, charts = {};
 
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
@@ -1159,6 +1248,7 @@ async function loadData() {
         id:r.id,
         name,
         pilot_status:r.properties.pilot_status,
+        lifecyclestage:r.properties.lifecyclestage||null,
         stage:r.properties.stage||'Unknown',
         mrr:parseFloat(r.properties.mrr)||0,
         expansion_mrr:parseFloat(r.properties.expansion_mrr)||0,
@@ -1680,103 +1770,201 @@ function renderTeamTab(cos) {
   const exclude=document.getElementById('exclude-virio').checked;
   const active=cos.filter(c=>(c.pilot_status==='In progress'||c.pilot_status==='Converted')&&(exclude?c.domain!=='virio.ai':true));
 
-  // NRR thermometer — Post-Pilot NRR climbing toward a 150% north star.
-  // Uses the same ever-converted cohort + formula as the headline NRR card, so
-  // the reading here always matches the "Post-Pilot NRR" metric on the Metrics tab.
-  const NRR_FLOOR=90, NRR_MILESTONE=120, NRR_NORTHSTAR=150;
-  const tEver=cos.filter(c=>c.pilot_status==='Converted'||c.pilot_status==='Churned Post Conversion');
-  const tChurnedPost=cos.filter(c=>c.pilot_status==='Churned Post Conversion');
-  const tStart=tEver.reduce((s,c)=>s+c.mrr,0);
-  const tExp=tEver.reduce((s,c)=>s+c.expansion_mrr,0);
-  const tChurn=tChurnedPost.reduce((s,c)=>s+c.churned_mrr,0);
-  const tNRR=tStart?(tStart+tExp-tChurn)/tStart*100:0;
-  // Position helper for the NRR scale — shared by the team-wide thermometer and the by-AM rows below.
+  // ── NRR GROWTH TRAJECTORY — "Road to 300% NRR" ─────────────────
+  // The target moved from a flat 150% NRR to a compounding 10%/mo expansion
+  // curve: target book at any date = current book × (1.1)^months. Everything
+  // keys off NRR_CONFIG so the goalposts stay editable. Population widened from
+  // the narrow "converted book" to the full current-customer book (lifecyclestage
+  // = customer), so pilot and post-pilot customers alike count toward the goal.
+  const custPop = customerPopulation(cos);
+  const currentBook = custPop.reduce((s,c)=>s+c.mrr,0);            // baseline "current book"
+  const bookExp = custPop.reduce((s,c)=>s+c.expansion_mrr,0);     // expansion booked run-rate
+  const bookChurn = custPop.reduce((s,c)=>s+c.churned_mrr,0);
+  const bookNRR = currentBook?(currentBook+bookExp-bookChurn)/currentBook*100:0;
+
+  // Thermometer scale runs 100% (today's book) → the north star; the checkpoint
+  // sits on the same curve. Shared by the team-wide bar and the by-AM rows below.
+  const NRR_FLOOR=100, NRR_CHECKPOINT=CHECKPOINT_PCT, NRR_NORTHSTAR=NRR_CONFIG.northStarPct;
   const span=NRR_NORTHSTAR-NRR_FLOOR;
   const pos=v=>Math.max(0,Math.min(100,(v-NRR_FLOOR)/span*100)).toFixed(1);
+  const checkpointBook=targetBook(currentBook,NRR_CONFIG.checkpointDate);
+  const northStarBook=targetBook(currentBook,NRR_CONFIG.northStarDate);
+  const checkpointGap=Math.max(0,checkpointBook-currentBook);
+  const northStarGap=Math.max(0,northStarBook-currentBook);
+  const fmtMonthYear=iso=>new Date(iso).toLocaleDateString('en-US',{month:'short',year:'numeric',timeZone:'UTC'});
+  const cpRound=Math.round(NRR_CHECKPOINT);
+
   const thermoEl=document.getElementById('nrr-thermo');
   if(thermoEl){
-    // Additional expansion MRR still needed to reach a target NRR %:
-    //   need = (T% × startingMRR) − startingMRR + churnedMRR, minus expansion already booked.
-    const addlFor=T=>Math.max(0,((T/100)*tStart - tStart + tChurn) - tExp);
-    const fillColor=tNRR>=NRR_NORTHSTAR?'var(--teal)':tNRR>=NRR_MILESTONE?'var(--teal-mid)':'var(--amber)';
-    const goal=(T,label,hit)=>{
-      const addl=addlFor(T);
-      return `<div class="nrr-thermo-goal${hit?' hit':''}">
-        <div class="nrr-thermo-goal-lab">${label} · ${T}% NRR</div>
-        <div class="nrr-thermo-goal-val">${hit?'Reached 🎉':'+'+fmt$(addl)+'/mo'}</div>
-        <div class="nrr-thermo-goal-sub">${hit?'Milestone cleared — keep going':'more expansion revenue · +'+fmtBig$(addl*12)+' ARR/yr'}</div>
-      </div>`;
-    };
+    const fillColor=bookNRR>=NRR_NORTHSTAR?'var(--teal)':bookNRR>=NRR_CHECKPOINT?'var(--teal-mid)':'var(--amber)';
     thermoEl.innerHTML=`
       <div class="nrr-thermo-head">
-        <div class="nrr-thermo-title">🌡️ Road to 150% NRR</div>
-        <div class="nrr-thermo-now"><b>${tNRR.toFixed(1)}%</b>Post-Pilot NRR today</div>
+        <div class="nrr-thermo-title">🌡️ Road to ${NRR_NORTHSTAR}% NRR</div>
+        <div class="nrr-thermo-now"><b>${bookNRR.toFixed(1)}%</b>NRR today</div>
       </div>
-      <div class="nrr-thermo-sub">Converted book <b>${fmt$(tStart)}/mo</b> · expansion booked <b>${fmt$(tExp)}/mo</b> · churned <b>${fmt$(tChurn)}/mo</b></div>
+      <div class="nrr-thermo-sub">Current book <b>${fmt$(currentBook)}/mo</b> · expansion booked <b>${fmt$(bookExp)}/mo</b> · churned <b>${fmt$(bookChurn)}/mo</b> · ${custPop.length} current customers</div>
       <div class="nrr-thermo-rail">
         <div class="nrr-thermo">
           <div class="nrr-thermo-bulb" style="background:${fillColor}"></div>
           <div class="nrr-thermo-tube">
-            <div class="nrr-thermo-fill" style="width:${pos(tNRR)}%;background:${fillColor}"></div>
-            <div class="nrr-thermo-cur" style="left:${pos(tNRR)}%">${tNRR.toFixed(1)}%</div>
-            <div class="nrr-thermo-mark" style="left:${pos(NRR_MILESTONE)}%"></div>
-            <div class="nrr-thermo-mark-lab" style="left:${pos(NRR_MILESTONE)}%"><b>${NRR_MILESTONE}%</b>milestone</div>
+            <div class="nrr-thermo-fill" style="width:${pos(bookNRR)}%;background:${fillColor}"></div>
+            <div class="nrr-thermo-cur" style="left:${pos(bookNRR)}%">${bookNRR.toFixed(1)}%</div>
+            <div class="nrr-thermo-mark" style="left:${pos(NRR_CHECKPOINT)}%"></div>
+            <div class="nrr-thermo-mark-lab" style="left:${pos(NRR_CHECKPOINT)}%"><b>~${cpRound}%</b>EOY 2026</div>
             <div class="nrr-thermo-mark northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
             <div class="nrr-thermo-mark-lab northstar" style="left:${pos(NRR_NORTHSTAR)}%"><b>${NRR_NORTHSTAR}%</b>north star 🎯</div>
           </div>
         </div>
+        <div class="nrr-thermo-stretch" title="Optional stretch case, no fixed date yet">${NRR_CONFIG.stretchPct}% stretch →</div>
       </div>
       <div class="nrr-thermo-goals">
-        ${goal(NRR_MILESTONE,'Next milestone',tNRR>=NRR_MILESTONE)}
-        ${goal(NRR_NORTHSTAR,'North star',tNRR>=NRR_NORTHSTAR)}
+        <div class="nrr-thermo-goal">
+          <div class="nrr-thermo-goal-lab">Next milestone · EOY 2026 checkpoint (~${cpRound}% NRR)</div>
+          <div class="nrr-thermo-goal-val">+${fmt$(checkpointGap)}/mo</div>
+          <div class="nrr-thermo-goal-sub">book to ${fmt$(checkpointBook)}/mo by ${fmtMonthYear(NRR_CONFIG.checkpointDate)} · +${fmtBig$(checkpointGap*12)} ARR</div>
+        </div>
+        <div class="nrr-thermo-goal">
+          <div class="nrr-thermo-goal-lab">North star · ${NRR_NORTHSTAR}% NRR (${fmtMonthYear(NRR_CONFIG.northStarDate)})</div>
+          <div class="nrr-thermo-goal-val">+${fmt$(northStarGap)}/mo</div>
+          <div class="nrr-thermo-goal-sub">book to ${fmt$(northStarBook)}/mo by ${fmtMonthYear(NRR_CONFIG.northStarDate)} · +${fmtBig$(northStarGap*12)} ARR</div>
+        </div>
       </div>`;
   }
 
-  // NRR thermometer by Account Manager — same cohort/formula split by AM.
-  // Each AM's gap to 150% (0.5×book + churn − expansion) sums to the team-wide gap.
+  // ── Growth signal callouts: At-Risk Drag / Instrumentation Coverage / Unassigned ──
+  // At-Risk Drag — MRR under an active churn-risk flag (account_health red/yellow),
+  // broken out by AM. Growth targets should be read net of expected churn.
+  const atRiskEl=document.getElementById('signal-atrisk');
+  if(atRiskEl){
+    const flagged=custPop.filter(c=>['red','yellow'].includes(normalizeHealth(c.account_health)));
+    const totalRisk=flagged.reduce((s,c)=>s+c.mrr,0);
+    const byAM={};
+    flagged.forEach(c=>{ const am=displayAM(c.csm); byAM[am]=(byAM[am]||0)+c.mrr; });
+    const amRows=Object.entries(byAM).sort((a,b)=>b[1]-a[1])
+      .map(([am,v])=>`<div class="signal-brk-row"><span>${escapeHtml(am)}</span><b>${fmt$(v)}/mo</b></div>`).join('');
+    atRiskEl.innerHTML=`
+      <div class="signal-label">At-Risk Drag</div>
+      <div class="signal-value coral">${fmt$(totalRisk)}/mo</div>
+      <div class="signal-sub">${flagged.length} account${flagged.length!==1?'s':''} flagged red/yellow · ${fmtBig$(totalRisk*12)} ARR at risk — targets should be read net of this, not gross</div>
+      <div class="signal-brk">${amRows||'<div class="signal-brk-empty">No at-risk accounts flagged 🎉</div>'}</div>`;
+  }
+
+  // Instrumentation Coverage — share of current customers with a tracked expansion
+  // motion in flight (non-null expansion value). Split by tier: EGC expansion is
+  // more product-led/passive, so lower coverage there is structural, not neglect.
+  const covEl=document.getElementById('signal-coverage');
+  if(covEl){
+    const hasMotion=c=>c.expansion_mrr>0;
+    const Y=custPop.length, X=custPop.filter(hasMotion).length;
+    const pct=Y?X/Y*100:0;
+    const egcPop=custPop.filter(c=>tierOf(c)==='EGC'), fsPop=custPop.filter(c=>tierOf(c)==='Full Service');
+    const egcX=egcPop.filter(hasMotion).length, fsX=fsPop.filter(hasMotion).length;
+    covEl.innerHTML=`
+      <div class="signal-label">Instrumentation Coverage</div>
+      <div class="signal-value ${pct<50?'amber':'teal'}">${X} / ${Y}</div>
+      <div class="signal-sub">${pct.toFixed(0)}% of current customers have a tracked expansion motion in flight — the leading indicator behind the whole growth plan</div>
+      <div class="signal-brk">
+        <div class="signal-brk-row"><span>Full Service</span><b>${fsX}/${fsPop.length}</b></div>
+        <div class="signal-brk-row"><span>EGC <span class="signal-hint" title="EGC expansion is more product-led/passive — lower tracked motion here is a structural difference, not underperformance">ⓘ</span></span><b>${egcX}/${egcPop.length}</b></div>
+      </div>`;
+  }
+
+  // Unassigned Revenue — current customers with no CSM owner in HubSpot. Small in
+  // absolute terms today, but worth catching before it's folded into someone's
+  // target with nobody actually accountable.
+  const unEl=document.getElementById('signal-unassigned');
+  if(unEl){
+    const orphans=custPop.filter(c=>!c.csm).sort((a,b)=>b.mrr-a.mrr);
+    const totalUn=orphans.reduce((s,c)=>s+c.mrr,0);
+    const link=c=>HUBSPOT_PORTAL_ID?`https://app.hubspot.com/contacts/${HUBSPOT_PORTAL_ID}/company/${c.id}`:null;
+    const rows=orphans.map(c=>{ const l=link(c); const nm=escapeHtml(c.name);
+      return `<div class="signal-brk-row"><span>${l?`<a href="${l}" target="_blank" rel="noopener">${nm}</a>`:nm}</span><b>${fmt$(c.mrr)}/mo</b></div>`; }).join('');
+    unEl.innerHTML=`
+      <div class="signal-label">Unassigned Revenue</div>
+      <div class="signal-value ${totalUn>0?'amber':'ink'}">${fmt$(totalUn)}/mo</div>
+      <div class="signal-sub">${orphans.length} current customer${orphans.length!==1?'s':''} with no CSM assigned · ${fmtBig$(totalUn*12)} ARR with nobody accountable</div>
+      <div class="signal-brk">${rows||'<div class="signal-brk-empty">Every customer has an owner 🎉</div>'}</div>`;
+  }
+
+  // ── NRR by Account Manager — same bar/tick pattern, retargeted to 300% ──────
+  // Fill % = each AM's NRR reading (preserves the existing real-pacing calc);
+  // the gap label targets the near-term EOY 2026 checkpoint on the compounding
+  // curve. Additional expansion to reach a target NRR T% =
+  //   (T% × book) − book + churn − expansion, floored at 0 — the same formula the
+  // old 150% label used (0.5×book special case), just with the new goalpost.
   const amThermoEl=document.getElementById('nrr-am-thermo');
   if(amThermoEl){
+    const gapTo=(book,exp,churn,T)=>Math.max(0,(T/100)*book - book + churn - exp);
     const groups={};
-    amDisplayList(cos).forEach(am=>{ groups[am]=[]; });  // seed every current AM (incl. those with no converted book yet)
-    tEver.forEach(c=>{ const am=displayAM(c.csm); (groups[am]=groups[am]||[]).push(c); });
+    amDisplayList(cos).forEach(am=>{ groups[am]=[]; });  // seed every current AM (incl. those with no book yet)
+    custPop.forEach(c=>{ const am=displayAM(c.csm); (groups[am]=groups[am]||[]).push(c); });
     const rows=Object.entries(groups).map(([am,list])=>{
       const s=list.reduce((a,c)=>a+c.mrr,0);
       const e=list.reduce((a,c)=>a+c.expansion_mrr,0);
-      const ch=list.filter(c=>c.pilot_status==='Churned Post Conversion').reduce((a,c)=>a+c.churned_mrr,0);
+      const ch=list.reduce((a,c)=>a+c.churned_mrr,0);
       const nrr=s?(s+e-ch)/s*100:0;
-      const addl=Math.max(0,0.5*s+ch-e);
-      return {am,nrr,addl,n:list.length,hasBook:s>0};
+      const gap=gapTo(s,e,ch,NRR_CHECKPOINT);
+      // Tier split — only surfaced when an AM carries both EGC and Full Service.
+      const egc=list.filter(c=>tierOf(c)==='EGC'), fs=list.filter(c=>tierOf(c)==='Full Service');
+      const tierMix=(egc.length&&fs.length)
+        ? {egc:egc.reduce((a,c)=>a+c.mrr,0), fs:fs.reduce((a,c)=>a+c.mrr,0)} : null;
+      return {am,nrr,gap,n:list.length,hasBook:s>0,tierMix};
     }).sort((a,b)=>{
       const au=a.am==='Unassigned', bu=b.am==='Unassigned';
       if(au!==bu) return au?1:-1;                         // Unassigned always last
-      if(a.hasBook!==b.hasBook) return a.hasBook?-1:1;    // AMs with a converted book first
-      if(a.hasBook) return b.addl-a.addl;                 // then by opportunity (largest gap first)
+      if(a.hasBook!==b.hasBook) return a.hasBook?-1:1;    // AMs with a book first
+      if(a.hasBook) return b.gap-a.gap;                   // then by opportunity (largest gap first)
       return a.am.localeCompare(b.am);                    // no-book AMs alphabetical
     });
+    const nameCell=(r,tip)=>`<div class="nrr-am-name" title="${tip}"><span class="nrr-am-name-main">${escapeHtml(r.am)}</span>${r.tierMix?`<span class="nrr-am-tier">EGC ${fmt$(r.tierMix.egc)} · FS ${fmt$(r.tierMix.fs)}</span>`:''}</div>`;
     amThermoEl.innerHTML=rows.map(r=>{
       if(!r.hasBook){
         return `<div class="nrr-am-row nrr-am-empty">
-          <div class="nrr-am-name" title="${escapeHtml(r.am)} · no converted accounts yet">${escapeHtml(r.am)}</div>
+          ${nameCell(r,`${escapeHtml(r.am)} · no customer book yet`)}
           <div class="nrr-am-track">
-            <div class="nrr-am-tick" style="left:${pos(NRR_MILESTONE)}%"></div>
+            <div class="nrr-am-tick" style="left:${pos(NRR_CHECKPOINT)}%"></div>
             <div class="nrr-am-tick northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
           </div>
           <div class="nrr-am-pct">—</div>
-          <div class="nrr-am-need">no converted book yet</div>
+          <div class="nrr-am-need">no customer book yet</div>
         </div>`;
       }
-      const fc=r.nrr>=NRR_NORTHSTAR?'var(--teal)':r.nrr>=NRR_MILESTONE?'var(--teal-mid)':'var(--amber)';
+      const fc=r.nrr>=NRR_NORTHSTAR?'var(--teal)':r.nrr>=NRR_CHECKPOINT?'var(--teal-mid)':'var(--amber)';
       return `<div class="nrr-am-row">
-        <div class="nrr-am-name" title="${escapeHtml(r.am)} · ${r.n} account${r.n!==1?'s':''}">${escapeHtml(r.am)}</div>
+        ${nameCell(r,`${escapeHtml(r.am)} · ${r.n} account${r.n!==1?'s':''}`)}
         <div class="nrr-am-track">
           <div class="nrr-am-fill" style="width:${pos(r.nrr)}%;background:${fc}"></div>
-          <div class="nrr-am-tick" style="left:${pos(NRR_MILESTONE)}%"></div>
+          <div class="nrr-am-tick" style="left:${pos(NRR_CHECKPOINT)}%"></div>
           <div class="nrr-am-tick northstar" style="left:calc(${pos(NRR_NORTHSTAR)}% - 2px)"></div>
         </div>
         <div class="nrr-am-pct">${r.nrr.toFixed(1)}%</div>
-        <div class="nrr-am-need">${r.addl>0?'<b>+'+fmt$(r.addl)+'</b>/mo to 150%':'at 150% 🎉'}</div>
+        <div class="nrr-am-need">${r.gap>0?'<b>+'+fmt$(r.gap)+'</b>/mo to EOY':'at EOY 🎉'}</div>
       </div>`;
     }).join('')||'<div class="empty-hint">No account managers to show.</div>';
+  }
+
+  // ── Monthly Pacing — required expansion each month vs. booked run-rate ──────
+  // Required[m] = book × 1.1^(m−1) × rate: the 10% applied to that month's opening
+  // book, so the dollar bar to clear rises every month even at a constant rate.
+  // Booked is the current expansion run-rate held flat, to show the widening gap.
+  const pacingEl=document.getElementById('pacingChart');
+  if(pacingEl){
+    const labels=[], required=[];
+    for(let m=1;m<=12;m++){
+      const d=new Date(NRR_CONFIG.baselineDate); d.setUTCMonth(d.getUTCMonth()+m);
+      labels.push(d.toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'}));
+      required.push(currentBook*Math.pow(1+NRR_CONFIG.monthlyGrowthRate,m-1)*NRR_CONFIG.monthlyGrowthRate);
+    }
+    const booked=labels.map(()=>bookExp);
+    if(charts['pacingChart']) charts['pacingChart'].destroy();
+    charts['pacingChart']=new Chart(pacingEl.getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:'Required expansion',data:required,backgroundColor:'#378ADD',borderRadius:4,order:2},
+        {type:'line',label:'Expansion booked',data:booked,borderColor:'#1D9E75',backgroundColor:'#1D9E75',borderWidth:2,pointRadius:0,fill:false,order:1}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtBig$(ctx.raw)+'/mo'}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    });
   }
 
   // AM aggregates by post target — always include Virio so internal workload is reflected
