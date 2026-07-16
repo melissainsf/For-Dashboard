@@ -14,6 +14,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/account-health"
+  to = "/.netlify/functions/account-health"
+  status = 200
+
+[[redirects]]
+  from = "/api/health-write"
+  to = "/.netlify/functions/health-write"
+  status = 200
+
+[[redirects]]
   from = "/api/pr-products"
   to = "/.netlify/functions/pr-products"
   status = 200

@@ -1016,7 +1016,25 @@ function inNrrCohort(c) {
   return (ls === 'customer' || ls === CHURNED_STAGE) && c.domain !== 'virio.ai' && c.name !== 'Virio';
 }
 
-let allCompanies = [], lineageMap = {}, charts = {};
+let allCompanies = [], lineageMap = {}, charts = {}, healthIdMap = {};
+
+// Health lives in Lineage per contact (FOC); a company can have several. This
+// maps a company (by normalized name) to all its Lineage contact ids so a single
+// dashboard edit can set every contact — "if one contact is happy, the company
+// is happy" (Melissa). HubSpot and Lineage use different company names in a few
+// cases, so bridge those here (normalized HubSpot name → normalized Lineage co).
+const HEALTH_NAME_ALIASES = {
+  magnificfreepik: 'magnific', freepik: 'magnific',
+  knopmanmarks: 'highwireknopman',
+  qwntllabs: 'qwntl',
+  arceus: 'arceuslegal',
+  preface: 'prefacehealth'
+};
+function healthIdsForCompany(c) {
+  const base = normalizeName(c && c.name);
+  const key = HEALTH_NAME_ALIASES[base] || base;
+  return healthIdMap[key] || [];
+}
 
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
@@ -1198,7 +1216,7 @@ function openHealthPicker(anchor){
   const pop=document.createElement('div');
   pop.className='health-picker';
   pop.innerHTML=HEALTH_VALUES.map(v=>`<button type="button" class="health-picker-opt${v===cur?' sel':''}" data-v="${v}"><span class="health-dot" style="background:${HEALTH_COLORS[v]}"></span>${HEALTH_LABEL[v]}</button>`).join('')
-    +`<button type="button" class="health-picker-opt health-picker-clear${cur===''?' sel':''}" data-v=""><span class="health-dot"></span>Clear (use Lineage)</button>`;
+    +`<button type="button" class="health-picker-opt health-picker-clear${cur===''?' sel':''}" data-v=""><span class="health-dot"></span>Clear (no human score)</button>`;
   document.body.appendChild(pop);
   const r=anchor.getBoundingClientRect();
   let left=r.left, top=r.bottom+4;
@@ -1210,24 +1228,25 @@ function openHealthPicker(anchor){
   setTimeout(()=>{ document.addEventListener('click',__healthOutside,true); window.addEventListener('scroll',closeHealthPicker,true); window.addEventListener('resize',closeHealthPicker); },0);
 }
 async function saveHealth(id, value){
-  const val=normalizeHealth(value)||'';                 // '' clears the override (reverts to Lineage)
+  const val=normalizeHealth(value)||'';                 // '' clears the human score in Lineage
   const c=allCompanies.find(x=>x.id===id); if(!c) return;
+  const ids=healthIdsForCompany(c);                     // every Lineage contact for this company
+  if(!ids.length){
+    alert(`"${c.name}" isn't linked to a Lineage health record yet, so its score can't be edited here. `
+      +`(Whoever owns the dashboard can add a name alias to bridge it.)`);
+    return;
+  }
   const prev=c.account_health;
   if((prev||'')===val) return;
   c.account_health=val||null;                           // optimistic
   refreshActiveTab();
   try {
-    const email=await prtCurrentEmail();
-    if(val){
-      const { error }=await sb.from('health_overrides').upsert({ hs_company_id:id, health:val, updated_by:email, updated_at:new Date().toISOString() }, { onConflict:'hs_company_id' });
-      if(error) throw error;
-    } else {
-      const { error }=await sb.from('health_overrides').delete().eq('hs_company_id', id);
-      if(error) throw error;
-    }
+    const res=await fetch('/api/health-write',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ ids, humanHealth: val||null })});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||('health-write '+res.status)); }
   } catch(e){
-    c.account_health=prev; refreshActiveTab();
-    alert('Could not save health: '+(e.message||e));
+    c.account_health=prev; refreshActiveTab();          // roll back on failure
+    alert('Could not save health to Lineage: '+(e.message||e));
   }
 }
 function buildLines(names) {
@@ -1257,19 +1276,24 @@ async function loadData() {
   btn.disabled=true;
   setStatus('Loading data from HubSpot + Lineage...','loading');
   try {
-    const [hsRes,lineageRes,focsRes,healthRes]=await Promise.all([
+    const [hsRes,lineageRes,focsRes,ahRes]=await Promise.all([
       fetch('/api/hubspot',{method:'POST'}),
       fetch('/api/lineage',{method:'GET'}),
       sb.from('portfolio_focs').select('*'),
-      sb.from('health_overrides').select('*')
+      fetch('/api/account-health',{method:'GET'})
     ]);
     if(!hsRes.ok) { const e=await hsRes.json().catch(()=>({})); throw new Error(e.error||`HubSpot ${hsRes.status}`); }
     const hsData=await hsRes.json();
     const focsMap={};
     (focsRes&&focsRes.data||[]).forEach(r=>{ if(r.hs_company_id) focsMap[r.hs_company_id]=r.focs; });
-    // Manual health overrides (dashboard edits) win over the Lineage-synced value.
-    const healthOverride={};
-    (healthRes&&healthRes.data||[]).forEach(r=>{ const v=normalizeHealth(r.health); if(r.hs_company_id&&v) healthOverride[r.hs_company_id]=v; });
+    // Lineage per-contact health ids, grouped by company (normalized name) so an
+    // edit to a company's chip can PATCH every one of its contacts.
+    healthIdMap={};
+    try {
+      if(ahRes&&ahRes.ok){ const ah=await ahRes.json();
+        (ah.rows||[]).forEach(r=>{ const k=normalizeName(r.co); if(k&&r.id) (healthIdMap[k]=healthIdMap[k]||[]).push(r.id); });
+      }
+    } catch(e){ console.warn('account-health map failed', e); }
     lineageMap={};
     if(lineageRes.ok) {
       const ld=await lineageRes.json();
@@ -1295,7 +1319,7 @@ async function loadData() {
         first_post_date:r.properties.first_post_date||null,
         vertical:r.properties.vertical||null,
         customer_journey:r.properties.customer_journey||null,
-        account_health:healthOverride[r.id]||lineageMap[normalizeName(name)]||null,
+        account_health:lineageMap[normalizeName(name)]||null,
         focs:focsMap[r.id]||null,
         product:r.properties.product||null
       };
