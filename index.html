@@ -570,7 +570,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am-fs" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>FOCs</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am-fs" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Expansion</th><th>Time to value</th><th>Health</th><th>FOCs</th></tr></thead>
           <tbody id="portfolio-roster-body-fs"></tbody>
         </table>
       </div>
@@ -583,7 +583,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-fs" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-fs" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Churn date</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
           <tbody id="portfolio-churned-roster-body-fs"></tbody>
         </table>
       </div>
@@ -596,7 +596,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am-egc" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Time to value</th><th>Health</th><th>FOCs</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-am-egc" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>Journey stage</th><th>MRR</th><th>Expansion</th><th>Time to value</th><th>Health</th><th>FOCs</th></tr></thead>
           <tbody id="portfolio-roster-body-egc"></tbody>
         </table>
       </div>
@@ -609,7 +609,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-egc" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-egc" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Churn date</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
           <tbody id="portfolio-churned-roster-body-egc"></tbody>
         </table>
       </div>
@@ -692,7 +692,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Kickoff date</th><th>First post date</th><th>Time to value</th><th>Account health</th></tr></thead>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Expansion</th><th>Kickoff date</th><th>First post date</th><th>Time to value</th><th>Account health</th></tr></thead>
           <tbody id="cohort-roster-body"></tbody>
         </table>
       </div>
@@ -705,7 +705,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Kickoff date</th><th>First post date</th><th>Time to value</th><th>Account health</th></tr></thead>
+          <thead><tr><th>Company</th><th>Stage</th><th>Status</th><th id="th-cohort-churned-am" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR</th><th>Churn date</th><th>Kickoff date</th><th>First post date</th><th>Time to value</th><th>Account health</th></tr></thead>
           <tbody id="cohort-churned-roster-body"></tbody>
         </table>
       </div>
@@ -738,6 +738,20 @@ textarea.prt-input{resize:vertical}
       <div class="legend">
         <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Required net growth (this month)</span>
         <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Expansion booked (current run-rate)</span>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Expansion &amp; churn by AM</span>
+      <span class="section-note">Monthly expansion vs. churned revenue across each AM's whole cohort · hover a bar for accounts</span>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-card-title">Expansion vs. churn by AM</div>
+      <div class="chart-card-sub">Expansion MRR gained vs. churned MRR lost per AM (in-pilot + post-pilot + churned)</div>
+      <div class="chart-wrap-md"><canvas id="expChurnAMBar"></canvas></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Expansion MRR</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#E24B4A"></span>Churned MRR</span>
       </div>
     </div>
 
@@ -1311,6 +1325,7 @@ async function loadData() {
         expansion_mrr:parseFloat(r.properties.expansion_mrr)||0,
         churned_mrr:parseFloat(r.properties.churned_mrr_value)||0,
         churn_reason:r.properties.churn_reason||null,
+        churn_date:r.properties.churn_date||null,
         domain:r.properties.domain,
         csm:scrubFormer(r.properties.csm)||null,
         content_manager:scrubFormer(r.properties.content_manager)||null,
@@ -1590,6 +1605,13 @@ function toDateInputValue(v) {
   const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),day=String(d.getUTCDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
+// Read-only short date for display columns (e.g. churn date). '—' when unset.
+function fmtDay(v) {
+  if(!v) return '—';
+  const d=new Date(v);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+}
 function dateInput(c, hsProp, localField) {
   const cur=toDateInputValue(c[localField]);
   return `<input type="date" class="hs-date" data-cid="${escapeHtml(c.id||'')}" data-prop="${hsProp}" data-localprop="${localField}" data-prev="${cur}" onchange="updateHubspotField(this)" value="${cur}">`;
@@ -1662,8 +1684,8 @@ function renderPortfolioActive(active, suffix, ctx, cos) {
   document.getElementById('portfolio-roster-body-'+suffix).innerHTML=rows.map(c=>{
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${focsInput(c)}</td></tr>`;
-  }).join('')||'<tr><td colspan="10" class="empty-hint">No active customers.</td></tr>';
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td>${f(c.expansion_mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${focsInput(c)}</td></tr>`;
+  }).join('')||'<tr><td colspan="11" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-portfolio-am-'+suffix, key, 'am', ()=>renderPortfolioTable(cos));
 }
 function renderPortfolioChurned(churned, suffix, ctx, cos) {
@@ -1675,8 +1697,8 @@ function renderPortfolioChurned(churned, suffix, ctx, cos) {
   let rows=[...churned].sort((a,b)=>(churnedOrder[a.pilot_status]??9)-(churnedOrder[b.pilot_status]??9));
   rows=applyListSort(rows, window.__listSort[key], { am: c => displayAM(c.csm) });
   document.getElementById('portfolio-churned-roster-body-'+suffix).innerHTML=rows.map(c=>{
-    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
-  }).join('')||'<tr><td colspan="9" class="empty-hint">No churned customers.</td></tr>';
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${fmtDay(c.churn_date)}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
+  }).join('')||'<tr><td colspan="10" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-portfolio-churned-am-'+suffix, key, 'am', ()=>renderPortfolioTable(cos));
 }
 
@@ -1796,10 +1818,14 @@ function renderCohortsTab(cos) {
   // Cohort roster — split into active vs churned
   const isChurned = c => c.pilot_status==='Exited During Pilot' || c.pilot_status==='Churned Post Conversion';
   const allStagesForCohort=[...new Set(allCompanies.map(c=>c.stage).filter(Boolean))].sort();
-  const renderCohortRow = c => {
+  // churned=true swaps the Expansion column (active view) for a Churn date column.
+  const renderCohortRow = (c, churned=false) => {
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${stageSelect(c,allStagesForCohort)}</td><td>${statusSelect(c)}</td><td>${displayAM(c.csm)}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td>${dateInput(c,'kickoff_call_date','kickoff_date')}</td><td>${dateInput(c,'first_post_date','first_post_date')}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health,{cid:c.id})}</td></tr>`;
+    const extra=churned
+      ? `<td>${dateInput(c,'churn_date','churn_date')}</td>`
+      : `<td>${c.expansion_mrr?fmt$(c.expansion_mrr):'—'}</td>`;
+    return `<tr><td>${c.name}</td><td>${stageSelect(c,allStagesForCohort)}</td><td>${statusSelect(c)}</td><td>${displayAM(c.csm)}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td>${extra}<td>${dateInput(c,'kickoff_call_date','kickoff_date')}</td><td>${dateInput(c,'first_post_date','first_post_date')}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health,{cid:c.id})}</td></tr>`;
   };
   const sortGetters = { am: c => displayAM(c.csm) };
 
@@ -1810,16 +1836,16 @@ function renderCohortsTab(cos) {
   let activeRows=[...activeCos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
   activeRows=applyListSort(activeRows, window.__listSort.cohort, sortGetters);
   document.getElementById('cohort-roster-body').innerHTML = activeRows.length
-    ? activeRows.map(renderCohortRow).join('')
-    : '<tr><td colspan="9" class="empty-hint">No active customers.</td></tr>';
+    ? activeRows.map(c=>renderCohortRow(c,false)).join('')
+    : '<tr><td colspan="10" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-cohort-am','cohort','am',()=>renderCohortsTab(cos));
 
   set('note-cohort-churned-roster', churnedCos.length + ' churned companies · sorted by stage');
   let churnedRows=[...churnedCos].sort((a,b)=>(a.stage||'').localeCompare(b.stage||''));
   churnedRows=applyListSort(churnedRows, window.__listSort.cohortChurned, sortGetters);
   document.getElementById('cohort-churned-roster-body').innerHTML = churnedRows.length
-    ? churnedRows.map(renderCohortRow).join('')
-    : '<tr><td colspan="9" class="empty-hint">No churned customers.</td></tr>';
+    ? churnedRows.map(c=>renderCohortRow(c,true)).join('')
+    : '<tr><td colspan="10" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-cohort-churned-am','cohortChurned','am',()=>renderCohortsTab(cos));
 }
 
@@ -2055,6 +2081,33 @@ function renderTeamTab(cos) {
     type:'bar',data:{labels:allAMs,datasets:[{data:amARRData.map(d=>d.total),backgroundColor:'#1D9E75',borderRadius:4,names:amARRData.map(d=>d.names)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[' '+fmtBig$(ctx.raw),...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
   });
+  // Expansion vs. churn by AM — whole-cohort $ split (the CEO's $expanded / $churned).
+  // Grouped bars: expansion MRR gained (green) vs. churned MRR lost (red) per AM,
+  // over every account in that AM's cohort (in-pilot + post-pilot + churned).
+  const expChurnEl=document.getElementById('expChurnAMBar');
+  if(expChurnEl){
+    const byAM=allAMs.map(am=>{
+      const list=cohort.filter(c=>displayAM(c.csm)===am);
+      const expList=list.filter(c=>c.expansion_mrr>0).sort((a,b)=>b.expansion_mrr-a.expansion_mrr).map(c=>({name:c.name,val:fmt$(c.expansion_mrr)}));
+      const chList=list.filter(c=>c.churned_mrr>0).sort((a,b)=>b.churned_mrr-a.churned_mrr).map(c=>({name:c.name,val:fmt$(c.churned_mrr)}));
+      return {
+        exp:list.reduce((s,c)=>s+c.expansion_mrr,0),
+        churn:list.reduce((s,c)=>s+c.churned_mrr,0),
+        expNames:expList.length?expList:[{name:'None',val:''}],
+        chNames:chList.length?chList:[{name:'None',val:''}]
+      };
+    });
+    if(charts['expChurnAMBar']) charts['expChurnAMBar'].destroy();
+    charts['expChurnAMBar']=new Chart(expChurnEl.getContext('2d'),{
+      type:'bar',
+      data:{labels:allAMs,datasets:[
+        {label:'Expansion MRR',data:byAM.map(d=>d.exp),backgroundColor:'#1D9E75',borderRadius:4,names:byAM.map(d=>d.expNames)},
+        {label:'Churned MRR',data:byAM.map(d=>d.churn),backgroundColor:'#E24B4A',borderRadius:4,names:byAM.map(d=>d.chNames)}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[` ${ctx.dataset.label}: ${fmtBig$(ctx.raw)}/mo`,...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    });
+  }
+
   // Account health distribution by AM (stacked)
   if(charts['healthByAMBar']) charts['healthByAMBar'].destroy();
   const healthByAMEl=document.getElementById('healthByAMBar');

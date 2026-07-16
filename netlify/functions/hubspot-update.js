@@ -1,8 +1,8 @@
 // Virio CS Dashboard - HubSpot company property updater.
 // POST { id, property, value } -> PATCH /crm/v3/objects/companies/{id}
 // Requires HUBSPOT_TOKEN with `crm.objects.companies.write` scope.
-const ALLOWED_PROPERTIES = new Set(['customer_journey', 'csm', 'pilot_status', 'kickoff_call_date', 'first_post_date', 'stage', 'vertical']);
-const DATE_PROPERTIES = new Set(['kickoff_call_date', 'first_post_date']);
+const ALLOWED_PROPERTIES = new Set(['customer_journey', 'csm', 'pilot_status', 'kickoff_call_date', 'first_post_date', 'churn_date', 'stage', 'vertical']);
+const DATE_PROPERTIES = new Set(['kickoff_call_date', 'first_post_date', 'churn_date']);
 
 function normalizeDate(v) {
   // HubSpot date properties want midnight UTC ms. Accept YYYY-MM-DD input.
