@@ -1605,13 +1605,6 @@ function toDateInputValue(v) {
   const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),day=String(d.getUTCDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
-// Read-only short date for display columns (e.g. churn date). '—' when unset.
-function fmtDay(v) {
-  if(!v) return '—';
-  const d=new Date(v);
-  if(isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
-}
 function dateInput(c, hsProp, localField) {
   const cur=toDateInputValue(c[localField]);
   return `<input type="date" class="hs-date" data-cid="${escapeHtml(c.id||'')}" data-prop="${hsProp}" data-localprop="${localField}" data-prev="${cur}" onchange="updateHubspotField(this)" value="${cur}">`;
@@ -1697,7 +1690,7 @@ function renderPortfolioChurned(churned, suffix, ctx, cos) {
   let rows=[...churned].sort((a,b)=>(churnedOrder[a.pilot_status]??9)-(churnedOrder[b.pilot_status]??9));
   rows=applyListSort(rows, window.__listSort[key], { am: c => displayAM(c.csm) });
   document.getElementById('portfolio-churned-roster-body-'+suffix).innerHTML=rows.map(c=>{
-    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${fmtDay(c.churn_date)}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${dateInput(c,'churn_date','churn_date')}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
   }).join('')||'<tr><td colspan="10" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-portfolio-churned-am-'+suffix, key, 'am', ()=>renderPortfolioTable(cos));
 }
