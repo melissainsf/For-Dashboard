@@ -144,6 +144,17 @@ main{padding:24px 32px;max-width:1600px;margin:0 auto}
 .health-chip.health-blue .health-dot{background:#378ADD}
 .health-chip.health-empty{background:var(--surface2);color:var(--ink3)}
 .health-chip.health-empty .health-dot{background:var(--ink3);opacity:0.4}
+.health-chip.health-editable{cursor:pointer;transition:box-shadow 0.1s}
+.health-chip.health-editable:hover{box-shadow:0 0 0 2px var(--border-strong)}
+.health-chip.health-editable:focus-visible{outline:none;box-shadow:0 0 0 2px var(--blue)}
+.health-caret{font-size:8px;line-height:1;opacity:0.55;margin-left:1px}
+.health-picker{position:fixed;z-index:10001;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;box-shadow:0 6px 20px rgba(26,25,22,0.18);padding:5px;display:flex;flex-direction:column;gap:2px;min-width:150px}
+.health-picker-opt{display:flex;align-items:center;gap:8px;padding:6px 10px;border:none;background:transparent;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--ink);cursor:pointer;text-align:left;width:100%}
+.health-picker-opt:hover{background:var(--surface2)}
+.health-picker-opt.sel{font-weight:600}
+.health-picker-opt .health-dot{width:10px;height:10px}
+.health-picker-clear{color:var(--ink2);border-top:1px solid var(--border);margin-top:2px;padding-top:7px}
+.health-picker-clear .health-dot{background:var(--ink3);opacity:0.4}
 /* TABLE */
 .table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
 .table-wrap{overflow-x:auto}
@@ -1161,10 +1172,63 @@ const HEALTH_VALUES=['red','yellow','green','blue'];
 const HEALTH_COLORS={red:'#E24B4A',yellow:'#BA7517',green:'#1D9E75',blue:'#378ADD'};
 const HEALTH_LABEL={red:'Red',yellow:'Yellow',green:'Green',blue:'Blue'};
 function normalizeHealth(v) { if(!v) return null; const s=String(v).trim().toLowerCase(); return HEALTH_VALUES.includes(s)?s:null; }
-function healthChip(value,{withLabel=true}={}) {
+// Pass `cid` (a HubSpot company id) to make the chip clickable → opens a picker
+// to change the health score. Edits persist as an override in Supabase.
+function healthChip(value,{withLabel=true, cid=null}={}) {
   const v=normalizeHealth(value);
-  if(!v) return `<span class="health-chip health-empty"><span class="health-dot"></span>${withLabel?'—':''}</span>`;
-  return `<span class="health-chip health-${v}"><span class="health-dot"></span>${withLabel?HEALTH_LABEL[v]:''}</span>`;
+  const cls='health-chip '+(v?('health-'+v):'health-empty')+(cid?' health-editable':'');
+  const attrs=cid?` role="button" tabindex="0" data-cid="${escapeHtml(cid)}" data-health="${v||''}" title="Click to set health" onclick="event.stopPropagation();openHealthPicker(this)"`:'';
+  const label=v?(withLabel?HEALTH_LABEL[v]:''):(withLabel?'—':'');
+  const caret=(cid&&withLabel)?'<span class="health-caret">▾</span>':'';
+  return `<span class="${cls}"${attrs}><span class="health-dot"></span>${label}${caret}</span>`;
+}
+// ── HEALTH SCORE EDITING ───────────────────────────────────────
+let __healthPicker=null;
+function __healthOutside(e){ if(__healthPicker && !__healthPicker.contains(e.target)) closeHealthPicker(); }
+function closeHealthPicker(){
+  if(__healthPicker){ __healthPicker.remove(); __healthPicker=null;
+    document.removeEventListener('click',__healthOutside,true);
+    window.removeEventListener('scroll',closeHealthPicker,true);
+    window.removeEventListener('resize',closeHealthPicker); }
+}
+function openHealthPicker(anchor){
+  closeHealthPicker();
+  const cid=anchor.dataset.cid; if(!cid) return;
+  const cur=anchor.dataset.health||'';
+  const pop=document.createElement('div');
+  pop.className='health-picker';
+  pop.innerHTML=HEALTH_VALUES.map(v=>`<button type="button" class="health-picker-opt${v===cur?' sel':''}" data-v="${v}"><span class="health-dot" style="background:${HEALTH_COLORS[v]}"></span>${HEALTH_LABEL[v]}</button>`).join('')
+    +`<button type="button" class="health-picker-opt health-picker-clear${cur===''?' sel':''}" data-v=""><span class="health-dot"></span>Clear (use Lineage)</button>`;
+  document.body.appendChild(pop);
+  const r=anchor.getBoundingClientRect();
+  let left=r.left, top=r.bottom+4;
+  if(left+pop.offsetWidth>window.innerWidth-8) left=window.innerWidth-pop.offsetWidth-8;
+  if(top+pop.offsetHeight>window.innerHeight-8) top=r.top-pop.offsetHeight-4;
+  pop.style.left=Math.max(8,left)+'px'; pop.style.top=Math.max(8,top)+'px';
+  pop.querySelectorAll('.health-picker-opt').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); saveHealth(cid, btn.dataset.v); closeHealthPicker(); }));
+  __healthPicker=pop;
+  setTimeout(()=>{ document.addEventListener('click',__healthOutside,true); window.addEventListener('scroll',closeHealthPicker,true); window.addEventListener('resize',closeHealthPicker); },0);
+}
+async function saveHealth(id, value){
+  const val=normalizeHealth(value)||'';                 // '' clears the override (reverts to Lineage)
+  const c=allCompanies.find(x=>x.id===id); if(!c) return;
+  const prev=c.account_health;
+  if((prev||'')===val) return;
+  c.account_health=val||null;                           // optimistic
+  refreshActiveTab();
+  try {
+    const email=await prtCurrentEmail();
+    if(val){
+      const { error }=await sb.from('health_overrides').upsert({ hs_company_id:id, health:val, updated_by:email, updated_at:new Date().toISOString() }, { onConflict:'hs_company_id' });
+      if(error) throw error;
+    } else {
+      const { error }=await sb.from('health_overrides').delete().eq('hs_company_id', id);
+      if(error) throw error;
+    }
+  } catch(e){
+    c.account_health=prev; refreshActiveTab();
+    alert('Could not save health: '+(e.message||e));
+  }
 }
 function buildLines(names) {
   if(!names||!names.length) return ['No data'];
@@ -1193,15 +1257,19 @@ async function loadData() {
   btn.disabled=true;
   setStatus('Loading data from HubSpot + Lineage...','loading');
   try {
-    const [hsRes,lineageRes,focsRes]=await Promise.all([
+    const [hsRes,lineageRes,focsRes,healthRes]=await Promise.all([
       fetch('/api/hubspot',{method:'POST'}),
       fetch('/api/lineage',{method:'GET'}),
-      sb.from('portfolio_focs').select('*')
+      sb.from('portfolio_focs').select('*'),
+      sb.from('health_overrides').select('*')
     ]);
     if(!hsRes.ok) { const e=await hsRes.json().catch(()=>({})); throw new Error(e.error||`HubSpot ${hsRes.status}`); }
     const hsData=await hsRes.json();
     const focsMap={};
     (focsRes&&focsRes.data||[]).forEach(r=>{ if(r.hs_company_id) focsMap[r.hs_company_id]=r.focs; });
+    // Manual health overrides (dashboard edits) win over the Lineage-synced value.
+    const healthOverride={};
+    (healthRes&&healthRes.data||[]).forEach(r=>{ const v=normalizeHealth(r.health); if(r.hs_company_id&&v) healthOverride[r.hs_company_id]=v; });
     lineageMap={};
     if(lineageRes.ok) {
       const ld=await lineageRes.json();
@@ -1227,7 +1295,7 @@ async function loadData() {
         first_post_date:r.properties.first_post_date||null,
         vertical:r.properties.vertical||null,
         customer_journey:r.properties.customer_journey||null,
-        account_health:lineageMap[normalizeName(name)]||null,
+        account_health:healthOverride[r.id]||lineageMap[normalizeName(name)]||null,
         focs:focsMap[r.id]||null,
         product:r.properties.product||null
       };
@@ -1388,9 +1456,9 @@ function renderHealthWidget(rowsId, summaryId, companies) {
   el.innerHTML=sorted.map(c=>{
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     return `<div class="health-row">
-      ${healthChip(c.account_health,{withLabel:false})}
+      ${healthChip(c.account_health,{withLabel:false,cid:c.id})}
       <div class="health-name">${c.name}</div>
-      <div class="health-scores">${healthChip(c.account_health)}<span class="health-ttv">TTV ${ttv}</span></div>
+      <div class="health-scores">${healthChip(c.account_health,{cid:c.id})}<span class="health-ttv">TTV ${ttv}</span></div>
     </div>`;
   }).join('')||'<div class="no-sheet-data">No customers in this bucket.</div>';
 }
@@ -1512,6 +1580,7 @@ function refreshActiveTab() {
   if(!active) return;
   if(active.id==='tab-cohorts') renderCohortsTab(cos);
   else if(active.id==='tab-team') renderTeamTab(cos);
+  else if(active.id==='tab-portfolio') renderPortfolioTable(cos);
 }
 async function updateHubspotField(sel) {
   const id=sel.dataset.cid, prop=sel.dataset.prop, prev=sel.dataset.prev, next=sel.value;
@@ -1569,7 +1638,7 @@ function renderPortfolioActive(active, suffix, ctx, cos) {
   document.getElementById('portfolio-roster-body-'+suffix).innerHTML=rows.map(c=>{
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td><td>${focsInput(c)}</td></tr>`;
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${amSelect(c,allCsms)}</td><td>${journeySelect(c)}</td><td>${f(c.mrr)}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${focsInput(c)}</td></tr>`;
   }).join('')||'<tr><td colspan="10" class="empty-hint">No active customers.</td></tr>';
   bindSortHeader('th-portfolio-am-'+suffix, key, 'am', ()=>renderPortfolioTable(cos));
 }
@@ -1582,7 +1651,7 @@ function renderPortfolioChurned(churned, suffix, ctx, cos) {
   let rows=[...churned].sort((a,b)=>(churnedOrder[a.pilot_status]??9)-(churnedOrder[b.pilot_status]??9));
   rows=applyListSort(rows, window.__listSort[key], { am: c => displayAM(c.csm) });
   document.getElementById('portfolio-churned-roster-body-'+suffix).innerHTML=rows.map(c=>{
-    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health)}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
+    return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
   }).join('')||'<tr><td colspan="9" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-portfolio-churned-am-'+suffix, key, 'am', ()=>renderPortfolioTable(cos));
 }
@@ -1706,7 +1775,7 @@ function renderCohortsTab(cos) {
   const renderCohortRow = c => {
     const ttv=fmtTTV(c.kickoff_date,c.first_post_date);
     const ttvStyle=(()=>{ const d=calcTTV(c.kickoff_date,c.first_post_date); if(d===null) return 'color:var(--ink3)'; if(d<=14) return 'color:var(--teal);font-weight:500'; if(d<=30) return 'color:var(--blue)'; return 'color:var(--amber)'; })();
-    return `<tr><td>${c.name}</td><td>${stageSelect(c,allStagesForCohort)}</td><td>${statusSelect(c)}</td><td>${displayAM(c.csm)}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td>${dateInput(c,'kickoff_call_date','kickoff_date')}</td><td>${dateInput(c,'first_post_date','first_post_date')}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health)}</td></tr>`;
+    return `<tr><td>${c.name}</td><td>${stageSelect(c,allStagesForCohort)}</td><td>${statusSelect(c)}</td><td>${displayAM(c.csm)}</td><td>${c.mrr?fmt$(c.mrr):'—'}</td><td>${dateInput(c,'kickoff_call_date','kickoff_date')}</td><td>${dateInput(c,'first_post_date','first_post_date')}</td><td style="${ttvStyle}">${ttv}</td><td>${healthChip(c.account_health,{cid:c.id})}</td></tr>`;
   };
   const sortGetters = { am: c => displayAM(c.csm) };
 
