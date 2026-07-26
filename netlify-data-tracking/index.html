@@ -276,61 +276,62 @@ const ICP_TABLE = 'netlify_icps';
 
 // ── ICP ENGAGEMENT REPORT ─────────────────────────────────────────
 // Source: periodic ICP Engagement Report (PDF). Replace this object with
-// each new report. Top engagers with "Netlify" in their role are auto-
+// each new report. Top engagers with "Netlify" in their company are auto-
 // excluded at render time, so paste the list as-is from the report.
 const ICP_REPORT = {
   subject: 'Mathias Biilmann Christensen · Netlify',
-  posts: 49,
+  posts: 75,
   periodStart: '2026-04-14',
-  periodEnd: '2026-06-12',
-  prepared: '2026-06-13',
+  periodEnd: '2026-07-24',
+  prepared: '2026-07-25',
   summary: {
-    text: 'Across 49 posts from 2026-04-14 to 2026-06-12, 1,505 unique people engaged. After excluding 48 Netlify employees, 860 engagers (57%) match at least one ICP persona.',
+    text: 'Across 75 posts from 2026-04-14 to 2026-07-24, 2,122 unique people engaged. After excluding 26 Netlify employees, 1,511 engagers (71%) match at least one ICP persona.',
     metrics: [
-      { label:'Total engagers',         count:1505, share:'100%' },
-      { label:'Netlify staff excluded', count:48,   share:'3%'   },
-      { label:'ICP engagers',           count:860,  share:'57%'  },
-      { label:'Non-ICP engagers',       count:597,  share:'40%'  }
+      { label:'Total engagers',         count:2122, share:'100%' },
+      { label:'Netlify staff excluded', count:26,   share:'1%'   },
+      { label:'ICP engagers',           count:1511, share:'71%'  },
+      { label:'Non-ICP engagers',       count:585,  share:'28%'  }
     ]
   },
   personas: [
-    { name:'Primary: Developer/Software Engineer',                engagers:371, pct:'43%', engagements:617 },
-    { name:'Primary: Non-Developer Builder',                      engagers:322, pct:'37%', engagements:592 },
-    { name:'Primary: Business Leader (CMO/CFO/PM)',               engagers:63,  pct:'7%',  engagements:152 },
-    { name:'Secondary: Influencer of Users / Technical Leader',   engagers:104, pct:'12%', engagements:210 }
+    { name:'Primary: Developer/Software Engineer',                engagers:654, pct:'43%', engagements:2093 },
+    { name:'Primary: Non-Developer Builder',                      engagers:79,  pct:'5%',  engagements:237  },
+    { name:'Primary: Business Leader (CMO/CFO/PM)',               engagers:273, pct:'18%', engagements:1119 },
+    { name:'Secondary: Influencer of Users / Technical Leader',   engagers:505, pct:'34%', engagements:2424 }
   ],
   topEngagers: [
-    { name:'Mitchell Seaton',        role:'Full Stack Developer',              persona:'Dev',   eng:23, posts:23, last:'06-13' },
-    { name:'Christian (Chris) Bach', role:'Founder',                          persona:'Dev',   eng:20, posts:20, last:'06-13' },
-    { name:'Jan Pilgaard Carlsen',   role:'Startup Mentor',                   persona:'Biz',   eng:19, posts:19, last:'06-13' },
-    { name:'Mona Nasiri',            role:'Product Growth and Monetization',  persona:'Biz',   eng:19, posts:19, last:'06-10' },
-    { name:'Michael Carter',         role:'VIP Connector',                    persona:'Dev',   eng:17, posts:17, last:'06-13' },
-    { name:'Tania Chakraborty',      role:'Senior Technical Community Manager',persona:'Infl.', eng:17, posts:17, last:'06-13' },
-    { name:'Wade Warren',            role:'CTO/SVP - Engineering, Advisor',   persona:'Dev',   eng:16, posts:16, last:'06-13' },
-    { name:'Dan Barak',              role:'Building something new…',          persona:'Dev',   eng:12, posts:12, last:'06-10' },
-    { name:'Clarence A.',            role:'Software Engineer - Developer',    persona:'Dev',   eng:12, posts:12, last:'06-07' },
-    { name:'Samuel Snopko',          role:'Head of Product @Storyblok',       persona:'Dev',   eng:12, posts:12, last:'06-13' },
-    { name:'Barry D’Arcy',           role:'Executive Member',                 persona:'Biz',   eng:12, posts:12, last:'06-13' },
-    { name:'Ran Makavy',             role:'Board Member',                     persona:'Infl.', eng:12, posts:11, last:'06-07' },
-    { name:'Conor Martin',           role:'Coding with AI Expert',            persona:'Dev',   eng:11, posts:11, last:'06-10' },
-    { name:'Rasmus Leth Skjoldan',   role:'CMO',                              persona:'Biz',   eng:11, posts:11, last:'06-13' },
-    { name:'Phanindra Reddy',        role:'AI builder and Automation expert', persona:'Dev',   eng:10, posts:10, last:'06-13' },
-    { name:'Dr Claire Knight',       role:'Co-Founder & CTO',                 persona:'Dev',   eng:10, posts:10, last:'06-07' },
-    { name:'Ameer Badri',            role:'GTM AI Architect and Solutions',   persona:'Infl.', eng:9,  posts:9,  last:'06-10' },
-    { name:'Brandi Bergstrom',       role:'Founding Member',                  persona:'Infl.', eng:9,  posts:9,  last:'06-13' },
-    { name:'Deb Mukherjee',          role:'Founder & CEO',                    persona:'Dev',   eng:8,  posts:8,  last:'06-13' },
-    { name:'René Fournier',          role:'Chief Software Architect',         persona:'Dev',   eng:8,  posts:8,  last:'06-10' }
+    { name:'Jan Pilgaard Carlsen',   company:'Culttech Accelerator',    persona:'Biz',   eng:33, posts:33 },
+    { name:'Mona Nasiri',            company:'Cohesity',                persona:'Biz',   eng:31, posts:31 },
+    { name:'Christian (Chris) Bach', company:'Stealth',                 persona:'Infl.', eng:30, posts:30 },
+    { name:'Boris de Wit',           company:'Starboat',                persona:'Infl.', eng:28, posts:28 },
+    { name:'Deb Mukherjee',          company:'Layers',                  persona:'Biz',   eng:26, posts:26 },
+    { name:'Phanindra Reddy',        company:'Every-ai.com',            persona:'Infl.', eng:26, posts:26 },
+    { name:'Mitchell Seaton',        company:'NRMA Parks and Resorts',  persona:'Dev',   eng:25, posts:25 },
+    { name:'Michael Carter',         company:'Boardy',                  persona:'Infl.', eng:24, posts:24 },
+    { name:'Tania Chakraborty',      company:'–',                       persona:'Biz',   eng:23, posts:23 },
+    { name:'Barry D’Arcy',           company:'Partnership Leaders',     persona:'Biz',   eng:21, posts:21 },
+    { name:'Brian Gentile',          company:'–',                       persona:'Infl.', eng:21, posts:21 },
+    { name:'Dan Barak',              company:'–',                       persona:'Biz',   eng:20, posts:20 },
+    { name:'Dr Claire Knight',       company:'Sailhouse',               persona:'Dev',   eng:19, posts:19 },
+    { name:'Rasmus Leth Skjoldan',   company:'Hello Retail',            persona:'Biz',   eng:19, posts:19 },
+    { name:'Michael Badamo',         company:'–',                       persona:'Dev',   eng:17, posts:17 },
+    { name:'Wade Warren',            company:'–',                       persona:'Dev',   eng:17, posts:17 },
+    { name:'Samuel Snopko',          company:'–',                       persona:'Biz',   eng:16, posts:16 },
+    { name:'Dustin Schau',           company:'Postman',                 persona:'Biz',   eng:16, posts:16 },
+    { name:'Avishay Cohen',          company:'Anima App (YC S18)',      persona:'Infl.', eng:16, posts:16 },
+    { name:'Andrei Gaspar',          company:'–',                       persona:'Biz',   eng:16, posts:16 }
   ],
   contentInsights: [
-    'Media posts average 44% ICP engagement rate vs 43% for text-only (1.0x).',
-    'Top ICP post: “If you’ve been sitting on an idea, there’s a path to making…” (69% ICP rate, 20 ICP of 29 total).',
-    'Top ICP post: “Today we’re removing seat-based pricing from Netlify.” (64% ICP rate, 149 ICP of 232 total).',
-    'Top ICP post: “There’s too much talk about how agents make us more efficien…” (64% ICP rate, 46 ICP of 72 total).',
-    'Primary: Developer/Software Engineer makes up 43% of ICP engagers (371 of 860).',
-    '54 ICP engagers hit 5+ posts, 16 hit 10+ posts.',
-    'ICP rate trended up: 49% (first half) to 57% (second half), +15% relative change.',
-    'Business Leader persona: 63 matches (20 with LinkedIn URLs), avg 2.4 engagements each.',
-    'Lowest ICP post: “The AI era is changing more than how software gets built. It…” (17% ICP rate, 2 ICP of 12 total).'
+    'ICP rate rose from 57% (through Jun 12) to 71% (through Jul 24), with ICP engagers up from 860 to 1,511 (+76%) as the audience compounded.',
+    'Original posts average 85.7 reactions vs 14.5 for reposts (5.9x per post); the 58 original posts produce 95% of all reactions.',
+    'Agent Experience (AX) is the top ICP magnet — 5 of the top 10 posts by ICP rate are AX topics, at 83–93%.',
+    'Top ICP post: Agent Experience / Netlify.ai (May 5) — 93% ICP rate, 14 ICP of 15 total.',
+    'Top ICP post: “AI as ambition multiplier” (Apr 16) — 87% ICP rate, 61 ICP of 70 total.',
+    'Highest-volume ICP post: Pricing / Unlimited seats (Apr 14) — 85% ICP rate, 179 ICP of 210 total.',
+    'Primary: Developer/Software Engineer makes up 43% of ICP engagers (654 of 1,511).',
+    '113 ICP engagers hit 5+ posts, 47 hit 10+ posts.',
+    'Business Leader persona: 273 matches averaging 4.1 engagements each — deeper than the developer average (3.2).',
+    'Builder segment is underrepresented: 79 engagers (5% of ICP); the unlimited-seats pricing post (85% ICP rate) is the lever to grow it.'
   ]
 };
 
@@ -533,9 +534,9 @@ function renderIcpReport(){
     return `<div class="demo-row"><div class="demo-row-top"><span class="demo-row-label">${esc(p.name)}</span><span class="demo-row-pct">${fmtFull(p.engagers)} engagers · ${fmtFull(p.engagements)} actions · ${esc(p.pct)}</span></div><div class="demo-bar"><div class="demo-bar-fill" style="width:${w}%"></div></div></div>`;
   }).join('');
 
-  const engagers = (R.topEngagers||[]).filter(e=>!/netlify/i.test(e.role||''));
-  const engRows = engagers.map(e=>`<tr><td>${esc(e.name)}</td><td class="role-cell">${esc(e.role)}</td><td><span class="pill ${personaClass(e.persona)}">${esc(e.persona)}</span></td><td class="num">${fmtFull(e.eng)}</td><td class="num">${fmtFull(e.posts)}</td><td class="num">${esc(e.last)}</td></tr>`).join('')
-    || `<tr><td colspan="6"><div class="empty">No ICP engagers.</div></td></tr>`;
+  const engagers = (R.topEngagers||[]).filter(e=>!/netlify/i.test(e.company||''));
+  const engRows = engagers.map(e=>`<tr><td>${esc(e.name)}</td><td class="role-cell">${esc(e.company)}</td><td><span class="pill ${personaClass(e.persona)}">${esc(e.persona)}</span></td><td class="num">${fmtFull(e.eng)}</td><td class="num">${fmtFull(e.posts)}</td></tr>`).join('')
+    || `<tr><td colspan="5"><div class="empty">No ICP engagers.</div></td></tr>`;
 
   const insightItems = (R.contentInsights||[]).map((t,i)=>`<li><span class="num">${i+1}</span>${esc(t)}</li>`).join('');
 
@@ -549,9 +550,9 @@ function renderIcpReport(){
     <div class="metric-grid">${sumCards}</div>
     <div class="section-sub">Persona Breakdown</div>
     <div class="demo-card">${personaRows}</div>
-    <div class="section-sub">Top ICP Engagers <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">· ${engagers.length} shown, sorted by engagement actions · Netlify roles excluded</span></div>
+    <div class="section-sub">Top ICP Engagers <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">· ${engagers.length} shown, sorted by engagement actions · Netlify accounts excluded</span></div>
     <div class="table-card"><div class="table-wrap"><table>
-      <thead><tr><th>Name</th><th>Role</th><th>Persona</th><th class="num">Eng</th><th class="num">Posts</th><th class="num">Last</th></tr></thead>
+      <thead><tr><th>Name</th><th>Company</th><th>Persona</th><th class="num">Eng</th><th class="num">Posts</th></tr></thead>
       <tbody>${engRows}</tbody>
     </table></div></div>
     <div class="section-sub">Content Insights</div>
