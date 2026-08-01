@@ -993,7 +993,7 @@ const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned
 // so they drop out of every AM widget.
 // Note: the response-time widgets pull from /api/response-times, not this path, so
 // people removed here still appear there.
-const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha','Emmett']);
+const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha','Emmett','Jacob']);
 const scrubFormer = v => (v && FORMER_TEAM_MEMBERS.has(v)) ? null : v;
 
 // ── NRR GOAL CONFIG ────────────────────────────────────────────
@@ -1028,6 +1028,17 @@ const CHURNED_STAGE = '1271359806';
 function inNrrCohort(c) {
   const ls = (c.lifecyclestage || '');
   return (ls === 'customer' || ls === CHURNED_STAGE) && c.domain !== 'virio.ai' && c.name !== 'Virio';
+}
+// The dashboard tracks real accounts only — current customers ("customer") and
+// churned customers (CHURNED_STAGE). Opportunity/lead-stage records can slip
+// through the pilot_status gate in the HubSpot query (e.g. a stale "In progress"
+// pilot left on a pre-conversion opportunity or a departed AM's old pipeline),
+// but they are not active customers and must never surface in a widget or
+// attribute to an AM. Drop them at ingestion so they can be left untouched in
+// HubSpot without polluting the dashboard.
+function isAccountStage(c) {
+  const ls = (c.lifecyclestage || '');
+  return ls === 'customer' || ls === CHURNED_STAGE;
 }
 
 let allCompanies = [], lineageMap = {}, charts = {}, healthIdMap = {};
@@ -1339,7 +1350,7 @@ async function loadData() {
         product:r.properties.product||null,
         upsold_products:r.properties.upsold_products||null
       };
-    });
+    }).filter(isAccountStage);
     setStatus('');
     const now=new Date();
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
