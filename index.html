@@ -757,11 +757,11 @@ textarea.prt-input{resize:vertical}
 
     <div class="section-header">
       <span class="section-title">Upsell products by AM</span>
-      <span class="section-note">Products beyond the base package (EGC / Full Service) across active accounts</span>
+      <span class="section-note">Products upsold after the original sale across active accounts (excludes products bundled in the original deal)</span>
     </div>
     <div class="chart-card" style="margin-bottom:20px">
       <div class="chart-card-title">Upsell products per Account Manager</div>
-      <div class="chart-card-sub">Every product beyond the base counts as one upsell · hover a bar for the accounts</div>
+      <div class="chart-card-sub">Each product in the Upsold Products field counts as one upsell · hover a bar for the accounts</div>
       <div class="chart-wrap-md"><canvas id="upsellAMBar"></canvas></div>
     </div>
 
@@ -1336,7 +1336,8 @@ async function loadData() {
         customer_journey:r.properties.customer_journey||null,
         account_health:lineageMap[normalizeName(name)]||null,
         focs:focsMap[r.id]||null,
-        product:r.properties.product||null
+        product:r.properties.product||null,
+        upsold_products:r.properties.upsold_products||null
       };
     });
     setStatus('');
@@ -2116,10 +2117,12 @@ function renderTeamTab(cos) {
     });
   }
 
-  // Upsell products by AM — count of products beyond the base (EGC / Full Service).
-  // `product` is a HubSpot checkbox field (semicolon-joined); each option beyond
-  // the one base package counts as one upsell.
-  const countUpsells=c=>{ const n=(c.product||'').split(';').map(s=>s.trim()).filter(Boolean).length; return n>1?n-1:0; };
+  // Upsell products by AM — count of genuine post-sale upsells. Driven by the
+  // dedicated `upsold_products` HubSpot field (semicolon-joined multi-select), NOT
+  // the `product` field: extras bundled into the original sale (rev share, outbound)
+  // live in `product` and must NOT count as upsells. Every item the AM added to
+  // `upsold_products` after the original sale counts as one upsell.
+  const countUpsells=c=>(c.upsold_products||'').split(';').map(s=>s.trim()).filter(Boolean).length;
   const upsellData=allAMs.map(am=>{
     const ac=active.filter(c=>displayAM(c.csm)===am);
     const total=ac.reduce((s,c)=>s+countUpsells(c),0);
