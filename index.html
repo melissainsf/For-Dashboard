@@ -1186,7 +1186,7 @@ function displayAM(csm) { return csm ? (AM_LABELS[csm]||csm) : 'Unassigned'; }
 // Current Account Managers, by HubSpot internal value — the single source of
 // truth for who's on the team. New AMs go here so they appear across every AM
 // widget (and are assignable) before any account is assigned to them.
-const CURRENT_AM_VALUES = ['Melissa','Marghi','Jacob','Max','CSM 2','Emily','Millie'];
+const CURRENT_AM_VALUES = ['Melissa','Marghi','Max','CSM 2','Emily','Millie'];
 const CURRENT_AMS = CURRENT_AM_VALUES.map(displayAM);  // display labels
 function amDisplayList(cos) {
   const set = new Set(CURRENT_AMS);
@@ -1953,8 +1953,13 @@ function renderTeamTab(cos) {
       if(a.hasBook) return b.gap-a.gap;                   // then by opportunity (largest gap first)
       return a.am.localeCompare(b.am);                    // no-book AMs alphabetical
     });
+    // Only current AMs get an empty "no accounts yet" row (so a newly added AM
+    // still shows before assignment). Non-current buckets — Unassigned, departed
+    // AMs — appear only when they actually carry cohort revenue, so genuinely
+    // orphaned accounts still surface but empty clutter doesn't.
+    const visibleRows = rows.filter(r => r.hasBook || CURRENT_AMS.includes(r.am));
     const nameCell=(r,tip)=>`<div class="nrr-am-name" title="${tip}"><span class="nrr-am-name-main">${escapeHtml(r.am)}</span>${r.tierMix?`<span class="nrr-am-tier">EGC ${fmt$(r.tierMix.egc)} · FS ${fmt$(r.tierMix.fs)}</span>`:''}</div>`;
-    amThermoEl.innerHTML=rows.map(r=>{
+    amThermoEl.innerHTML=visibleRows.map(r=>{
       if(!r.hasBook){
         return `<div class="nrr-am-row nrr-am-empty">
           ${nameCell(r,`${escapeHtml(r.am)} · no accounts yet`)}
@@ -1979,9 +1984,9 @@ function renderTeamTab(cos) {
       </div>`;
     }).join('')||'<div class="empty-hint">No account managers to show.</div>';
     // Hover a row to see that AM's accounts and their ARR (MRR × 12). DOM row
-    // order matches `rows`, so bind by index.
+    // order matches `visibleRows`, so bind by index.
     amThermoEl.querySelectorAll('.nrr-am-row').forEach((el,i)=>{
-      const r=rows[i]; if(!r) return;
+      const r=visibleRows[i]; if(!r) return;
       const tipRows=r.accounts.length
         ? r.accounts.map(a=>({name:a.name, val:fmtBig$(a.arr)}))
         : [{name:'No accounts yet', val:''}];
