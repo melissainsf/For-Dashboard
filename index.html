@@ -564,6 +564,11 @@ textarea.prt-input{resize:vertical}
     </div>
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
+      <span class="section-title">Account Manager</span>
+      <select id="portfolio-am-filter" class="hs-select" onchange="onPortfolioAmFilterChange(this)"></select>
+      <span class="section-note" style="margin-left:auto">Filters all customer tables below</span>
+    </div>
+    <div class="section-header">
       <span class="section-title">All Customers - Full Service</span>
       <span class="section-note" id="note-portfolio-roster-fs"></span>
     </div>
@@ -1661,7 +1666,30 @@ async function updateHubspotField(sel) {
     sel.disabled=false;
   }
 }
+// Account-manager filter for the Whole Portfolio roster tables. '__none__' is the
+// filter value for Unassigned; 'all' shows everyone. Selection persists across
+// data refreshes, but falls back to 'all' if the chosen AM no longer has any
+// accounts (so the tables never appear mysteriously empty).
+function resolvePortfolioAmFilter(cos) {
+  let current = window.__portfolioAmFilter || 'all';
+  const raw = [...new Set(cos.map(c=>c.csm||'__none__'))]
+    .sort((a,b)=>displayAM(a==='__none__'?null:a).localeCompare(displayAM(b==='__none__'?null:b)));
+  if (current!=='all' && !raw.includes(current)) current='all';
+  window.__portfolioAmFilter = current;
+  const sel = document.getElementById('portfolio-am-filter');
+  if (sel) {
+    const opt = v => `<option value="${escapeHtml(v)}"${v===current?' selected':''}>${escapeHtml(displayAM(v==='__none__'?null:v))}</option>`;
+    sel.innerHTML = `<option value="all"${current==='all'?' selected':''}>All account managers</option>` + raw.map(opt).join('');
+    sel.value = current;
+  }
+  return current;
+}
+function onPortfolioAmFilterChange(sel) {
+  window.__portfolioAmFilter = sel.value;
+  renderPortfolioTable(window.__portfolioCos || []);
+}
 function renderPortfolioTable(cos) {
+  window.__portfolioCos = cos;
   const isChurned=c=>c.pilot_status==='Exited During Pilot'||c.pilot_status==='Churned Post Conversion';
   // Product split: EGC always has product 'EGC'; anything else (incl. blank) is Full Service.
   const isEGC=c=>c.product==='EGC';
@@ -1671,8 +1699,12 @@ function renderPortfolioTable(cos) {
   const allVerticals=[...new Set(allCompanies.map(c=>c.vertical).filter(Boolean))].sort();
   const ctx={allCsms,allStages,allVerticals};
 
-  const active=cos.filter(c=>!isChurned(c));
-  const churned=cos.filter(isChurned);
+  // Apply the account-manager filter to every roster table in the tab.
+  const amFilter = resolvePortfolioAmFilter(cos);
+  const shown = amFilter==='all' ? cos : cos.filter(c=>(c.csm||'__none__')===amFilter);
+
+  const active=shown.filter(c=>!isChurned(c));
+  const churned=shown.filter(isChurned);
 
   renderPortfolioActive(active.filter(c=>!isEGC(c)), 'fs', ctx, cos);
   renderPortfolioChurned(churned.filter(c=>!isEGC(c)), 'fs', ctx, cos);
