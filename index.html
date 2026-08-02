@@ -936,7 +936,7 @@ textarea.prt-input{resize:vertical}
     <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
         <div class="chart-card-title">By likelihood</div>
-        <div class="chart-card-sub">Likely / Watch / At-risk</div>
+        <div class="chart-card-sub">Likelihood score: 75%+ · 50–74% · 25–49% · 0–24%</div>
         <div class="chart-wrap-md"><canvas id="fc-chart-band"></canvas></div>
       </div>
       <div class="chart-card" style="margin-bottom:0">
@@ -1984,11 +1984,15 @@ function fcGroupChart(id, pilots, converted, keyP, keyC, labelOrder){
     {label:'Converted', color:'#1D9E75', data:labels.map(l=>(cm[l]||[]).length), names:labels.map(l=>cm[l]||[])}
   ]);
 }
+// Likelihood score (0–100) bucketed into finer % tiers, so you can compare the
+// 75%+ cohort vs 50/50 vs 25% vs the long shots. Boundaries are easy to tweak.
+function fcScoreTier(s){ return s>=75?'75–100%':(s>=50?'50–74%':(s>=25?'25–49%':'0–24%')); }
+const FC_TIER_ORDER=['75–100%','50–74%','25–49%','0–24%'];
 function fcRenderCharts(pilots, converted){
   const STAGE_ORDER=['Startup (Pre Series A)','Scale Up (Series A-C)','Midmarket','Enterprise'];
   fcGroupChart('fc-chart-band', pilots, converted,
-    c=>FC_BAND_LABEL[fcBand(fcConversionScore(c).score)],
-    c=>FC_BAND_LABEL[fcBand(fcRenewalScore(c).score)], ['Likely','Watch','At risk']);
+    c=>fcScoreTier(fcConversionScore(c).score),
+    c=>fcScoreTier(fcRenewalScore(c).score), FC_TIER_ORDER);
   fcGroupChart('fc-chart-stage', pilots, converted, c=>c.stage||'Unknown', null, STAGE_ORDER);
   fcGroupChart('fc-chart-vertical', pilots, converted, c=>c.vertical||'—', null, null);
   fcGroupChart('fc-chart-am', pilots, converted, c=>displayAM(c.csm), null, null);
