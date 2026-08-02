@@ -861,6 +861,14 @@ textarea.prt-input{resize:vertical}
   <!-- TAB: FORECASTING -->
   <div id="tab-forecasting" class="tab-content">
     <div class="section-header" style="margin-top:4px">
+      <span class="section-title">Account Manager</span>
+      <select id="forecast-am-filter" class="hs-select" onchange="onForecastAmFilterChange(this)"></select>
+      <div class="prt-seg" id="forecast-product-toggle" style="margin-left:auto">
+        <button type="button" class="prt-seg-btn active" data-tier="Full Service" onclick="onForecastTierChange(this)">Full Service</button>
+        <button type="button" class="prt-seg-btn" data-tier="EGC" onclick="onForecastTierChange(this)">EGC</button>
+      </div>
+    </div>
+    <div class="section-header">
       <span class="section-title">Pilot Conversion Forecast</span>
       <span class="info-icon" onmouseenter="showInfo(event,'convFc')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
       <span class="section-note">Active pilots · likelihood to convert after the 90-day proof of concept</span>
@@ -876,7 +884,7 @@ textarea.prt-input{resize:vertical}
     </div>
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
-      <span class="section-title">Conversion Readiness</span>
+      <span class="section-title">Pilot Conversion Readiness</span>
       <span class="info-icon" onmouseenter="showInfo(event,'convBoard')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
       <span class="section-note" id="fc-conv-note"></span>
     </div>
@@ -1879,7 +1887,7 @@ const FC_INFO = {
     +"<div class='r'>• <b>TTV ding</b>: −10 if time-to-value (kickoff→first post) &gt; 30 days.</div>"
     +"<div class='h'>Bands</div>"
     +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. Tiles count the Likely cohort — hover a tile for the accounts.</div>" },
-  convBoard:{ title:'Reading the Conversion Readiness board', html:
+  convBoard:{ title:'Reading the Pilot Conversion Readiness board', html:
     "<div class='r'>One row per active pilot, sorted by likelihood.</div>"
     +"<div class='r'>• <b>Pilot day</b>: days since kickoff, out of the 90-day POC.</div>"
     +"<div class='r'>• <b>TTV</b>: kickoff → first post; amber if &gt; 30 days.</div>"
@@ -1903,9 +1911,36 @@ const FC_INFO = {
     +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal.</div>"
     +"<div class='r'>• <b>Likelihood</b>: banded score — hover for per-account reasons.</div>" }
 };
+// Account-manager filter for both forecast boards (and their tiles). Mirrors the
+// Whole Portfolio filter: '__none__' = Unassigned, 'all' = everyone; the option
+// list is scoped to AMs who actually have forecast accounts, and a stale pick
+// falls back to 'all'. Persists across refreshes.
+function resolveForecastAmFilter(cos){
+  let current = window.__forecastAmFilter || 'all';
+  const raw=[...new Set(cos.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted').map(c=>c.csm||'__none__'))]
+    .sort((a,b)=>displayAM(a==='__none__'?null:a).localeCompare(displayAM(b==='__none__'?null:b)));
+  if(current!=='all' && !raw.includes(current)) current='all';
+  window.__forecastAmFilter=current;
+  const sel=document.getElementById('forecast-am-filter');
+  if(sel){
+    const opt=v=>`<option value="${escapeHtml(v)}"${v===current?' selected':''}>${escapeHtml(displayAM(v==='__none__'?null:v))}</option>`;
+    sel.innerHTML=`<option value="all"${current==='all'?' selected':''}>All account managers</option>`+raw.map(opt).join('');
+    sel.value=current;
+  }
+  return current;
+}
+function onForecastAmFilterChange(sel){ window.__forecastAmFilter=sel.value; renderForecastTab(window.__forecastCos||[]); }
+function onForecastTierChange(btn){ window.__forecastTier=btn.dataset.tier; renderForecastTab(window.__forecastCos||[]); }
 function renderForecastTab(cos){
-  const pilots=cos.filter(c=>c.pilot_status==='In progress');
-  const converted=cos.filter(c=>c.pilot_status==='Converted');
+  window.__forecastCos=cos;
+  const amFilter=resolveForecastAmFilter(cos);
+  const tier=window.__forecastTier||'Full Service';
+  const seg=document.getElementById('forecast-product-toggle');
+  if(seg) seg.querySelectorAll('.prt-seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.tier===tier));
+  let inScope=amFilter==='all'?cos:cos.filter(c=>(c.csm||'__none__')===amFilter);
+  inScope=inScope.filter(c=>tierOf(c)===tier);
+  const pilots=inScope.filter(c=>c.pilot_status==='In progress');
+  const converted=inScope.filter(c=>c.pilot_status==='Converted');
   const convScored=pilots.map(c=>({ c, ...fcConversionScore(c) }));
   const renewScored=converted.map(c=>({ c, ...fcRenewalScore(c) }));
   fcRenderTiles('conv', convScored);
