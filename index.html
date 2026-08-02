@@ -927,6 +927,36 @@ textarea.prt-input{resize:vertical}
         </table>
       </div>
     </div>
+
+    <div style="margin-bottom:20px"></div>
+    <div class="section-header">
+      <span class="section-title">Customer Base Breakdown</span>
+      <span class="section-note">Pilots (blue) vs converted (green) · respects the filters above · hover a bar for accounts</span>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By likelihood</div>
+        <div class="chart-card-sub">Likely / Watch / At-risk</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-band"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By company stage</div>
+        <div class="chart-card-sub">Startup → Enterprise</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-stage"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By vertical</div>
+        <div class="chart-card-sub">Industry vertical</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-vertical"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By account manager</div>
+        <div class="chart-card-sub">Book distribution</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-am"></canvas></div>
+      </div>
+    </div>
     <div style="margin-bottom:12px"></div>
   </div>
 
@@ -1931,6 +1961,38 @@ function resolveForecastAmFilter(cos){
 }
 function onForecastAmFilterChange(sel){ window.__forecastAmFilter=sel.value; renderForecastTab(window.__forecastCos||[]); }
 function onForecastTierChange(btn){ window.__forecastTier=btn.dataset.tier; renderForecastTab(window.__forecastCos||[]); }
+// Customer-base breakdown charts: grouped bars (Pilots vs Converted) per category.
+function fcCountBy(list, keyFn){
+  const m={};
+  list.forEach(c=>{ const k=keyFn(c)||'—'; (m[k]=m[k]||[]).push({name:c.name, val:fmt$(c.mrr||0)}); });
+  return m;
+}
+function fcGroupChart(id, pilots, converted, keyP, keyC, labelOrder){
+  keyC=keyC||keyP;
+  const pm=fcCountBy(pilots,keyP), cm=fcCountBy(converted,keyC);
+  let labels;
+  if(labelOrder){
+    labels=labelOrder.filter(l=>pm[l]||cm[l]);
+    const extra=[...new Set([...Object.keys(pm),...Object.keys(cm)])].filter(l=>!labelOrder.includes(l)).sort();
+    labels=[...labels,...extra];
+  } else {
+    labels=[...new Set([...Object.keys(pm),...Object.keys(cm)])].sort();
+  }
+  if(!labels.length) labels=['—'];
+  renderGroupedBar(id, labels, [
+    {label:'Pilots', color:'#378ADD', data:labels.map(l=>(pm[l]||[]).length), names:labels.map(l=>pm[l]||[])},
+    {label:'Converted', color:'#1D9E75', data:labels.map(l=>(cm[l]||[]).length), names:labels.map(l=>cm[l]||[])}
+  ]);
+}
+function fcRenderCharts(pilots, converted){
+  const STAGE_ORDER=['Startup (Pre Series A)','Scale Up (Series A-C)','Midmarket','Enterprise'];
+  fcGroupChart('fc-chart-band', pilots, converted,
+    c=>FC_BAND_LABEL[fcBand(fcConversionScore(c).score)],
+    c=>FC_BAND_LABEL[fcBand(fcRenewalScore(c).score)], ['Likely','Watch','At risk']);
+  fcGroupChart('fc-chart-stage', pilots, converted, c=>c.stage||'Unknown', null, STAGE_ORDER);
+  fcGroupChart('fc-chart-vertical', pilots, converted, c=>c.vertical||'—', null, null);
+  fcGroupChart('fc-chart-am', pilots, converted, c=>displayAM(c.csm), null, null);
+}
 function renderForecastTab(cos){
   window.__forecastCos=cos;
   const amFilter=resolveForecastAmFilter(cos);
@@ -1949,6 +2011,9 @@ function renderForecastTab(cos){
   set('fc-renew-note', converted.length+(converted.length===1?' converted customer':' converted customers'));
   fcRenderBoard('fc-conv-body', convScored, 'conv');
   fcRenderBoard('fc-renew-body', renewScored, 'renew');
+  // Charts need a visible canvas for correct sizing — only draw when the tab is active.
+  const tab=document.getElementById('tab-forecasting');
+  if(tab && tab.classList.contains('active')) fcRenderCharts(pilots, converted);
 }
 function fcRenderTiles(prefix, scored){
   const likely=scored.filter(s=>fcBand(s.score)==='likely');
