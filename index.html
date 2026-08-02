@@ -228,6 +228,12 @@ tbody td:first-child{font-weight:500}
 .fc-type{font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink3)}
 .fc-type.icp{color:var(--blue)}
 .fc-muted{color:var(--ink3)}
+.info-icon{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border:1px solid var(--ink3);color:var(--ink3);border-radius:50%;font-size:10px;font-weight:700;font-family:Georgia,'Times New Roman',serif;font-style:italic;cursor:help;margin-left:6px;line-height:1;vertical-align:middle;user-select:none;flex-shrink:0}
+.info-icon:hover{border-color:var(--blue);color:var(--blue)}
+#tip .tip-info{white-space:normal;color:#F5F3EE}
+#tip .tip-info b{color:#fff;font-weight:600}
+#tip .tip-info .r{margin:3px 0}
+#tip .tip-info .h{color:rgba(245,243,238,0.45);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;margin:7px 0 2px}
 .foc-input{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;width:150px;max-width:200px}
 .foc-input::placeholder{color:var(--ink3)}
 .foc-input:hover{border-color:var(--ink3)}
@@ -856,6 +862,7 @@ textarea.prt-input{resize:vertical}
   <div id="tab-forecasting" class="tab-content">
     <div class="section-header" style="margin-top:4px">
       <span class="section-title">Pilot Conversion Forecast</span>
+      <span class="info-icon" onmouseenter="showInfo(event,'convFc')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
       <span class="section-note">Active pilots · likelihood to convert after the 90-day proof of concept</span>
     </div>
     <div class="metric-grid-3">
@@ -870,6 +877,7 @@ textarea.prt-input{resize:vertical}
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
       <span class="section-title">Conversion Readiness</span>
+      <span class="info-icon" onmouseenter="showInfo(event,'convBoard')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
       <span class="section-note" id="fc-conv-note"></span>
     </div>
     <div class="table-card">
@@ -885,6 +893,7 @@ textarea.prt-input{resize:vertical}
 
     <div class="section-header">
       <span class="section-title">Renewal Forecast</span>
+      <span class="info-icon" onmouseenter="showInfo(event,'renewFc')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
       <span class="section-note">Converted customers · likelihood to renew at the 12-month mark (kickoff + 12 months)</span>
     </div>
     <div class="metric-grid-3">
@@ -899,6 +908,7 @@ textarea.prt-input{resize:vertical}
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
       <span class="section-title">Renewals — Ranked by Date</span>
+      <span class="info-icon" onmouseenter="showInfo(event,'renewBoard')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
       <span class="section-note" id="fc-renew-note"></span>
     </div>
     <div class="table-card">
@@ -1850,6 +1860,49 @@ function fcBindCard(id, getRows){
   el.onmouseenter=e=>{ const r=getRows(); if(r) showTip(e,r.title,r.rows); };
   el.onmousemove=posTip; el.onmouseleave=hideTip;
 }
+// Info-icon tooltips: how each widget is calculated. Reuses the #tip element but
+// renders wrapping paragraph text (not truncated name/value rows).
+function showInfoTip(e, title, html){
+  document.getElementById('tip-title').textContent=title;
+  document.getElementById('tip-body').innerHTML='<div class="tip-info">'+html+'</div>';
+  tipEl.classList.add('visible');
+  posTip(e);
+}
+function showInfo(e, key){ const info=FC_INFO[key]; if(info) showInfoTip(e, info.title, info.html); }
+const FC_INFO = {
+  convFc:{ title:'How pilot-conversion likelihood is scored', html:
+    "<div class='r'>Forecasts which <b>active pilots</b> (status “In progress”) convert after the 90-day proof of concept.</div>"
+    +"<div class='h'>Score = 60% health + 25% expansion + 15% delivery − TTV ding</div>"
+    +"<div class='r'>• <b>Health</b> (60%): blue 100 · green 85 · yellow 50 · red 0. Unset = 50.</div>"
+    +"<div class='r'>• <b>Expansion</b> (25%): expansion MRR as a share of MRR; ≥25% = full marks.</div>"
+    +"<div class='r'>• <b>Delivery</b> (15%): ICP clients → closed deals (count &amp; $); brand clients → posts/mo vs 12.</div>"
+    +"<div class='r'>• <b>TTV ding</b>: −10 if time-to-value (kickoff→first post) &gt; 30 days.</div>"
+    +"<div class='h'>Bands</div>"
+    +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. Tiles count the Likely cohort — hover a tile for the accounts.</div>" },
+  convBoard:{ title:'Reading the Conversion Readiness board', html:
+    "<div class='r'>One row per active pilot, sorted by likelihood.</div>"
+    +"<div class='r'>• <b>Pilot day</b>: days since kickoff, out of the 90-day POC.</div>"
+    +"<div class='r'>• <b>TTV</b>: kickoff → first post; amber if &gt; 30 days.</div>"
+    +"<div class='r'>• <b>Health</b>: click the chip to set the color (feeds 60% of the score).</div>"
+    +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; both volume and $ feed the delivery signal. Brand clients show “—”.</div>"
+    +"<div class='r'>• <b>Likelihood</b>: the banded score — hover it for the per-account reasons.</div>" },
+  renewFc:{ title:'How 12-month renewal likelihood is scored', html:
+    "<div class='r'>Forecasts which <b>converted customers</b> renew at the 12-month mark.</div>"
+    +"<div class='r'><b>Renewal date = kickoff + 12 months</b> (90-day POC + 9 months).</div>"
+    +"<div class='h'>Score = 60% health + 25% expansion + 15% delivery</div>"
+    +"<div class='r'>• <b>Health</b> (60%): blue 100 · green 85 · yellow 50 · red 0. Unset = 50.</div>"
+    +"<div class='r'>• <b>Expansion</b> (25%): expansion MRR as a share of MRR; ≥25% = full marks.</div>"
+    +"<div class='r'>• <b>Delivery</b> (15%): ICP clients → closed deals (count &amp; $); brand clients → posts/mo.</div>"
+    +"<div class='r'>No TTV ding here — that applies only during the pilot.</div>"
+    +"<div class='h'>Bands</div>"
+    +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. “Secure” tiles = the Likely cohort.</div>" },
+  renewBoard:{ title:'Reading the Renewals board', html:
+    "<div class='r'>One row per converted customer, sorted by soonest renewal.</div>"
+    +"<div class='r'>• <b>Renewal date</b>: kickoff + 12 months. <b>Month</b>: months elapsed, out of 12.</div>"
+    +"<div class='r'>• <b>Health</b>: click to set (60% of score). <b>Expansion</b>: current expansion MRR.</div>"
+    +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal.</div>"
+    +"<div class='r'>• <b>Likelihood</b>: banded score — hover for per-account reasons.</div>" }
+};
 function renderForecastTab(cos){
   const pilots=cos.filter(c=>c.pilot_status==='In progress');
   const converted=cos.filter(c=>c.pilot_status==='Converted');
