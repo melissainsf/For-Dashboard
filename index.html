@@ -1046,25 +1046,13 @@ function isAccountStage(c) {
   return ls === 'customer' || ls === CHURNED_STAGE;
 }
 
-let allCompanies = [], lineageMap = {}, charts = {}, healthIdMap = {};
+let allCompanies = [], charts = {};
 
-// Health lives in Lineage per contact (FOC); a company can have several. This
-// maps a company (by normalized name) to all its Lineage contact ids so a single
-// dashboard edit can set every contact — "if one contact is happy, the company
-// is happy" (Melissa). HubSpot and Lineage use different company names in a few
-// cases, so bridge those here (normalized HubSpot name → normalized Lineage co).
-const HEALTH_NAME_ALIASES = {
-  magnificfreepik: 'magnific', freepik: 'magnific',
-  knopmanmarks: 'highwireknopman',
-  qwntllabs: 'qwntl',
-  arceus: 'arceuslegal',
-  preface: 'prefacehealth'
-};
-function healthIdsForCompany(c) {
-  const base = normalizeName(c && c.name);
-  const key = HEALTH_NAME_ALIASES[base] || base;
-  return healthIdMap[key] || [];
-}
+// Account health colors are stored in the dashboard's own Netlify Blobs store
+// (via /api/account-health), keyed by HubSpot company id — no Lineage, no CRM.
+// AMs set colors here and they persist for everyone. healthById mirrors that
+// store client-side: { [hubspotCompanyId]: "red"|"yellow"|"green"|"blue" }.
+let healthById = {};
 
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
@@ -1149,7 +1137,7 @@ async function signInWithGoogle() {
 async function signOut() {
   await sb.auth.signOut();
   showAuthScreen(true);
-  allCompanies = []; lineageMap = {};
+  allCompanies = []; healthById = {};
 }
 
 // ── TOOLTIP ────────────────────────────────────────────────────
@@ -1221,7 +1209,7 @@ const HEALTH_COLORS={red:'#E24B4A',yellow:'#BA7517',green:'#1D9E75',blue:'#378AD
 const HEALTH_LABEL={red:'Red',yellow:'Yellow',green:'Green',blue:'Blue'};
 function normalizeHealth(v) { if(!v) return null; const s=String(v).trim().toLowerCase(); return HEALTH_VALUES.includes(s)?s:null; }
 // Pass `cid` (a HubSpot company id) to make the chip clickable → opens a picker
-// to change the health score. Edits persist as an override in Supabase.
+// to change the health score. Edits persist in the dashboard's Netlify Blobs store.
 function healthChip(value,{withLabel=true, cid=null}={}) {
   const v=normalizeHealth(value);
   const cls='health-chip '+(v?('health-'+v):'health-empty')+(cid?' health-editable':'');
@@ -1258,25 +1246,20 @@ function openHealthPicker(anchor){
   setTimeout(()=>{ document.addEventListener('click',__healthOutside,true); window.addEventListener('scroll',closeHealthPicker,true); window.addEventListener('resize',closeHealthPicker); },0);
 }
 async function saveHealth(id, value){
-  const val=normalizeHealth(value)||'';                 // '' clears the human score in Lineage
+  const val=normalizeHealth(value)||'';                 // '' clears the color
   const c=allCompanies.find(x=>x.id===id); if(!c) return;
-  const ids=healthIdsForCompany(c);                     // every Lineage contact for this company
-  if(!ids.length){
-    alert(`"${c.name}" isn't linked to a Lineage health record yet, so its score can't be edited here. `
-      +`(Whoever owns the dashboard can add a name alias to bridge it.)`);
-    return;
-  }
   const prev=c.account_health;
   if((prev||'')===val) return;
   c.account_health=val||null;                           // optimistic
+  healthById[id]=val||null;
   refreshActiveTab();
   try {
     const res=await fetch('/api/health-write',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ ids, humanHealth: val||null })});
+      body:JSON.stringify({ id, value: val||null })});
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||('health-write '+res.status)); }
   } catch(e){
-    c.account_health=prev; refreshActiveTab();          // roll back on failure
-    alert('Could not save health to Lineage: '+(e.message||e));
+    c.account_health=prev; healthById[id]=prev||null; refreshActiveTab();   // roll back on failure
+    alert('Could not save health: '+(e.message||e));
   }
 }
 function buildLines(names) {
@@ -1304,11 +1287,10 @@ function switchTab(e, name) {
 async function loadData() {
   const btn=document.getElementById('refresh-btn');
   btn.disabled=true;
-  setStatus('Loading data from HubSpot + Lineage...','loading');
+  setStatus('Loading data from HubSpot...','loading');
   try {
-    const [hsRes,lineageRes,focsRes,ahRes]=await Promise.all([
+    const [hsRes,focsRes,ahRes]=await Promise.all([
       fetch('/api/hubspot',{method:'POST'}),
-      fetch('/api/lineage',{method:'GET'}),
       sb.from('portfolio_focs').select('*'),
       fetch('/api/account-health',{method:'GET'})
     ]);
@@ -1316,19 +1298,12 @@ async function loadData() {
     const hsData=await hsRes.json();
     const focsMap={};
     (focsRes&&focsRes.data||[]).forEach(r=>{ if(r.hs_company_id) focsMap[r.hs_company_id]=r.focs; });
-    // Lineage per-contact health ids, grouped by company (normalized name) so an
-    // edit to a company's chip can PATCH every one of its contacts.
-    healthIdMap={};
+    // Account health colors, keyed by HubSpot company id, from the dashboard's
+    // own Netlify Blobs store (no Lineage).
+    healthById={};
     try {
-      if(ahRes&&ahRes.ok){ const ah=await ahRes.json();
-        (ah.rows||[]).forEach(r=>{ const k=normalizeName(r.co); if(k&&r.id) (healthIdMap[k]=healthIdMap[k]||[]).push(r.id); });
-      }
-    } catch(e){ console.warn('account-health map failed', e); }
-    lineageMap={};
-    if(lineageRes.ok) {
-      const ld=await lineageRes.json();
-      (ld.results||ld||[]).forEach(row=>{ const n=row.name||row.company||row.account_name; if(n) lineageMap[normalizeName(n)]=normalizeHealth(row.account_health||row.health||row.status||row.color); });
-    }
+      if(ahRes&&ahRes.ok){ const ah=await ahRes.json(); Object.assign(healthById, ah.map||{}); }
+    } catch(e){ console.warn('account-health load failed', e); }
     allCompanies=(hsData.results||[]).map(r=>{
       const name=r.properties.name||r.properties.domain||r.id;
       return {
@@ -1350,7 +1325,7 @@ async function loadData() {
         first_post_date:r.properties.first_post_date||null,
         vertical:r.properties.vertical||null,
         customer_journey:r.properties.customer_journey||null,
-        account_health:lineageMap[normalizeName(name)]||null,
+        account_health:healthById[r.id]||null,
         focs:focsMap[r.id]||null,
         product:r.properties.product||null,
         upsold_products:r.properties.upsold_products||null
@@ -2771,7 +2746,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if(event==='SIGNED_IN'&&session) {
       if(handleValidSession(session)) { if(!allCompanies.length) loadData(); }
     }
-    if(event==='SIGNED_OUT') { showAuthScreen(true); allCompanies=[]; lineageMap={}; }
+    if(event==='SIGNED_OUT') { showAuthScreen(true); allCompanies=[]; healthById={}; }
   });
   const { data: { session } } = await sb.auth.getSession();
   if(session) {
