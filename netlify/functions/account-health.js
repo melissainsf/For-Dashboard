@@ -1,48 +1,30 @@
-// Virio CS Dashboard — Lineage per-contact account health (read).
+// Virio CS Dashboard — account health colors (read).
 //
-// Reads https://api.virio.ai/api/account-health, which returns one row PER
-// contact (FOC), each with a compound id "companyId:focUserId" and the
-// human-set humanHealth. The dashboard groups these by company to (a) resolve
-// which ids to PATCH when a health chip is edited and (b) cross-check display.
+// Health is stored in the dashboard's OWN Netlify Blobs store, keyed by HubSpot
+// company id. Lineage is no longer involved — AMs set colors in the dashboard and
+// they persist here, shared across everyone.
 //
-// Auth: LINEAGE_WRITE_API_KEY (the "Health-write" key). Override the endpoint
-// with LINEAGE_HEALTH_URL if it ever moves.
-exports.handler = async function() {
-  const key = process.env.LINEAGE_WRITE_API_KEY;
-  const url = process.env.LINEAGE_HEALTH_URL || 'https://api.virio.ai/api/account-health';
-  if (!key) return reply({ rows: [], error: 'LINEAGE_WRITE_API_KEY not configured' });
-
+// GET -> { map: { [hubspotCompanyId]: "red"|"yellow"|"green"|"blue" } }
+exports.handler = async function (event) {
+  let map = {};
   try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'Authorization': 'Bearer ' + key, 'Accept': 'application/json' }
-    });
-    const txt = await res.text();
-    if (!res.ok) return reply({ rows: [], error: `account-health ${res.status}: ${txt.slice(0, 200)}` });
-
-    let data;
-    try { data = JSON.parse(txt); }
-    catch { return reply({ rows: [], error: 'Non-JSON response', raw_sample: txt.slice(0, 300) }); }
-
-    const raw = Array.isArray(data) ? data : (data.rows || data.results || data.data || []);
-    // Slim payload: only what the client needs to map company -> contact ids.
-    const rows = raw.map(r => ({
-      id: r.id,                       // "companyId:focUserId" — the PATCH target
-      companyId: r.companyId || null,
-      co: r.co || r.name || r.company || '',
-      humanHealth: r.humanHealth || null
-    })).filter(r => r.id && r.co);
-
-    return reply({ rows });
+    const { connectLambda, getStore } = require('@netlify/blobs');
+    if (typeof connectLambda === 'function') connectLambda(event);
+    const store = getStore('account-health');
+    const stored = await store.get('map', { type: 'json' });
+    if (stored && typeof stored === 'object') map = stored;
   } catch (e) {
-    return reply({ rows: [], error: e.message });
+    // Blobs not available (e.g. local dev) or nothing stored yet — return empty.
+    console.log('account-health: Blobs read failed —', e.message);
   }
-};
 
-function reply(body) {
   return {
     statusCode: 200,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    body: JSON.stringify(body)
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+    },
+    body: JSON.stringify({ map }),
   };
-}
+};
