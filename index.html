@@ -218,6 +218,16 @@ tbody td:first-child{font-weight:500}
 .hs-select:hover,.hs-date:hover{border-color:var(--ink3)}
 .hs-select:focus,.hs-date:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
 .hs-select:disabled,.hs-date:disabled{opacity:0.5;cursor:wait}
+.fc-num{width:54px;font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 5px;text-align:right}
+.fc-num:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.fc-num:disabled{opacity:0.5;cursor:wait}
+.fc-band{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:10px;white-space:nowrap;cursor:default}
+.fc-band.likely{background:rgba(29,158,117,0.15);color:#1D9E75}
+.fc-band.watch{background:rgba(186,117,23,0.16);color:#BA7517}
+.fc-band.risk{background:rgba(226,75,74,0.15);color:#E24B4A}
+.fc-type{font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink3)}
+.fc-type.icp{color:var(--blue)}
+.fc-muted{color:var(--ink3)}
 .foc-input{font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 6px;width:150px;max-width:200px}
 .foc-input::placeholder{color:var(--ink3)}
 .foc-input:hover{border-color:var(--ink3)}
@@ -413,6 +423,7 @@ textarea.prt-input{resize:vertical}
   <button class="tab-btn" onclick="switchTab(event,'portfolio')">Whole Portfolio</button>
   <button class="tab-btn" onclick="switchTab(event,'cohorts')">Cohorts</button>
   <button class="tab-btn" onclick="switchTab(event,'team')">Team</button>
+  <button class="tab-btn" onclick="switchTab(event,'forecasting')">Forecasting</button>
   <button class="tab-btn" onclick="switchTab(event,'requests')">Product Request Tracker</button>
   <button class="tab-btn" onclick="switchTab(event,'responses')">Response Times</button>
 </div>
@@ -841,6 +852,66 @@ textarea.prt-input{resize:vertical}
     <div style="margin-bottom:12px"></div>
   </div>
 
+  <!-- TAB: FORECASTING -->
+  <div id="tab-forecasting" class="tab-content">
+    <div class="section-header" style="margin-top:4px">
+      <span class="section-title">Pilot Conversion Forecast</span>
+      <span class="section-note">Active pilots · likelihood to convert after the 90-day proof of concept</span>
+    </div>
+    <div class="metric-grid-3">
+      <div class="mcard" id="fc-conv-likely"><div class="mcard-label">Likely to Convert</div><div class="mcard-value teal" id="fc-conv-likely-n">—</div><div class="mcard-sub" id="fc-conv-likely-sub">customers</div></div>
+      <div class="mcard" id="fc-conv-mrr"><div class="mcard-label">Likely Converting MRR</div><div class="mcard-value ink" id="fc-conv-mrr-v">—</div><div class="mcard-sub">Hover for accounts</div></div>
+      <div class="mcard" id="fc-conv-arr"><div class="mcard-label">Likely Converting ARR</div><div class="mcard-value ink" id="fc-conv-arr-v">—</div><div class="mcard-sub">MRR × 12</div></div>
+    </div>
+    <div class="metric-grid-2" style="margin-top:10px">
+      <div class="mcard" id="fc-conv-watch"><div class="mcard-label">Watch</div><div class="mcard-value" id="fc-conv-watch-n" style="color:var(--amber)">—</div><div class="mcard-sub">On the fence</div></div>
+      <div class="mcard" id="fc-conv-risk"><div class="mcard-label">At Risk</div><div class="mcard-value coral" id="fc-conv-risk-n">—</div><div class="mcard-sub">Unlikely to convert</div></div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Conversion Readiness</span>
+      <span class="section-note" id="fc-conv-note"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Pilot day</th><th>TTV</th><th>Health</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
+          <tbody id="fc-conv-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px"></div>
+
+    <div class="section-header">
+      <span class="section-title">Renewal Forecast</span>
+      <span class="section-note">Converted customers · likelihood to renew at the 12-month mark (kickoff + 12 months)</span>
+    </div>
+    <div class="metric-grid-3">
+      <div class="mcard" id="fc-renew-secure"><div class="mcard-label">Likely to Renew</div><div class="mcard-value teal" id="fc-renew-secure-n">—</div><div class="mcard-sub" id="fc-renew-secure-sub">customers</div></div>
+      <div class="mcard" id="fc-renew-mrr"><div class="mcard-label">Secure Renewal MRR</div><div class="mcard-value ink" id="fc-renew-mrr-v">—</div><div class="mcard-sub">Hover for accounts</div></div>
+      <div class="mcard" id="fc-renew-arr"><div class="mcard-label">Secure Renewal ARR</div><div class="mcard-value ink" id="fc-renew-arr-v">—</div><div class="mcard-sub">MRR × 12</div></div>
+    </div>
+    <div class="metric-grid-2" style="margin-top:10px">
+      <div class="mcard" id="fc-renew-watch"><div class="mcard-label">Watch</div><div class="mcard-value" id="fc-renew-watch-n" style="color:var(--amber)">—</div><div class="mcard-sub">On the fence</div></div>
+      <div class="mcard" id="fc-renew-risk"><div class="mcard-label">At Risk</div><div class="mcard-value coral" id="fc-renew-risk-n">—</div><div class="mcard-sub">MRR at risk: <span id="fc-renew-risk-mrr">—</span></div></div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+    <div class="section-header">
+      <span class="section-title">Renewals — Ranked by Date</span>
+      <span class="section-note" id="fc-renew-note"></span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Renewal date</th><th>Month</th><th>Health</th><th>Expansion</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
+          <tbody id="fc-renew-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+  </div>
+
   <!-- TAB 5: PRODUCT REQUEST TRACKER -->
   <div id="tab-requests" class="tab-content">
     <div class="prt-toolbar">
@@ -1054,6 +1125,11 @@ let allCompanies = [], charts = {};
 // store client-side: { [hubspotCompanyId]: "red"|"yellow"|"green"|"blue" }.
 let healthById = {};
 
+// Manually-tracked deal numbers for ICP clients (Forecasting tab), from the
+// dashboard's own Netlify Blobs store, keyed by HubSpot company id:
+// { [id]: { cc: closedCount, cv: closed$, pc: pipelineCount, pv: pipeline$ } }.
+let dealsById = {};
+
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
   portfolio:        { col: null, dir: null },
@@ -1137,7 +1213,7 @@ async function signInWithGoogle() {
 async function signOut() {
   await sb.auth.signOut();
   showAuthScreen(true);
-  allCompanies = []; healthById = {};
+  allCompanies = []; healthById = {}; dealsById = {};
 }
 
 // ── TOOLTIP ────────────────────────────────────────────────────
@@ -1280,6 +1356,7 @@ function switchTab(e, name) {
   if(name==='cohorts')   renderCohortsTab(cos);
   if(name==='portfolio') renderPortfolioTable(cos);
   if(name==='team')      renderTeamTab(cos);
+  if(name==='forecasting') renderForecastTab(cos);
   if(name==='requests')  prtEnsureLoaded().then(prtRender);
 }
 
@@ -1289,10 +1366,11 @@ async function loadData() {
   btn.disabled=true;
   setStatus('Loading data from HubSpot...','loading');
   try {
-    const [hsRes,focsRes,ahRes]=await Promise.all([
+    const [hsRes,focsRes,ahRes,dealsRes]=await Promise.all([
       fetch('/api/hubspot',{method:'POST'}),
       sb.from('portfolio_focs').select('*'),
-      fetch('/api/account-health',{method:'GET'})
+      fetch('/api/account-health',{method:'GET'}),
+      fetch('/api/forecast-deals',{method:'GET'})
     ]);
     if(!hsRes.ok) { const e=await hsRes.json().catch(()=>({})); throw new Error(e.error||`HubSpot ${hsRes.status}`); }
     const hsData=await hsRes.json();
@@ -1304,6 +1382,11 @@ async function loadData() {
     try {
       if(ahRes&&ahRes.ok){ const ah=await ahRes.json(); Object.assign(healthById, ah.map||{}); }
     } catch(e){ console.warn('account-health load failed', e); }
+    // Manually-tracked deal numbers for ICP clients (Forecasting tab).
+    dealsById={};
+    try {
+      if(dealsRes&&dealsRes.ok){ const dl=await dealsRes.json(); Object.assign(dealsById, dl.map||{}); }
+    } catch(e){ console.warn('forecast-deals load failed', e); }
     allCompanies=(hsData.results||[]).map(r=>{
       const name=r.properties.name||r.properties.domain||r.id;
       return {
@@ -1328,7 +1411,8 @@ async function loadData() {
         account_health:healthById[r.id]||null,
         focs:focsMap[r.id]||null,
         product:r.properties.product||null,
-        upsold_products:r.properties.upsold_products||null
+        upsold_products:r.properties.upsold_products||null,
+        success_criteria:r.properties.success_criteria||null
       };
     }).filter(isAccountStage);
     setStatus('');
@@ -1473,6 +1557,8 @@ function recompute() {
   renderBar('journeyBar',jLabels,jLabels.map(j=>(journeyMap[j]||[]).length),'#7F77DD',jLabels.map(j=>journeyMap[j]||[]));
 
   renderPortfolioTable(cos);
+  // Forecasting is isolated/additive — never let a bug here break the rest.
+  try { renderForecastTab(cos); } catch(e){ console.warn('forecast render failed', e); }
 }
 
 // ── ACCOUNT HEALTH WIDGET ──────────────────────────────────────
@@ -1612,6 +1698,7 @@ function refreshActiveTab() {
   if(active.id==='tab-cohorts') renderCohortsTab(cos);
   else if(active.id==='tab-team') renderTeamTab(cos);
   else if(active.id==='tab-portfolio') renderPortfolioTable(cos);
+  else if(active.id==='tab-forecasting') renderForecastTab(cos);
 }
 async function updateHubspotField(sel) {
   const id=sel.dataset.cid, prop=sel.dataset.prop, prev=sel.dataset.prev, next=sel.value;
@@ -1662,6 +1749,167 @@ function resolvePortfolioAmFilter(cos) {
 function onPortfolioAmFilterChange(sel) {
   window.__portfolioAmFilter = sel.value;
   renderPortfolioTable(window.__portfolioCos || []);
+}
+// ── FORECASTING TAB ────────────────────────────────────────────
+// Likelihood = weighted, transparent, calibratable heuristic (not ML):
+//   60% health · 25% expansion · 15% delivery signal, minus a TTV ding for pilots.
+// Delivery signal is deal momentum for ICP clients (success_criteria = "Meetings
+// booked with ICP"), and post cadence for brand clients. Bands: Likely / Watch /
+// At-risk. All weights, targets and thresholds live in FC so they're easy to tune.
+const FC = {
+  wHealth:0.60, wExp:0.25, wDelivery:0.15,
+  ttvThreshold:30, ttvPenalty:10,
+  health:{ blue:100, green:85, yellow:50, red:0 }, healthUnknown:50,
+  expFullPct:0.25,                 // expansion ≥25% of MRR → full expansion marks
+  closedTargetCount:3, closedTargetValue:50000,   // ICP: full delivery marks
+  pipelineBonusMax:10,             // leading-indicator bump from pipeline
+  postsTarget:12,                  // brand: posts/mo for full delivery marks
+  likelyMin:70, watchMin:45,
+  ICP_VALUE:'Meetings booked with ICP'
+};
+const FC_BAND_LABEL={ likely:'Likely', watch:'Watch', risk:'At risk' };
+function fcClamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+function fcIsICP(c){ return (c.success_criteria||'')===FC.ICP_VALUE; }
+function fcDeals(c){ return dealsById[c.id]||{cc:0,cv:0,pc:0,pv:0}; }
+function fcHealthSub(c){ const h=normalizeHealth(c.account_health); return h?FC.health[h]:FC.healthUnknown; }
+function fcExpansionSub(c){
+  if(!(c.expansion_mrr>0)) return 0;
+  return c.mrr>0 ? fcClamp((c.expansion_mrr/c.mrr)/FC.expFullPct,0,1)*100 : 100;
+}
+function fcDeliverySub(c){
+  if(fcIsICP(c)){
+    const d=fcDeals(c);
+    let s=(0.6*fcClamp(d.cv/FC.closedTargetValue,0,1)+0.4*fcClamp(d.cc/FC.closedTargetCount,0,1))*100;
+    const pipe=fcClamp(0.5*(d.pv/FC.closedTargetValue)+0.5*(d.pc/FC.closedTargetCount),0,1);
+    return Math.min(100, s+pipe*FC.pipelineBonusMax);
+  }
+  return fcClamp(parsePostsPerMonth(c.posts_per_month)/FC.postsTarget,0,1)*100;
+}
+function fcBase(c){ return FC.wHealth*fcHealthSub(c)+FC.wExp*fcExpansionSub(c)+FC.wDelivery*fcDeliverySub(c); }
+function fcReasons(c, mode, ttv){
+  const r=[]; const h=normalizeHealth(c.account_health);
+  r.push(h?('Health '+HEALTH_LABEL[h]):'Health not set');
+  if(c.expansion_mrr>0) r.push('Expanded +'+fmt$(c.expansion_mrr));
+  if(fcIsICP(c)){
+    const d=fcDeals(c);
+    r.push((d.cc||d.cv)?(d.cc+' closed / '+fmt$(d.cv)):'No closed deals logged');
+    if(d.pc||d.pv) r.push(d.pc+' in pipeline / '+fmt$(d.pv));
+  } else {
+    const ppm=parsePostsPerMonth(c.posts_per_month);
+    r.push(ppm?(ppm+' posts/mo'):'No post cadence');
+  }
+  if(mode==='conv' && ttv!==null && ttv>FC.ttvThreshold) r.push('Slow TTV ('+ttv+'d) −'+FC.ttvPenalty);
+  return r;
+}
+function fcConversionScore(c){
+  let s=fcBase(c);
+  const ttv=calcTTV(c.kickoff_date,c.first_post_date);
+  if(ttv!==null && ttv>FC.ttvThreshold) s-=FC.ttvPenalty;
+  return { score:fcClamp(Math.round(s),0,100), reasons:fcReasons(c,'conv',ttv) };
+}
+function fcRenewalScore(c){
+  return { score:fcClamp(Math.round(fcBase(c)),0,100), reasons:fcReasons(c,'renew',null) };
+}
+function fcBand(score){ return score>=FC.likelyMin?'likely':(score>=FC.watchMin?'watch':'risk'); }
+function fcBandChip(score, reasons){
+  const b=fcBand(score);
+  return `<span class="fc-band ${b}" title="${escapeHtml(reasons.join(' · '))}">${FC_BAND_LABEL[b]} ${score}</span>`;
+}
+function fcTypeChip(c){ return fcIsICP(c)?'<span class="fc-type icp">ICP</span>':'<span class="fc-type">Brand</span>'; }
+function fcPilotDay(c){ if(!c.kickoff_date) return null; const d=Math.floor((Date.now()-new Date(c.kickoff_date).getTime())/86400000); return d>=0?d:null; }
+function fcRenewalDate(c){ if(!c.kickoff_date) return null; const dt=new Date(c.kickoff_date); dt.setFullYear(dt.getFullYear()+1); return dt; }
+function fcMonthsIn(c){ if(!c.kickoff_date) return null; const m=(Date.now()-new Date(c.kickoff_date).getTime())/(86400000*30.44); return m>=0?m:null; }
+function fcNumInput(c, field){
+  if(!fcIsICP(c)) return '<span class="fc-muted">—</span>';
+  const v=fcDeals(c)[field]||'';
+  const money=(field==='cv'||field==='pv');
+  return `<input type="number" min="0"${money?' step="100"':''} class="fc-num" data-cid="${escapeHtml(c.id)}" data-field="${field}" value="${v===''?'':v}" onchange="saveDeal(this)">`;
+}
+async function saveDeal(input){
+  const id=input.dataset.cid, field=input.dataset.field;
+  const c=allCompanies.find(x=>x.id===id); if(!c) return;
+  const cur=dealsById[id]||{cc:0,cv:0,pc:0,pv:0};
+  const prev={...cur};
+  const next={cc:cur.cc||0,cv:cur.cv||0,pc:cur.pc||0,pv:cur.pv||0};
+  const v=parseFloat(input.value); next[field]=(Number.isFinite(v)&&v>0)?v:0;
+  dealsById[id]=next;                        // optimistic → score updates live
+  input.disabled=true;
+  refreshActiveTab();
+  try {
+    const res=await fetch('/api/forecast-deals-write',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ id, deals:next })});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||('forecast-deals-write '+res.status)); }
+  } catch(e){
+    dealsById[id]=prev; refreshActiveTab();
+    alert('Could not save deal numbers: '+(e.message||e));
+  }
+}
+// onmouseenter assignment (not addEventListener) so repeated renders don't stack.
+function fcBindCard(id, getRows){
+  const el=document.getElementById(id); if(!el) return;
+  el.onmouseenter=e=>{ const r=getRows(); if(r) showTip(e,r.title,r.rows); };
+  el.onmousemove=posTip; el.onmouseleave=hideTip;
+}
+function renderForecastTab(cos){
+  const pilots=cos.filter(c=>c.pilot_status==='In progress');
+  const converted=cos.filter(c=>c.pilot_status==='Converted');
+  const convScored=pilots.map(c=>({ c, ...fcConversionScore(c) }));
+  const renewScored=converted.map(c=>({ c, ...fcRenewalScore(c) }));
+  fcRenderTiles('conv', convScored);
+  fcRenderTiles('renew', renewScored);
+  set('fc-conv-note', pilots.length+(pilots.length===1?' active pilot':' active pilots'));
+  set('fc-renew-note', converted.length+(converted.length===1?' converted customer':' converted customers'));
+  fcRenderBoard('fc-conv-body', convScored, 'conv');
+  fcRenderBoard('fc-renew-body', renewScored, 'renew');
+}
+function fcRenderTiles(prefix, scored){
+  const likely=scored.filter(s=>fcBand(s.score)==='likely');
+  const watch=scored.filter(s=>fcBand(s.score)==='watch');
+  const risk=scored.filter(s=>fcBand(s.score)==='risk');
+  const mrrOf=arr=>arr.reduce((t,s)=>t+(s.c.mrr||0),0);
+  const listMRR=arr=>arr.map(s=>({name:s.c.name, val:fmt$(s.c.mrr||0)}));
+  const listARR=arr=>arr.map(s=>({name:s.c.name, val:fmt$((s.c.mrr||0)*12)}));
+  const likelyMRR=mrrOf(likely);
+  const p='fc-'+prefix;
+  set(p+(prefix==='conv'?'-likely-n':'-secure-n'), likely.length);
+  set(p+(prefix==='conv'?'-likely-sub':'-secure-sub'), likely.length===1?'customer':'customers');
+  set(p+'-mrr-v', fmt$(likelyMRR));
+  set(p+'-arr-v', fmt$(likelyMRR*12));
+  set(p+'-watch-n', watch.length);
+  set(p+'-risk-n', risk.length);
+  if(prefix==='renew') set('fc-renew-risk-mrr', fmt$(mrrOf(risk)));
+  const base=prefix==='conv'?'-likely':'-secure';
+  fcBindCard(p+base, ()=>({title:prefix==='conv'?'Likely to convert':'Likely to renew', rows:listMRR(likely).length?listMRR(likely):['None yet']}));
+  fcBindCard(p+'-mrr', ()=>({title:prefix==='conv'?'Likely converting MRR':'Secure renewal MRR', rows:listMRR(likely).length?listMRR(likely):['None yet']}));
+  fcBindCard(p+'-arr', ()=>({title:prefix==='conv'?'Likely converting ARR':'Secure renewal ARR', rows:listARR(likely).length?listARR(likely):['None yet']}));
+  fcBindCard(p+'-watch', ()=>({title:'Watch', rows:listMRR(watch).length?listMRR(watch):['None']}));
+  fcBindCard(p+'-risk', ()=>({title:'At risk', rows:listMRR(risk).length?listMRR(risk):['None']}));
+}
+function fcRenderBoard(bodyId, scored, mode){
+  const body=document.getElementById(bodyId); if(!body) return;
+  const rows=[...scored];
+  if(mode==='renew') rows.sort((a,b)=>{ const da=fcRenewalDate(a.c), db=fcRenewalDate(b.c); if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1; return da-db; });
+  else rows.sort((a,b)=>b.score-a.score);
+  const cols=mode==='conv'?12:13;
+  body.innerHTML = rows.map(s=>{
+    const c=s.c;
+    const health=healthChip(c.account_health,{cid:c.id});
+    const band=fcBandChip(s.score,s.reasons);
+    const mrr=c.mrr?fmt$(c.mrr):'—';
+    const cc=fcNumInput(c,'cc'), cv=fcNumInput(c,'cv'), pc=fcNumInput(c,'pc'), pv=fcNumInput(c,'pv');
+    if(mode==='conv'){
+      const day=fcPilotDay(c); const dayCell=day===null?'<span class="fc-muted">—</span>':(day+' / 90');
+      const ttvN=calcTTV(c.kickoff_date,c.first_post_date);
+      const ttv=ttvN===null?'—':(ttvN+'d');
+      const ttvStyle=ttvN===null?'':(ttvN>FC.ttvThreshold?'color:var(--amber)':'color:var(--teal)');
+      return `<tr><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${dayCell}</td><td style="${ttvStyle}">${ttv}</td><td>${health}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
+    }
+    const rd=fcRenewalDate(c);
+    const rdCell=rd?rd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'<span class="fc-muted">—</span>';
+    const mi=fcMonthsIn(c); const miCell=mi===null?'—':(Math.floor(mi)+' / 12');
+    const exp=c.expansion_mrr>0?fmt$(c.expansion_mrr):'—';
+    return `<tr><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${rdCell}</td><td>${miCell}</td><td>${health}</td><td>${exp}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
+  }).join('') || `<tr><td colspan="${cols}" class="empty-hint">No ${mode==='conv'?'active pilots':'converted customers'}.</td></tr>`;
 }
 function renderPortfolioTable(cos) {
   window.__portfolioCos = cos;
@@ -2746,7 +2994,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if(event==='SIGNED_IN'&&session) {
       if(handleValidSession(session)) { if(!allCompanies.length) loadData(); }
     }
-    if(event==='SIGNED_OUT') { showAuthScreen(true); allCompanies=[]; healthById={}; }
+    if(event==='SIGNED_OUT') { showAuthScreen(true); allCompanies=[]; healthById={}; dealsById={}; }
   });
   const { data: { session } } = await sb.auth.getSession();
   if(session) {
