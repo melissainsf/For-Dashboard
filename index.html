@@ -221,7 +221,7 @@ tbody td:first-child{font-weight:500}
 .fc-num{width:54px;font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 5px;text-align:right}
 .fc-num:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
 .fc-num:disabled{opacity:0.5;cursor:wait}
-.fc-band{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:10px;white-space:nowrap;cursor:default}
+.fc-band{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:10px;white-space:nowrap;cursor:help}
 .fc-band.likely{background:rgba(29,158,117,0.15);color:#1D9E75}
 .fc-band.watch{background:rgba(186,117,23,0.16);color:#BA7517}
 .fc-band.risk{background:rgba(226,75,74,0.15);color:#E24B4A}
@@ -1862,7 +1862,14 @@ function fcRenewalScore(c){
 function fcBand(score){ return score>=FC.likelyMin?'likely':(score>=FC.watchMin?'watch':'risk'); }
 function fcBandChip(score, reasons){
   const b=fcBand(score);
-  return `<span class="fc-band ${b}" title="${escapeHtml(reasons.join(' · '))}">${FC_BAND_LABEL[b]} ${score}</span>`;
+  const payload=encodeURIComponent(JSON.stringify({score, band:FC_BAND_LABEL[b], reasons:reasons||[]}));
+  return `<span class="fc-band ${b}" data-fc="${payload}" onmouseenter="fcBandHover(event,this)" onmousemove="posTip(event)" onmouseleave="hideTip()">${FC_BAND_LABEL[b]}</span>`;
+}
+function fcBandHover(e, el){
+  try {
+    const d=JSON.parse(decodeURIComponent(el.dataset.fc));
+    showTip(e, d.band+' · score '+d.score, (d.reasons&&d.reasons.length)?d.reasons:['—']);
+  } catch(_){}
 }
 function fcTypeChip(c){ return fcIsICP(c)?'<span class="fc-type icp">ICP</span>':'<span class="fc-type">Brand</span>'; }
 function fcPilotDay(c){ if(!c.kickoff_date) return null; const d=Math.floor((Date.now()-new Date(c.kickoff_date).getTime())/86400000); return d>=0?d:null; }
