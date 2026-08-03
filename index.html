@@ -936,7 +936,7 @@ textarea.prt-input{resize:vertical}
     <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
         <div class="chart-card-title">By likelihood</div>
-        <div class="chart-card-sub">Likelihood score: 75%+ · 50–74% · 25–49% · 0–24%</div>
+        <div class="chart-card-sub">Likelihood score: 75%+ · 50–74% · 25–49% · 11–24% · 0–10%</div>
         <div class="chart-wrap-md"><canvas id="fc-chart-band"></canvas></div>
       </div>
       <div class="chart-card" style="margin-bottom:0">
@@ -1986,8 +1986,8 @@ function fcGroupChart(id, pilots, converted, keyP, keyC, labelOrder){
 }
 // Likelihood score (0–100) bucketed into finer % tiers, so you can compare the
 // 75%+ cohort vs 50/50 vs 25% vs the long shots. Boundaries are easy to tweak.
-function fcScoreTier(s){ return s>=75?'75–100%':(s>=50?'50–74%':(s>=25?'25–49%':'0–24%')); }
-const FC_TIER_ORDER=['75–100%','50–74%','25–49%','0–24%'];
+function fcScoreTier(s){ return s>=75?'75–100%':(s>=50?'50–74%':(s>=25?'25–49%':(s>=11?'11–24%':'0–10%'))); }
+const FC_TIER_ORDER=['75–100%','50–74%','25–49%','11–24%','0–10%'];
 function fcRenderCharts(pilots, converted){
   const STAGE_ORDER=['Startup (Pre Series A)','Scale Up (Series A-C)','Midmarket','Enterprise'];
   fcGroupChart('fc-chart-band', pilots, converted,
