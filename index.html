@@ -931,32 +931,43 @@ textarea.prt-input{resize:vertical}
 
     <div style="margin-bottom:20px"></div>
     <div class="section-header">
+      <span class="section-title">Likelihood Breakdown</span>
+      <span class="section-note">Accounts bucketed by overall likelihood · hover a bar for accounts</span>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Pilot conversion likelihood</div>
+        <div class="chart-card-sub">Active pilots. Color = overall likelihood — the health color (60%) <em>plus</em> expansion and deal momentum, not just the health chip. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-lik-pilot"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Renewal likelihood</div>
+        <div class="chart-card-sub">Converted customers. Color = overall likelihood — the health color (60%) <em>plus</em> expansion and deal momentum, not just the health chip. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-lik-renew"></canvas></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px"></div>
+    <div class="section-header">
       <span class="section-title">Customer Base Breakdown</span>
       <span class="section-note">Pilots (blue) vs converted (green) · respects the filters above · hover a bar for accounts</span>
     </div>
     <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">By likelihood</div>
-        <div class="chart-card-sub">Likelihood score: 75%+ · 50–74% · 25–49% · 11–24% · 0–10%</div>
-        <div class="chart-wrap-md"><canvas id="fc-chart-band"></canvas></div>
-      </div>
-      <div class="chart-card" style="margin-bottom:0">
         <div class="chart-card-title">By company stage</div>
         <div class="chart-card-sub">Startup → Enterprise</div>
         <div class="chart-wrap-md"><canvas id="fc-chart-stage"></canvas></div>
       </div>
-    </div>
-    <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
         <div class="chart-card-title">By vertical</div>
         <div class="chart-card-sub">Industry vertical</div>
         <div class="chart-wrap-md"><canvas id="fc-chart-vertical"></canvas></div>
       </div>
-      <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">By account manager</div>
-        <div class="chart-card-sub">Book distribution</div>
-        <div class="chart-wrap-md"><canvas id="fc-chart-am"></canvas></div>
-      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">By account manager</div>
+      <div class="chart-card-sub">Pilots (blue) vs converted (green)</div>
+      <div class="chart-wrap-md"><canvas id="fc-chart-am"></canvas></div>
     </div>
     <div style="margin-bottom:12px"></div>
   </div>
@@ -1992,15 +2003,31 @@ function fcGroupChart(id, pilots, converted, keyP, keyC, labelOrder){
     {label:'Converted', color:'#1D9E75', data:labels.map(l=>(cm[l]||[]).length), names:labels.map(l=>cm[l]||[])}
   ]);
 }
-// Likelihood score (0–100) bucketed into finer % tiers, so you can compare the
-// 75%+ cohort vs 50/50 vs 25% vs the long shots. Boundaries are easy to tweak.
-function fcScoreTier(s){ return s>=75?'75–100%':(s>=50?'50–74%':(s>=25?'25–49%':(s>=11?'11–24%':'0–10%'))); }
-const FC_TIER_ORDER=['75–100%','50–74%','25–49%','11–24%','0–10%'];
+// Accounts bucketed red/yellow/green/blue by OVERALL likelihood score (not just
+// the raw health chip): blue = best/expanding → red = at risk. Bars are colored
+// with the matching health color. Thresholds align with the table bands
+// (blue+green = "Likely" ≥70, yellow = "Watch" 45–69, red = "At risk" <45).
+const FC_LIK=[
+  {label:'Blue · expanding', color:'#378ADD', min:85},
+  {label:'Green · likely',   color:'#1D9E75', min:70},
+  {label:'Yellow · 50/50',   color:'#BA7517', min:45},
+  {label:'Red · at risk',    color:'#E24B4A', min:0}
+];
+function fcLikChart(id, list, scorer){
+  const groups=FC_LIK.map(()=>[]);
+  list.forEach(c=>{
+    const s=scorer(c).score;
+    let idx=FC_LIK.findIndex(t=>s>=t.min); if(idx<0) idx=FC_LIK.length-1;
+    groups[idx].push({name:c.name, val:s+' · '+fmt$(c.mrr||0)});
+  });
+  renderGroupedBar(id, FC_LIK.map(t=>t.label), [
+    {label:'Accounts', color:FC_LIK.map(t=>t.color), data:groups.map(g=>g.length), names:groups}
+  ]);
+}
 function fcRenderCharts(pilots, converted){
   const STAGE_ORDER=['Startup (Pre Series A)','Scale Up (Series A-C)','Midmarket','Enterprise'];
-  fcGroupChart('fc-chart-band', pilots, converted,
-    c=>fcScoreTier(fcConversionScore(c).score),
-    c=>fcScoreTier(fcRenewalScore(c).score), FC_TIER_ORDER);
+  fcLikChart('fc-chart-lik-pilot', pilots, fcConversionScore);
+  fcLikChart('fc-chart-lik-renew', converted, fcRenewalScore);
   fcGroupChart('fc-chart-stage', pilots, converted, c=>c.stage||'Unknown', null, STAGE_ORDER);
   fcGroupChart('fc-chart-vertical', pilots, converted, c=>c.vertical||'—', null, null);
   fcGroupChart('fc-chart-am', pilots, converted, c=>displayAM(c.csm), null, null);
