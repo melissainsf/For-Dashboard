@@ -866,6 +866,7 @@ textarea.prt-input{resize:vertical}
       <div class="prt-seg" id="forecast-product-toggle" style="margin-left:auto">
         <button type="button" class="prt-seg-btn active" data-tier="Full Service" onclick="onForecastTierChange(this)">Full Service</button>
         <button type="button" class="prt-seg-btn" data-tier="EGC" onclick="onForecastTierChange(this)">EGC</button>
+        <button type="button" class="prt-seg-btn" data-tier="Both" onclick="onForecastTierChange(this)">Both</button>
       </div>
     </div>
     <div class="section-header">
@@ -2004,7 +2005,7 @@ function renderForecastTab(cos){
   const seg=document.getElementById('forecast-product-toggle');
   if(seg) seg.querySelectorAll('.prt-seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.tier===tier));
   let inScope=amFilter==='all'?cos:cos.filter(c=>(c.csm||'__none__')===amFilter);
-  inScope=inScope.filter(c=>tierOf(c)===tier);
+  if(tier!=='Both') inScope=inScope.filter(c=>tierOf(c)===tier);
   const pilots=inScope.filter(c=>c.pilot_status==='In progress');
   const converted=inScope.filter(c=>c.pilot_status==='Converted');
   const convScored=pilots.map(c=>({ c, ...fcConversionScore(c) }));
