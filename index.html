@@ -228,6 +228,10 @@ tbody td:first-child{font-weight:500}
 .fc-type{font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink3)}
 .fc-type.icp{color:var(--blue)}
 .fc-muted{color:var(--ink3)}
+.fc-cohort-header{display:flex;align-items:baseline;gap:12px;margin:28px 0 16px;padding:12px 16px;background:var(--surface2);border-radius:var(--radius);border-left:4px solid var(--blue)}
+.fc-cohort-header.renewal{border-left-color:var(--teal)}
+.fc-cohort-header .t{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em;color:var(--ink)}
+.fc-cohort-header .s{font-size:11px;color:var(--ink3)}
 .info-icon{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border:1px solid var(--ink3);color:var(--ink3);border-radius:50%;font-size:10px;font-weight:700;font-family:Georgia,'Times New Roman',serif;font-style:italic;cursor:help;margin-left:6px;line-height:1;vertical-align:middle;user-select:none;flex-shrink:0}
 .info-icon:hover{border-color:var(--blue);color:var(--blue)}
 #tip .tip-info{white-space:normal;color:#F5F3EE}
@@ -869,10 +873,15 @@ textarea.prt-input{resize:vertical}
         <button type="button" class="prt-seg-btn" data-tier="Both" onclick="onForecastTierChange(this)">Both</button>
       </div>
     </div>
+    <!-- ══════════ PILOTS · CONVERSION ══════════ -->
+    <div class="fc-cohort-header">
+      <span class="t">Pilots · Conversion</span>
+      <span class="s">In-progress pilots · likelihood to convert after the 90-day proof of concept</span>
+    </div>
     <div class="section-header">
-      <span class="section-title">Pilot Conversion Forecast</span>
+      <span class="section-title">Conversion Forecast</span>
       <span class="info-icon" onmouseenter="showInfo(event,'convFc')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
-      <span class="section-note">Active pilots · likelihood to convert after the 90-day proof of concept</span>
+      <span class="section-note">Likely-to-convert cohort</span>
     </div>
     <div class="metric-grid-3">
       <div class="mcard" id="fc-conv-likely"><div class="mcard-label">Likely to Convert</div><div class="mcard-value teal" id="fc-conv-likely-n">—</div><div class="mcard-sub" id="fc-conv-likely-sub">customers</div></div>
@@ -897,13 +906,45 @@ textarea.prt-input{resize:vertical}
         </table>
       </div>
     </div>
+    <div style="margin-bottom:16px"></div>
+    <div class="section-header">
+      <span class="section-title">Pilot Likelihood</span>
+      <span class="section-note">By overall likelihood — health (60%) + expansion + deal momentum. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</span>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Likelihood distribution</div>
+        <div class="chart-card-sub">Active pilots by overall likelihood</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-lik-pilot"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By company stage</div>
+        <div class="chart-card-sub">Stacked by likelihood</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-stage-pilot"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By vertical</div>
+        <div class="chart-card-sub">Stacked by likelihood</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-vertical-pilot"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By account manager</div>
+        <div class="chart-card-sub">Stacked by likelihood</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-am-pilot"></canvas></div>
+      </div>
+    </div>
 
-    <div style="margin-bottom:20px"></div>
-
+    <!-- ══════════ CONVERTED · RENEWAL ══════════ -->
+    <div class="fc-cohort-header renewal">
+      <span class="t">Converted · Renewal</span>
+      <span class="s">Converted customers · likelihood to renew at the 12-month mark (kickoff + 12 months)</span>
+    </div>
     <div class="section-header">
       <span class="section-title">Renewal Forecast</span>
       <span class="info-icon" onmouseenter="showInfo(event,'renewFc')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
-      <span class="section-note">Converted customers · likelihood to renew at the 12-month mark (kickoff + 12 months)</span>
+      <span class="section-note">Likely-to-renew cohort</span>
     </div>
     <div class="metric-grid-3">
       <div class="mcard" id="fc-renew-secure"><div class="mcard-label">Likely to Renew</div><div class="mcard-value teal" id="fc-renew-secure-n">—</div><div class="mcard-sub" id="fc-renew-secure-sub">customers</div></div>
@@ -928,46 +969,34 @@ textarea.prt-input{resize:vertical}
         </table>
       </div>
     </div>
-
-    <div style="margin-bottom:20px"></div>
-    <div class="section-header">
-      <span class="section-title">Likelihood Breakdown</span>
-      <span class="section-note">Accounts bucketed by overall likelihood · hover a bar for accounts</span>
-    </div>
-    <div class="chart-row">
-      <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">Pilot conversion likelihood</div>
-        <div class="chart-card-sub">Active pilots. Color = overall likelihood — the health color (60%) <em>plus</em> expansion and deal momentum, not just the health chip. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</div>
-        <div class="chart-wrap-md"><canvas id="fc-chart-lik-pilot"></canvas></div>
-      </div>
-      <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">Renewal likelihood</div>
-        <div class="chart-card-sub">Converted customers. Color = overall likelihood — the health color (60%) <em>plus</em> expansion and deal momentum, not just the health chip. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</div>
-        <div class="chart-wrap-md"><canvas id="fc-chart-lik-renew"></canvas></div>
-      </div>
-    </div>
-
     <div style="margin-bottom:16px"></div>
     <div class="section-header">
-      <span class="section-title">Customer Base Breakdown</span>
-      <span class="section-note">Pilots (blue) vs converted (green) · respects the filters above · hover a bar for accounts</span>
+      <span class="section-title">Renewal Likelihood</span>
+      <span class="section-note">By overall likelihood — health (60%) + expansion + deal momentum. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</span>
     </div>
     <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">By company stage</div>
-        <div class="chart-card-sub">Startup → Enterprise</div>
-        <div class="chart-wrap-md"><canvas id="fc-chart-stage"></canvas></div>
+        <div class="chart-card-title">Likelihood distribution</div>
+        <div class="chart-card-sub">Converted customers by overall likelihood</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-lik-renew"></canvas></div>
       </div>
       <div class="chart-card" style="margin-bottom:0">
-        <div class="chart-card-title">By vertical</div>
-        <div class="chart-card-sub">Industry vertical</div>
-        <div class="chart-wrap-md"><canvas id="fc-chart-vertical"></canvas></div>
+        <div class="chart-card-title">By company stage</div>
+        <div class="chart-card-sub">Stacked by likelihood</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-stage-renew"></canvas></div>
       </div>
     </div>
-    <div class="chart-card">
-      <div class="chart-card-title">By account manager</div>
-      <div class="chart-card-sub">Pilots (blue) vs converted (green)</div>
-      <div class="chart-wrap-md"><canvas id="fc-chart-am"></canvas></div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By vertical</div>
+        <div class="chart-card-sub">Stacked by likelihood</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-vertical-renew"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">By account manager</div>
+        <div class="chart-card-sub">Stacked by likelihood</div>
+        <div class="chart-wrap-md"><canvas id="fc-chart-am-renew"></canvas></div>
+      </div>
     </div>
     <div style="margin-bottom:12px"></div>
   </div>
@@ -1980,28 +2009,40 @@ function resolveForecastAmFilter(cos){
 }
 function onForecastAmFilterChange(sel){ window.__forecastAmFilter=sel.value; renderForecastTab(window.__forecastCos||[]); }
 function onForecastTierChange(btn){ window.__forecastTier=btn.dataset.tier; renderForecastTab(window.__forecastCos||[]); }
-// Customer-base breakdown charts: grouped bars (Pilots vs Converted) per category.
-function fcCountBy(list, keyFn){
-  const m={};
-  list.forEach(c=>{ const k=keyFn(c)||'—'; (m[k]=m[k]||[]).push({name:c.name, val:fmt$(c.mrr||0)}); });
-  return m;
-}
-function fcGroupChart(id, pilots, converted, keyP, keyC, labelOrder){
-  keyC=keyC||keyP;
-  const pm=fcCountBy(pilots,keyP), cm=fcCountBy(converted,keyC);
-  let labels;
+// Dimension breakdown for ONE cohort, stacked by likelihood color (red→blue),
+// so each segment (stage/vertical/AM) shows how much of its book is at-risk vs
+// likely. No cross-cohort mixing — color always means likelihood.
+function fcStackedLikChart(id, list, scorer, keyFn, labelOrder){
+  const present=[...new Set(list.map(c=>keyFn(c)||'—'))];
+  let cats;
   if(labelOrder){
-    labels=labelOrder.filter(l=>pm[l]||cm[l]);
-    const extra=[...new Set([...Object.keys(pm),...Object.keys(cm)])].filter(l=>!labelOrder.includes(l)).sort();
-    labels=[...labels,...extra];
-  } else {
-    labels=[...new Set([...Object.keys(pm),...Object.keys(cm)])].sort();
-  }
-  if(!labels.length) labels=['—'];
-  renderGroupedBar(id, labels, [
-    {label:'Pilots', color:'#378ADD', data:labels.map(l=>(pm[l]||[]).length), names:labels.map(l=>pm[l]||[])},
-    {label:'Converted', color:'#1D9E75', data:labels.map(l=>(cm[l]||[]).length), names:labels.map(l=>cm[l]||[])}
-  ]);
+    cats=labelOrder.filter(l=>present.includes(l));
+    cats=[...cats, ...present.filter(l=>!labelOrder.includes(l)).sort()];
+  } else cats=present.sort();
+  if(!cats.length) cats=['—'];
+  const buckets=FC_LIK.map(()=>cats.map(()=>[]));   // [colorIdx][catIdx] -> accounts
+  list.forEach(c=>{
+    const s=scorer(c).score;
+    let ci=FC_LIK.findIndex(t=>s>=t.min); if(ci<0) ci=FC_LIK.length-1;
+    const catIdx=cats.indexOf(keyFn(c)||'—');
+    if(catIdx>=0) buckets[ci][catIdx].push({name:c.name, val:s+' · '+fmt$(c.mrr||0)});
+  });
+  const datasets=FC_LIK.map((t,ci)=>({
+    label:t.label, backgroundColor:t.color, borderRadius:2, stack:'lik',
+    data:buckets[ci].map(a=>a.length), names:buckets[ci]
+  }));
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'bar', data:{labels:cats, datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+        if(!ctx.raw) return;
+        const names=ctx.dataset.names?ctx.dataset.names[ctx.dataIndex]:[];
+        return [` ${ctx.dataset.label}: ${ctx.raw}`,...buildLines(names)];
+      }}}},
+      scales:{x:{stacked:true,ticks:{font:{size:10},autoSkip:false,maxRotation:35},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
 }
 // Accounts bucketed red/yellow/green/blue by OVERALL likelihood score (not just
 // the raw health chip): blue = best/expanding → red = at risk. Bars are colored
@@ -2026,11 +2067,16 @@ function fcLikChart(id, list, scorer){
 }
 function fcRenderCharts(pilots, converted){
   const STAGE_ORDER=['Startup (Pre Series A)','Scale Up (Series A-C)','Midmarket','Enterprise'];
+  // Pilots · conversion
   fcLikChart('fc-chart-lik-pilot', pilots, fcConversionScore);
+  fcStackedLikChart('fc-chart-stage-pilot', pilots, fcConversionScore, c=>c.stage||'Unknown', STAGE_ORDER);
+  fcStackedLikChart('fc-chart-vertical-pilot', pilots, fcConversionScore, c=>c.vertical||'—', null);
+  fcStackedLikChart('fc-chart-am-pilot', pilots, fcConversionScore, c=>displayAM(c.csm), null);
+  // Converted · renewal
   fcLikChart('fc-chart-lik-renew', converted, fcRenewalScore);
-  fcGroupChart('fc-chart-stage', pilots, converted, c=>c.stage||'Unknown', null, STAGE_ORDER);
-  fcGroupChart('fc-chart-vertical', pilots, converted, c=>c.vertical||'—', null, null);
-  fcGroupChart('fc-chart-am', pilots, converted, c=>displayAM(c.csm), null, null);
+  fcStackedLikChart('fc-chart-stage-renew', converted, fcRenewalScore, c=>c.stage||'Unknown', STAGE_ORDER);
+  fcStackedLikChart('fc-chart-vertical-renew', converted, fcRenewalScore, c=>c.vertical||'—', null);
+  fcStackedLikChart('fc-chart-am-renew', converted, fcRenewalScore, c=>displayAM(c.csm), null);
 }
 function renderForecastTab(cos){
   window.__forecastCos=cos;
