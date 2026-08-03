@@ -909,7 +909,7 @@ textarea.prt-input{resize:vertical}
     <div style="margin-bottom:16px"></div>
     <div class="section-header">
       <span class="section-title">Pilot Likelihood</span>
-      <span class="section-note">By overall likelihood — health (60%) + expansion + deal momentum. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</span>
+      <span class="section-note">By overall likelihood — health color sets the baseline (Blue 100 · Green 75 · Yellow 50 · Red 15), expansion + deals adjust. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</span>
     </div>
     <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
@@ -972,7 +972,7 @@ textarea.prt-input{resize:vertical}
     <div style="margin-bottom:16px"></div>
     <div class="section-header">
       <span class="section-title">Renewal Likelihood</span>
-      <span class="section-note">By overall likelihood — health (60%) + expansion + deal momentum. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</span>
+      <span class="section-note">By overall likelihood — health color sets the baseline (Blue 100 · Green 75 · Yellow 50 · Red 15), expansion + deals adjust. Blue = expanding · Green = likely · Yellow = 50/50 · Red = at risk.</span>
     </div>
     <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
@@ -1840,19 +1840,20 @@ function onPortfolioAmFilterChange(sel) {
   renderPortfolioTable(window.__portfolioCos || []);
 }
 // ── FORECASTING TAB ────────────────────────────────────────────
-// Likelihood = weighted, transparent, calibratable heuristic (not ML):
-//   60% health · 25% expansion · 15% delivery signal, minus a TTV ding for pilots.
-// Delivery signal is deal momentum for ICP clients (success_criteria = "Meetings
-// booked with ICP"), and post cadence for brand clients. Bands: Likely / Watch /
-// At-risk. All weights, targets and thresholds live in FC so they're easy to tune.
+// Likelihood = transparent, calibratable heuristic (not ML). The HEALTH COLOR
+// ANCHORS the baseline: blue = the customer is actively expanding/referring — a
+// lock — so blue = 100. Expansion and deal momentum add on top (+10 each); a slow
+// TTV dings pilots (−10). This keeps the color decisive — a blue account is never
+// below "Likely" — while the other signals nudge. All knobs live in FC.
 const FC = {
-  wHealth:0.60, wExp:0.25, wDelivery:0.15,
-  ttvThreshold:30, ttvPenalty:10,
-  health:{ blue:100, green:85, yellow:50, red:0 }, healthUnknown:50,
-  expFullPct:0.25,                 // expansion ≥25% of MRR → full expansion marks
+  // Health color → baseline likelihood (0–100). Blue is a guaranteed renewal.
+  healthBase:{ blue:100, green:75, yellow:50, red:15 }, healthUnknownBase:45,
+  expBonusMax:10,                  // full expansion adds up to +10
+  deliveryBonusMax:10,             // full delivery (ICP deals / brand cadence) +10
+  expFullPct:0.25,                 // expansion ≥25% of MRR → full expansion bonus
   closedTargetCount:3, closedTargetValue:50000,   // ICP: full delivery marks
-  pipelineBonusMax:10,             // leading-indicator bump from pipeline
   postsTarget:12,                  // brand: posts/mo for full delivery marks
+  ttvThreshold:30, ttvPenalty:10,
   likelyMin:70, watchMin:45,
   ICP_VALUE:'Meetings booked with ICP'
 };
@@ -1860,24 +1861,24 @@ const FC_BAND_LABEL={ likely:'Likely', watch:'Watch', risk:'At risk' };
 function fcClamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
 function fcIsICP(c){ return (c.success_criteria||'')===FC.ICP_VALUE; }
 function fcDeals(c){ return dealsById[c.id]||{cc:0,cv:0,pc:0,pv:0}; }
-function fcHealthSub(c){ const h=normalizeHealth(c.account_health); return h?FC.health[h]:FC.healthUnknown; }
-function fcExpansionSub(c){
+function fcHealthBase(c){ const h=normalizeHealth(c.account_health); return h?FC.healthBase[h]:FC.healthUnknownBase; }
+function fcExpFrac(c){
   if(!(c.expansion_mrr>0)) return 0;
-  return c.mrr>0 ? fcClamp((c.expansion_mrr/c.mrr)/FC.expFullPct,0,1)*100 : 100;
+  return c.mrr>0 ? fcClamp((c.expansion_mrr/c.mrr)/FC.expFullPct,0,1) : 1;
 }
-function fcDeliverySub(c){
+function fcDeliveryFrac(c){
   if(fcIsICP(c)){
     const d=fcDeals(c);
-    let s=(0.6*fcClamp(d.cv/FC.closedTargetValue,0,1)+0.4*fcClamp(d.cc/FC.closedTargetCount,0,1))*100;
-    const pipe=fcClamp(0.5*(d.pv/FC.closedTargetValue)+0.5*(d.pc/FC.closedTargetCount),0,1);
-    return Math.min(100, s+pipe*FC.pipelineBonusMax);
+    const closed=0.7*fcClamp(d.cv/FC.closedTargetValue,0,1)+0.3*fcClamp(d.cc/FC.closedTargetCount,0,1);
+    const pipe=0.15*fcClamp(0.5*(d.pv/FC.closedTargetValue)+0.5*(d.pc/FC.closedTargetCount),0,1);
+    return fcClamp(closed+pipe,0,1);
   }
-  return fcClamp(parsePostsPerMonth(c.posts_per_month)/FC.postsTarget,0,1)*100;
+  return fcClamp(parsePostsPerMonth(c.posts_per_month)/FC.postsTarget,0,1);
 }
-function fcBase(c){ return FC.wHealth*fcHealthSub(c)+FC.wExp*fcExpansionSub(c)+FC.wDelivery*fcDeliverySub(c); }
+function fcBase(c){ return fcHealthBase(c) + FC.expBonusMax*fcExpFrac(c) + FC.deliveryBonusMax*fcDeliveryFrac(c); }
 function fcReasons(c, mode, ttv){
   const r=[]; const h=normalizeHealth(c.account_health);
-  r.push(h?('Health '+HEALTH_LABEL[h]):'Health not set');
+  r.push(h?('Health '+HEALTH_LABEL[h]+' — base '+FC.healthBase[h]):('Health not set — base '+FC.healthUnknownBase));
   if(c.expansion_mrr>0) r.push('Expanded +'+fmt$(c.expansion_mrr));
   if(fcIsICP(c)){
     const d=fcDeals(c);
@@ -1958,34 +1959,34 @@ function showInfo(e, key){ const info=FC_INFO[key]; if(info) showInfoTip(e, info
 const FC_INFO = {
   convFc:{ title:'How pilot-conversion likelihood is scored', html:
     "<div class='r'>Forecasts which <b>active pilots</b> (status “In progress”) convert after the 90-day proof of concept.</div>"
-    +"<div class='h'>Score = 60% health + 25% expansion + 15% delivery − TTV ding</div>"
-    +"<div class='r'>• <b>Health</b> (60%): blue 100 · green 85 · yellow 50 · red 0. Unset = 50.</div>"
-    +"<div class='r'>• <b>Expansion</b> (25%): expansion MRR as a share of MRR; ≥25% = full marks.</div>"
-    +"<div class='r'>• <b>Delivery</b> (15%): ICP clients → closed deals (count &amp; $); brand clients → posts/mo vs 12.</div>"
+    +"<div class='h'>Score = health baseline + expansion + deals − TTV ding</div>"
+    +"<div class='r'>• <b>Health color = baseline</b>: blue <b>100</b> (a lock — actively expanding/referring) · green 75 · yellow 50 · red 15. Unset = 45.</div>"
+    +"<div class='r'>• <b>Expansion</b>: up to +10 (expansion MRR as a share of MRR; ≥25% = full).</div>"
+    +"<div class='r'>• <b>Deals / cadence</b>: up to +10 — ICP clients → closed deals (count &amp; $); brand clients → posts/mo vs 12.</div>"
     +"<div class='r'>• <b>TTV ding</b>: −10 if time-to-value (kickoff→first post) &gt; 30 days.</div>"
     +"<div class='h'>Bands</div>"
-    +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. Tiles count the Likely cohort — hover a tile for the accounts.</div>" },
+    +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. So blue is always Likely; green is Likely on its own; expansion/deals push toward the top. Tiles count the Likely cohort.</div>" },
   convBoard:{ title:'Reading the Pilot Conversion Readiness board', html:
     "<div class='r'>One row per active pilot, sorted by likelihood.</div>"
     +"<div class='r'>• <b>Pilot day</b>: days since kickoff, out of the 90-day POC.</div>"
     +"<div class='r'>• <b>TTV</b>: kickoff → first post; amber if &gt; 30 days.</div>"
-    +"<div class='r'>• <b>Health</b>: click the chip to set the color (feeds 60% of the score).</div>"
+    +"<div class='r'>• <b>Health</b>: click the chip to set the color — it sets the baseline likelihood (blue is a lock).</div>"
     +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; both volume and $ feed the delivery signal. Brand clients show “—”.</div>"
     +"<div class='r'>• <b>Likelihood</b>: the banded score — hover it for the per-account reasons.</div>" },
   renewFc:{ title:'How 12-month renewal likelihood is scored', html:
     "<div class='r'>Forecasts which <b>converted customers</b> renew at the 12-month mark.</div>"
     +"<div class='r'><b>Renewal date = kickoff + 12 months</b> (90-day POC + 9 months).</div>"
-    +"<div class='h'>Score = 60% health + 25% expansion + 15% delivery</div>"
-    +"<div class='r'>• <b>Health</b> (60%): blue 100 · green 85 · yellow 50 · red 0. Unset = 50.</div>"
-    +"<div class='r'>• <b>Expansion</b> (25%): expansion MRR as a share of MRR; ≥25% = full marks.</div>"
-    +"<div class='r'>• <b>Delivery</b> (15%): ICP clients → closed deals (count &amp; $); brand clients → posts/mo.</div>"
+    +"<div class='h'>Score = health baseline + expansion + deals</div>"
+    +"<div class='r'>• <b>Health color = baseline</b>: blue <b>100</b> (a lock — actively expanding/referring) · green 75 · yellow 50 · red 15. Unset = 45.</div>"
+    +"<div class='r'>• <b>Expansion</b>: up to +10 (expansion MRR as a share of MRR; ≥25% = full).</div>"
+    +"<div class='r'>• <b>Deals / cadence</b>: up to +10 — ICP clients → closed deals (count &amp; $); brand clients → posts/mo.</div>"
     +"<div class='r'>No TTV ding here — that applies only during the pilot.</div>"
     +"<div class='h'>Bands</div>"
-    +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. “Secure” tiles = the Likely cohort.</div>" },
+    +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. So blue is always Likely; green is Likely on its own. “Secure” tiles = the Likely cohort.</div>" },
   renewBoard:{ title:'Reading the Renewals board', html:
     "<div class='r'>One row per converted customer, sorted by soonest renewal.</div>"
     +"<div class='r'>• <b>Renewal date</b>: kickoff + 12 months. <b>Month</b>: months elapsed, out of 12.</div>"
-    +"<div class='r'>• <b>Health</b>: click to set (60% of score). <b>Expansion</b>: current expansion MRR.</div>"
+    +"<div class='r'>• <b>Health</b>: click to set — it sets the baseline likelihood (blue is a lock). <b>Expansion</b>: current expansion MRR.</div>"
     +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal.</div>"
     +"<div class='r'>• <b>Likelihood</b>: banded score — hover for per-account reasons.</div>" }
 };
