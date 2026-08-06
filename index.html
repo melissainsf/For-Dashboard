@@ -1275,6 +1275,7 @@ textarea.prt-input{resize:vertical}
         <button class="prt-seg-btn" data-mode="detailed" onclick="bonusSetMode('detailed')">Detailed</button>
       </div>
     </div>
+    <div id="bonus-source" class="section-note" style="margin:-8px 0 16px;line-height:1.55;max-width:900px"></div>
 
     <div class="bonus-layout">
       <!-- INPUTS -->
@@ -3583,12 +3584,85 @@ function bonusSetMode(mode){
   bonusRecompute();
 }
 
-// ── AM picker (loads that person's saved scenario) ─────────────
+// ── AM picker ──────────────────────────────────────────────────
+// "General (example)" is an editable sandbox (persisted locally). Any named
+// AM is auto-filled live from the dashboard's HubSpot data every time it's
+// selected, then remains editable for what-if modeling.
 function bonusOnAMChange(){
   bonusState.currentAM = document.getElementById('bonus-am').value;
-  bonusLoadInputs(bonusState.currentAM);
+  if(bonusState.currentAM==='General (example)'){
+    bonusSetSource('');
+    bonusLoadInputs(bonusState.currentAM);
+  } else if(typeof allCompanies!=='undefined' && allCompanies && allCompanies.length){
+    bonusPrefillFromAM(bonusState.currentAM);   // calls recompute via setMode
+    return;
+  } else {
+    bonusClearFields();
+    bonusSetSource(`<b>${escapeHtml(bonusState.currentAM)}</b> — dashboard data isn't loaded yet, so there's nothing to auto-fill. Open the main dashboard (or hit ↻ Refresh) to pull live HubSpot numbers, then reselect the name.`);
+  }
   bonusRecompute();
 }
+
+// ── live per-AM aggregation from HubSpot data ──────────────────
+// Ties out with the NRR-by-AM widget: existing cohort uses base mrr as the
+// beginning-of-quarter figure, expansion_mrr as the in-quarter change, and
+// churned_mrr as a reducer. Accounts kicked off in the current calendar
+// quarter are treated as NEW — they grow the managed book but are excluded
+// from the existing-cohort NRR.
+function bonusCurrentQuarter(){
+  const now=new Date(); const q=Math.floor(now.getMonth()/3);
+  return { start:new Date(now.getFullYear(), q*3, 1), label:'Q'+(q+1)+' '+now.getFullYear() };
+}
+function bonusIsNewThisQuarter(c){
+  if(!c.kickoff_date) return false;
+  const d=new Date(c.kickoff_date);
+  return !isNaN(d.getTime()) && d >= bonusCurrentQuarter().start;
+}
+function bonusAggregateForAM(am){
+  const cohort=(allCompanies||[]).filter(inNrrCohort).filter(c=>displayAM(c.csm)===am);
+  const isNew=c=>bonusIsNewThisQuarter(c);
+  const existing=cohort.filter(c=>!isNew(c));
+  const news=cohort.filter(isNew);
+  const begin =existing.reduce((s,c)=>s+c.mrr,0);
+  const exp   =existing.reduce((s,c)=>s+c.expansion_mrr,0);
+  const churn =existing.reduce((s,c)=>s+c.churned_mrr,0);
+  const ending=begin+exp-churn;
+  const newMRR=news.reduce((s,c)=>s+(c.mrr+c.expansion_mrr-c.churned_mrr),0);
+  return { am, nAll:cohort.length, nExisting:existing.length, nNew:news.length,
+           begin, exp, churn, ending, newMRR, avgManaged:ending+newMRR };
+}
+function bSetMoney(id,v){ const el=document.getElementById(id); if(el) el.value=(v||v===0)?bFmt$(v):''; }
+function bonusPrefillFromAM(am){
+  const a=bonusAggregateForAM(am);
+  // detailed-mode fields (full breakdown)
+  bSetMoney('bi-m1',a.avgManaged); bSetMoney('bi-m2',a.avgManaged); bSetMoney('bi-m3',a.avgManaged);
+  bSetMoney('bi-begin-d',a.begin); bSetMoney('bi-exp',a.exp); bSetMoney('bi-con',0); bSetMoney('bi-churn',a.churn); bSetMoney('bi-new',a.newMRR);
+  // simple-mode fields (mirror, so switching modes keeps the scenario)
+  bSetMoney('bi-avg',a.avgManaged); bSetMoney('bi-begin-s',a.begin); bSetMoney('bi-end-s',a.ending);
+  document.getElementById('bi-prev').value='';
+  const sm=document.getElementById('bi-smooth'), ip=document.getElementById('bi-interp'), pr=document.getElementById('bi-prorate');
+  if(sm) sm.checked=true; if(ip) ip.checked=false; if(pr) pr.checked=false;
+  bonusSetMode('detailed');   // show the breakdown; also recomputes
+  // source note
+  const q=bonusCurrentQuarter();
+  if(a.nAll===0){
+    bonusSetSource(`<b>${escapeHtml(am)}</b> has no accounts on book yet — nothing to auto-fill. Enter a scenario manually or pick another name.`);
+  } else {
+    bonusSetSource(
+      `Auto-filled from HubSpot for <b>${escapeHtml(am)}</b> · ${a.nAll} account${a.nAll===1?'':'s'} `
+      +`(${a.nExisting} existing${a.nNew?`, ${a.nNew} new this quarter`:''}) · ${q.label}.<br>`
+      +`Managed book <b>${bFmt$(a.avgManaged)}</b> · existing cohort ${bFmt$(a.begin)} → ${bFmt$(a.ending)} `
+      +`(expansion ${bFmt$(a.exp)}${a.churn?`, churn ${bFmt$(a.churn)}`:''})`
+      +`${a.newMRR?` · new-customer MRR ${bFmt$(a.newMRR)}`:''}. `
+      +`Previous-quarter NRR isn't stored — add it to enable two-quarter smoothing. Every field stays editable for what-ifs.`
+    );
+  }
+}
+function bonusClearFields(){
+  const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank['bi-smooth']=true; blank['bi-interp']=false; blank['bi-prorate']=false; blank.mode='detailed';
+  bonusApplyData(blank);
+}
+function bonusSetSource(html){ const el=document.getElementById('bonus-source'); if(el) el.innerHTML=html||''; }
 
 // ── persistence (per-AM, so it doubles as a tracker) ───────────
 function bonusInputsKey(am){ return 'virio-bonus-inputs::'+am; }
