@@ -3566,10 +3566,14 @@ function bonusEnsureInit(){
   bonusRecompute();
 }
 
+// AMs to hide from the BONUS CALCULATOR picker only (not the rest of the
+// dashboard) — e.g. roles not on this quarterly bonus plan.
+const BONUS_EXCLUDE_AMS = ['Millie'];
 function bonusPopulateAMs(){
   const sel = document.getElementById('bonus-am');
   const ams = (typeof CURRENT_AMS!=='undefined' && CURRENT_AMS.length) ? CURRENT_AMS : [];
-  const opts = ['General (example)', ...ams];
+  const eligible = ams.filter(a => !BONUS_EXCLUDE_AMS.includes(a));
+  const opts = ['General (example)', ...eligible];
   sel.innerHTML = opts.map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
   sel.value = bonusState.currentAM;
 }
