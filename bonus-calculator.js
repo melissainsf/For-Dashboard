@@ -222,6 +222,68 @@
     return num(baselineBonus) * num(nextMultiplier) - num(baselineBonus) * num(currentMultiplier);
   }
 
+  // ── Snapshot-aware quarterly aggregation ───────────────────────
+  // Turns an AM's cohort into the calculator's quarterly inputs. When a
+  // start-of-quarter snapshot is available, expansion/churn are measured as the
+  // delta since that baseline (true in-quarter movement) and beginning MRR is
+  // the baseline total. Without a snapshot it falls back to the base-mrr method
+  // (base mrr as beginning, cumulative expansion as the quarter's expansion).
+  //
+  // All inputs are pre-filtered to one AM:
+  //   accounts:      [{ id, mrr, expansion_mrr, churned_mrr, isNew }]
+  //   baseline:      { [id]: {mrr, expansion_mrr, churned_mrr} }  start-of-current-Q, or null
+  //   priorBaseline: { [id]: {mrr, expansion_mrr, churned_mrr} }  start-of-previous-Q, or null
+  function accountTotal(a) { return num(a.mrr) + num(a.expansion_mrr) - num(a.churned_mrr); }
+  function computeQuarterAggregate(opts) {
+    const accounts = opts.accounts || [];
+    const baseline = opts.baseline || null;
+    const priorBaseline = opts.priorBaseline || null;
+    let begin = 0, exp = 0, churn = 0, ending = 0, newMRR = 0;
+    let snapshotAccounts = 0, fallbackAccounts = 0;
+
+    accounts.forEach(a => {
+      const cur = accountTotal(a);
+      if (a.isNew) { newMRR += cur; return; }
+      const b = baseline && baseline[a.id];
+      if (b) {
+        begin  += num(b.mrr) + num(b.expansion_mrr) - num(b.churned_mrr);
+        exp    += num(a.expansion_mrr) - num(b.expansion_mrr);
+        churn  += num(a.churned_mrr)   - num(b.churned_mrr);
+        ending += cur;
+        snapshotAccounts++;
+      } else {
+        begin  += num(a.mrr);
+        exp    += num(a.expansion_mrr);
+        churn  += num(a.churned_mrr);
+        ending += cur;
+        fallbackAccounts++;
+      }
+    });
+
+    // Previous-quarter NRR from the two snapshots: end-of-prev (= start-of-current
+    // baseline) ÷ start-of-prev, over accounts present at the start of the prior
+    // quarter. An account that churned out between snapshots contributes 0 to the
+    // numerator, so churn pulls previous NRR down (consistent with the plan).
+    let previousNRR = null;
+    if (baseline && priorBaseline) {
+      let pBegin = 0, pEnd = 0;
+      Object.keys(priorBaseline).forEach(id => {
+        const p = priorBaseline[id];
+        pBegin += num(p.mrr) + num(p.expansion_mrr) - num(p.churned_mrr);
+        const e = baseline[id];
+        if (e) pEnd += num(e.mrr) + num(e.expansion_mrr) - num(e.churned_mrr);
+      });
+      if (pBegin > 0) previousNRR = pEnd / pBegin;
+    }
+
+    return {
+      begin, exp, churn, ending, newMRR,
+      avgManaged: ending + newMRR,
+      previousNRR, snapshotAccounts, fallbackAccounts,
+      basis: snapshotAccounts > 0 ? (fallbackAccounts > 0 ? 'partial' : 'snapshot') : 'fallback'
+    };
+  }
+
   // ── Orchestrator ───────────────────────────────────────────────
   // Runs the full calculation from a normalized input object and
   // returns every value the UI needs to display. Never throws — it
@@ -354,6 +416,7 @@
     calculateCurrentNRRRequiredForSmoothedTarget,
     calculateAdditionalExpansionNeededForNextTier,
     calculateAdditionalBonusAtNextTier,
+    computeQuarterAggregate,
     compute
   };
 });

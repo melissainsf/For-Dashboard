@@ -178,6 +178,57 @@ const eNewLogo = BC.compute({ mode: 'detailed', avgManagedMRR: 300000, beginning
 eq('new-logo: current NRR 110% (excludes new logo)', eNewLogo.currentNRR, 1.10);
 eq('new-logo: ending total includes new logo', eNewLogo.endingTotalManagedMRR, 530000);
 
+// ── Snapshot-aware quarterly aggregation ────────────────────────
+// Emily: Acme existing (start-of-Q baseline 200k+10k exp; now 200k+40k exp),
+// Beacon existing (baseline 80k+10k; now 80k+22k, churn 5k), NewCo new (100k).
+const AGG_ACCTS = [
+  { id:'acme',  mrr:200000, expansion_mrr:40000, churned_mrr:0,    isNew:false },
+  { id:'beacon',mrr:80000,  expansion_mrr:22000, churned_mrr:5000, isNew:false },
+  { id:'newco', mrr:100000, expansion_mrr:0,     churned_mrr:0,    isNew:true  }
+];
+const AGG_BASELINE = {   // start of current quarter
+  acme:  { mrr:200000, expansion_mrr:10000, churned_mrr:0 },
+  beacon:{ mrr:80000,  expansion_mrr:10000, churned_mrr:0 }
+};
+const AGG_PRIOR = {      // start of previous quarter
+  acme:  { mrr:200000, expansion_mrr:0, churned_mrr:0 },
+  beacon:{ mrr:80000,  expansion_mrr:0, churned_mrr:0 }
+};
+const agg = BC.computeQuarterAggregate({ accounts:AGG_ACCTS, baseline:AGG_BASELINE, priorBaseline:AGG_PRIOR });
+// begin = baseline totals: (200k+10k) + (80k+10k) = 300k
+eq('agg begin = 300k (baseline totals)', agg.begin, 300000);
+// this-quarter expansion = (40k-10k) + (22k-10k) = 42k
+eq('agg in-quarter expansion = 42k', agg.exp, 42000);
+// this-quarter churn = (0-0) + (5k-0) = 5k
+eq('agg in-quarter churn = 5k', agg.churn, 5000);
+// ending = current totals: (200k+40k) + (80k+22k-5k) = 337k
+eq('agg ending = 337k', agg.ending, 337000);
+eq('agg newMRR = 100k', agg.newMRR, 100000);
+eq('agg managed book = 437k', agg.avgManaged, 437000);
+eq('agg basis = snapshot', agg.basis, 'snapshot');
+// previous-quarter NRR = end-of-prev (300k) / start-of-prev (280k) = ~107.1%
+eq('agg previous NRR = 300k/280k', agg.previousNRR, 300000/280000);
+
+// Fallback when no snapshot: base mrr as beginning, cumulative expansion as quarter's
+const aggFb = BC.computeQuarterAggregate({ accounts:AGG_ACCTS, baseline:null, priorBaseline:null });
+eq('fallback begin = base mrr 280k', aggFb.begin, 280000);
+eq('fallback expansion = cumulative 62k', aggFb.exp, 62000);
+eq('fallback basis = fallback', aggFb.basis, 'fallback');
+eq('fallback previous NRR = null', aggFb.previousNRR, null);
+eq('fallback still excludes new logo from cohort', aggFb.ending, 337000);
+
+// Partial: one account has a baseline, one doesn't
+const aggPart = BC.computeQuarterAggregate({ accounts:AGG_ACCTS, baseline:{ acme:AGG_BASELINE.acme }, priorBaseline:null });
+eq('partial basis flagged', aggPart.basis, 'partial');
+eq('partial begin = acme baseline 210k + beacon base 80k = 290k', aggPart.begin, 290000);
+
+// Feeding the aggregate into compute() reproduces the $49k example
+const aggR = BC.compute({ mode:'detailed', m1:agg.avgManaged, m2:agg.avgManaged, m3:agg.avgManaged,
+  beginningMRR:agg.begin, expansion:agg.exp, contraction:0, churned:agg.churn,
+  newCustomerMRR:agg.newMRR, previousNRR:null, smoothingOn:false });
+eq('agg->compute current NRR = 337/300', aggR.currentNRR, 337000/300000);
+eq('agg->compute book tier 300k', aggR.bookTier.mrr, 300000);
+
 // ── Report ──────────────────────────────────────────────────────
 console.log(`\n${passed} passed, ${failed} failed  (${passed + failed} total)`);
 process.exit(failed ? 1 : 0);

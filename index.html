@@ -1274,6 +1274,11 @@ textarea.prt-input{resize:vertical}
         <button class="prt-seg-btn active" data-mode="simple" onclick="bonusSetMode('simple')">Simple</button>
         <button class="prt-seg-btn" data-mode="detailed" onclick="bonusSetMode('detailed')">Detailed</button>
       </div>
+      <div class="prt-toolbar-spacer"></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="bonus-snap-status" class="section-note" style="text-align:right;line-height:1.4;max-width:260px"></span>
+        <button class="prt-btn-ghost" id="bonus-capture-btn" onclick="bonusCaptureBaseline(event)">Capture baseline now</button>
+      </div>
     </div>
     <div id="bonus-source" class="section-note" style="margin:-8px 0 16px;line-height:1.55;max-width:900px"></div>
 
@@ -1782,6 +1787,8 @@ async function loadData() {
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Lineage · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
+    // Keep the bonus calculator's snapshot store fresh too (self-contained).
+    if(typeof bonusRefreshSnapshots==='function') bonusRefreshSnapshots();
     // Refresh the Product Request Tracker against the latest account data.
     prtState.loaded=false;
     prtEnsureLoaded().then(()=>{ if(document.getElementById('tab-requests').classList.contains('active')) prtRender(); });
@@ -3564,6 +3571,8 @@ function bonusEnsureInit(){
   bonusLoadInputs(bonusState.currentAM);
   bonusRenderSlots();
   bonusRecompute();
+  bonusRenderSnapStatus();
+  bonusRefreshSnapshots();   // async: pulls snapshots, updates status, re-prefills if an AM is picked
 }
 
 // AMs to hide from the BONUS CALCULATOR picker only (not the rest of the
@@ -3624,16 +3633,24 @@ function bonusIsNewThisQuarter(c){
 }
 function bonusAggregateForAM(am){
   const cohort=(allCompanies||[]).filter(inNrrCohort).filter(c=>displayAM(c.csm)===am);
-  const isNew=c=>bonusIsNewThisQuarter(c);
-  const existing=cohort.filter(c=>!isNew(c));
-  const news=cohort.filter(isNew);
-  const begin =existing.reduce((s,c)=>s+c.mrr,0);
-  const exp   =existing.reduce((s,c)=>s+c.expansion_mrr,0);
-  const churn =existing.reduce((s,c)=>s+c.churned_mrr,0);
-  const ending=begin+exp-churn;
-  const newMRR=news.reduce((s,c)=>s+(c.mrr+c.expansion_mrr-c.churned_mrr),0);
-  return { am, nAll:cohort.length, nExisting:existing.length, nNew:news.length,
-           begin, exp, churn, ending, newMRR, avgManaged:ending+newMRR };
+  const now=new Date(); const cq=bonusQLabel(now); const pq=bonusPrevQLabel(cq);
+  const snaps=bonusSnapshots||{};
+  const curAcc = snaps[cq] ? snaps[cq].accounts : null;   // start-of-current-Q baseline
+  const prevAcc= snaps[pq] ? snaps[pq].accounts : null;   // start-of-previous-Q baseline
+  const ids=new Set(cohort.map(c=>c.id));
+  const pick=m=>{ if(!m) return null; const o={}; ids.forEach(id=>{ if(m[id]) o[id]=m[id]; }); return o; };
+  const baseline=pick(curAcc), priorBaseline=pick(prevAcc);
+  // With a baseline, "new this quarter" = not present at quarter start; otherwise
+  // fall back to kickoff-date detection.
+  const isNewFn = c => baseline ? !baseline[c.id] : bonusIsNewThisQuarter(c);
+  const accounts=cohort.map(c=>({ id:c.id, mrr:c.mrr, expansion_mrr:c.expansion_mrr, churned_mrr:c.churned_mrr, isNew:isNewFn(c) }));
+  const agg=BonusCalc.computeQuarterAggregate({ accounts, baseline, priorBaseline });
+  const nNew=accounts.filter(a=>a.isNew).length;
+  return { am, nAll:cohort.length, nExisting:cohort.length-nNew, nNew,
+           begin:agg.begin, exp:agg.exp, churn:agg.churn, ending:agg.ending, newMRR:agg.newMRR,
+           avgManaged:agg.avgManaged, previousNRR:agg.previousNRR, basis:agg.basis, cq, pq,
+           hasBaseline:!!(baseline&&Object.keys(baseline).length),
+           hasPrior:!!(priorBaseline&&Object.keys(priorBaseline).length) };
 }
 function bSetMoney(id,v){ const el=document.getElementById(id); if(el) el.value=(v||v===0)?bFmt$(v):''; }
 function bonusPrefillFromAM(am){
@@ -3643,22 +3660,26 @@ function bonusPrefillFromAM(am){
   bSetMoney('bi-begin-d',a.begin); bSetMoney('bi-exp',a.exp); bSetMoney('bi-con',0); bSetMoney('bi-churn',a.churn); bSetMoney('bi-new',a.newMRR);
   // simple-mode fields (mirror, so switching modes keeps the scenario)
   bSetMoney('bi-avg',a.avgManaged); bSetMoney('bi-begin-s',a.begin); bSetMoney('bi-end-s',a.ending);
-  document.getElementById('bi-prev').value='';
+  document.getElementById('bi-prev').value = (a.previousNRR!=null) ? (a.previousNRR*100).toFixed(1) : '';
   const sm=document.getElementById('bi-smooth'), ip=document.getElementById('bi-interp'), pr=document.getElementById('bi-prorate');
   if(sm) sm.checked=true; if(ip) ip.checked=false; if(pr) pr.checked=false;
   bonusSetMode('detailed');   // show the breakdown; also recomputes
   // source note
-  const q=bonusCurrentQuarter();
   if(a.nAll===0){
     bonusSetSource(`<b>${escapeHtml(am)}</b> has no accounts on book yet — nothing to auto-fill. Enter a scenario manually or pick another name.`);
   } else {
+    const expLine = (a.basis==='snapshot'||a.basis==='partial')
+      ? `In-quarter expansion <b>${bFmt$(a.exp)}</b>${a.churn?`, churn ${bFmt$(a.churn)}`:''}, measured against the <b>${a.cq}</b> baseline snapshot.`
+      : `No <b>${a.cq}</b> baseline captured yet, so all expansion (${bFmt$(a.exp)}) counts as this quarter's — hit “Capture baseline now” to start tracking true per-quarter expansion.`;
+    const prevLine = (a.previousNRR!=null)
+      ? `Previous-quarter (${a.pq}) NRR <b>${(a.previousNRR*100).toFixed(1)}%</b> pulled from snapshots — two-quarter smoothing is on.`
+      : `Previous-quarter NRR isn't available yet — add it manually (or it fills in automatically once two quarters of snapshots exist).`;
     bonusSetSource(
       `Auto-filled from HubSpot for <b>${escapeHtml(am)}</b> · ${a.nAll} account${a.nAll===1?'':'s'} `
-      +`(${a.nExisting} existing${a.nNew?`, ${a.nNew} new this quarter`:''}) · ${q.label}.<br>`
-      +`Managed book <b>${bFmt$(a.avgManaged)}</b> · existing cohort ${bFmt$(a.begin)} → ${bFmt$(a.ending)} `
-      +`(expansion ${bFmt$(a.exp)}${a.churn?`, churn ${bFmt$(a.churn)}`:''})`
-      +`${a.newMRR?` · new-customer MRR ${bFmt$(a.newMRR)}`:''}. `
-      +`Previous-quarter NRR isn't stored — add it to enable two-quarter smoothing. Every field stays editable for what-ifs.`
+      +`(${a.nExisting} existing${a.nNew?`, ${a.nNew} new this quarter`:''}) · ${a.cq}.<br>`
+      +`Managed book <b>${bFmt$(a.avgManaged)}</b> · existing cohort ${bFmt$(a.begin)} → ${bFmt$(a.ending)}`
+      +`${a.newMRR?` · new-customer MRR ${bFmt$(a.newMRR)}`:''}.<br>`
+      +expLine+' '+prevLine+' Every field stays editable for what-ifs.'
     );
   }
 }
@@ -3667,6 +3688,44 @@ function bonusClearFields(){
   bonusApplyData(blank);
 }
 function bonusSetSource(html){ const el=document.getElementById('bonus-source'); if(el) el.innerHTML=html||''; }
+
+// ── quarterly snapshots (true per-quarter expansion + previous-quarter NRR) ──
+// Snapshots are captured server-side into Netlify Blobs (scheduled at each
+// quarter start, plus a manual "capture if absent"). Keyed by quarter, they
+// store each account's MRR components so the calculator can measure in-quarter
+// expansion and previous-quarter NRR. Quarter labels use UTC to match the server.
+let bonusSnapshots = null;
+function bonusQLabel(d){ return d.getUTCFullYear()+'-Q'+(Math.floor(d.getUTCMonth()/3)+1); }
+function bonusPrevQLabel(l){ const [y,q]=l.split('-Q').map(Number); return q===1?(y-1)+'-Q4':y+'-Q'+(q-1); }
+async function bonusRefreshSnapshots(){
+  try{ const r=await fetch('/api/bonus-snapshots'); bonusSnapshots = r.ok ? ((await r.json()).snapshots||{}) : {}; }
+  catch(e){ bonusSnapshots = {}; }
+  bonusRenderSnapStatus();
+  // re-run the live prefill now that snapshots are available
+  if(bonusState.currentAM && bonusState.currentAM!=='General (example)' && (typeof allCompanies!=='undefined') && (allCompanies||[]).length){
+    bonusPrefillFromAM(bonusState.currentAM);
+  }
+}
+function bonusRenderSnapStatus(){
+  const el=document.getElementById('bonus-snap-status'); if(!el) return;
+  const snaps=bonusSnapshots||{};
+  const cq=bonusQLabel(new Date()), pq=bonusPrevQLabel(cq);
+  if(!Object.keys(snaps).length){ el.innerHTML='No baseline captured yet'; return; }
+  const d=q=>snaps[q]&&snaps[q].captured_at?' '+new Date(snaps[q].captured_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+  el.innerHTML=`Baseline ${cq}: ${snaps[cq]?'✓'+d(cq):'—'} · ${pq}: ${snaps[pq]?'✓':'—'}`;
+}
+async function bonusCaptureBaseline(ev){
+  const btn=ev&&ev.currentTarget, o=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='Capturing…'; }
+  let msg='Failed';
+  try{
+    const r=await fetch('/api/bonus-snapshot-write',{method:'POST'});
+    const d=await r.json().catch(()=>({}));
+    msg = (d&&d.ok) ? (d.skipped?'Already captured':'Captured ✓') : 'Failed';
+    await bonusRefreshSnapshots();
+  }catch(e){}
+  if(btn){ btn.textContent=msg; setTimeout(()=>{ btn.textContent=o; btn.disabled=false; },1800); }
+}
 
 // ── persistence (per-AM, so it doubles as a tracker) ───────────
 function bonusInputsKey(am){ return 'virio-bonus-inputs::'+am; }

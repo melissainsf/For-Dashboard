@@ -39,6 +39,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/bonus-snapshots"
+  to = "/.netlify/functions/bonus-snapshots"
+  status = 200
+
+[[redirects]]
+  from = "/api/bonus-snapshot-write"
+  to = "/.netlify/functions/bonus-snapshot-write"
+  status = 200
+
+[[redirects]]
   from = "/api/response-times"
   to = "/.netlify/functions/response-times"
   status = 200
