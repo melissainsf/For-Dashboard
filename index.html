@@ -388,6 +388,65 @@ textarea.prt-input{resize:vertical}
 .prt-btn-ghost{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink2);background:none;border:1px solid var(--border);border-radius:6px;padding:8px 16px;cursor:pointer}
 .prt-btn-primary{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#fff;background:var(--teal);border:none;border-radius:6px;padding:8px 18px;cursor:pointer}
 .prt-btn-primary:disabled{opacity:0.5;cursor:wait}
+/* ── BONUS CALCULATOR ─────────────────────────────────────────── */
+.bonus-intro{font-size:13px;color:var(--ink2);line-height:1.65;max-width:820px;margin-bottom:18px}
+.bonus-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:8px}
+@media(max-width:900px){.bonus-steps{grid-template-columns:1fr 1fr}}
+.bonus-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);position:relative}
+.bonus-step-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--teal);letter-spacing:0.08em}
+.bonus-step-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;margin:6px 0 5px}
+.bonus-step-desc{font-size:12px;color:var(--ink2);line-height:1.55}
+.bonus-layout{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:960px){.bonus-layout{grid-template-columns:1fr}}
+.bonus-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.bonus-panel-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.bonus-field{margin-bottom:13px}
+.bonus-field label{display:block;font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:5px;letter-spacing:0.02em}
+.bonus-field .prt-input{width:100%}
+.bonus-field-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.bonus-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);cursor:pointer;user-select:none;margin-bottom:10px}
+.bonus-toggle input{width:15px;height:15px;accent-color:var(--teal);cursor:pointer;flex-shrink:0}
+.bonus-toggle .bt-sub{color:var(--ink3);font-size:11px}
+.bonus-divider{height:1px;background:var(--border);margin:15px 0}
+.bonus-err{background:var(--red-light);color:var(--red);border-radius:var(--radius-sm);padding:9px 12px;font-size:12px;margin-bottom:14px;display:none}
+.bonus-err.show{display:block}
+.bonus-hero{background:linear-gradient(135deg,var(--teal) 0%,#0c5947 100%);color:#fff;border-radius:var(--radius);padding:20px 22px;margin-bottom:16px;box-shadow:var(--shadow)}
+.bonus-hero-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.65)}
+.bonus-hero-value{font-family:'Syne',sans-serif;font-size:42px;font-weight:700;line-height:1;letter-spacing:-0.03em;margin:6px 0 4px}
+.bonus-hero-sub{font-size:12px;color:rgba(255,255,255,0.8)}
+.bonus-hero-annual{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.18);font-size:12px;color:rgba(255,255,255,0.9);display:flex;justify-content:space-between;align-items:baseline}
+.bonus-hero-annual b{font-family:'Syne',sans-serif;font-size:18px;font-weight:600;color:#fff}
+.bonus-summary{background:var(--teal-light);color:var(--teal);border-radius:var(--radius-sm);padding:12px 14px;font-size:12.5px;line-height:1.6;margin-bottom:16px}
+.bonus-out-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:560px){.bonus-out-grid{grid-template-columns:1fr 1fr}}
+.bonus-out{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
+.bonus-out-label{font-size:9.5px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
+.bonus-out-value{font-family:'Syne',sans-serif;font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-0.01em}
+.bonus-out-value.teal{color:var(--teal)}
+.bonus-out-value.coral{color:var(--coral-mid)}
+.bonus-progress{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);margin-bottom:16px}
+.bonus-progress-bar{height:9px;background:var(--surface2);border-radius:20px;overflow:hidden;margin:10px 0 8px}
+.bonus-progress-fill{height:100%;background:linear-gradient(90deg,var(--teal-mid),var(--teal));border-radius:20px;transition:width 0.4s ease}
+.bonus-progress-note{font-size:12px;color:var(--ink2);line-height:1.55}
+.bonus-matrix td.hit{background:var(--teal-light);color:var(--teal);font-weight:700}
+.bonus-matrix td.book-col,.bonus-matrix th.book-col{text-align:left;font-weight:600;color:var(--ink)}
+.bonus-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.bonus-scenario-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+@media(max-width:900px){.bonus-scenario-slots{grid-template-columns:1fr}}
+.bonus-slot{background:var(--surface);border:1px dashed var(--border-strong);border-radius:var(--radius);padding:14px;min-height:120px;font-size:12px}
+.bonus-slot.filled{border-style:solid}
+.bonus-slot-empty{color:var(--ink3);font-style:italic;display:flex;align-items:center;justify-content:center;height:100%;text-align:center}
+.bonus-slot-name{font-family:'Syne',sans-serif;font-weight:600;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.bonus-slot-name button{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:14px;line-height:1;padding:0}
+.bonus-slot-row{display:flex;justify-content:space-between;padding:2px 0;color:var(--ink2)}
+.bonus-slot-row b{color:var(--ink);font-weight:600}
+.bonus-slot-bonus{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--teal);margin-top:8px}
+@media print{
+  header,.tab-nav,#refresh-btn,.signout-btn,.bonus-actions,.bonus-controls-row,footer{display:none!important}
+  .tab-content:not(.active){display:none}
+  .bonus-layout{grid-template-columns:1fr}
+  .bonus-hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style>
 </head>
 <body>
@@ -436,6 +495,7 @@ textarea.prt-input{resize:vertical}
   <button class="tab-btn" onclick="switchTab(event,'forecasting')">Forecasting</button>
   <button class="tab-btn" onclick="switchTab(event,'requests')">Product Request Tracker</button>
   <button class="tab-btn" onclick="switchTab(event,'responses')">Response Times</button>
+  <button class="tab-btn" onclick="switchTab(event,'bonus')">Bonus Calculator</button>
 </div>
 
 <main>
@@ -1138,9 +1198,220 @@ textarea.prt-input{resize:vertical}
     <div class="rt-note" id="rt-note"></div>
   </div>
 
+  <!-- TAB 8: BONUS CALCULATOR -->
+  <div id="tab-bonus" class="tab-content">
+
+    <!-- ════════ TOP: STRUCTURE & GUIDE ════════ -->
+    <div class="section-header">
+      <span class="section-title">AM Quarterly Bonus — How it works</span>
+      <span class="section-note">Managed book size × quarterly net revenue retention</span>
+    </div>
+
+    <div class="bonus-intro">
+      An Account Manager's quarterly bonus rewards two things at once: the <b>size of the book</b> you manage
+      and how much you <b>grow it</b>. A larger managed book sets a higher baseline bonus; stronger expansion
+      (Quarterly NRR) multiplies it. Expansion comes from revenue-share and usage growth, added seats and execs,
+      added scope, and upsells &amp; cross-sells — with contraction and churn netted out. New customers assigned
+      mid-quarter grow your book size but don't count toward the existing-cohort NRR.
+    </div>
+
+    <div class="bonus-steps">
+      <div class="bonus-step">
+        <div class="bonus-step-num">STEP 1</div>
+        <div class="bonus-step-title">Managed Book</div>
+        <div class="bonus-step-desc">Your average managed MRR across the quarter picks a book tier ($50k → $1M). The tier sets your <b>baseline bonus</b> — the amount earned at 110% NRR.</div>
+      </div>
+      <div class="bonus-step">
+        <div class="bonus-step-num">STEP 2</div>
+        <div class="bonus-step-title">Quarterly NRR</div>
+        <div class="bonus-step-desc">Ending ÷ beginning MRR for your <b>existing-customer cohort</b>. Net expansion = expansion − contraction − churn. New logos are excluded here.</div>
+      </div>
+      <div class="bonus-step">
+        <div class="bonus-step-num">STEP 3</div>
+        <div class="bonus-step-title">2-Quarter Smoothing</div>
+        <div class="bonus-step-desc">Your bonus tier uses the average of this quarter's and last quarter's NRR, so one spiky quarter doesn't swing the payout. First measured quarter uses current NRR alone.</div>
+      </div>
+      <div class="bonus-step">
+        <div class="bonus-step-num">STEP 4</div>
+        <div class="bonus-step-title">Bonus Matrix</div>
+        <div class="bonus-step-desc">The smoothed NRR lands in a tier (110% → 200%+) with a multiplier (1.0× → 6.0×). <b>Bonus = baseline × multiplier</b>.</div>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:24px">
+      <span class="section-title">Full quarterly bonus matrix</span>
+      <span class="section-note">Baseline (110% NRR) × NRR multiplier · below 110% smoothed NRR pays $0</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table class="bonus-matrix" id="bonus-matrix">
+          <thead><tr>
+            <th class="book-col">Managed Book</th>
+            <th style="text-align:right">110% NRR<br><span style="font-weight:400;color:var(--ink3)">1.0×</span></th>
+            <th style="text-align:right">120% NRR<br><span style="font-weight:400;color:var(--ink3)">1.4×</span></th>
+            <th style="text-align:right">130% NRR<br><span style="font-weight:400;color:var(--ink3)">2.0×</span></th>
+            <th style="text-align:right">150% NRR<br><span style="font-weight:400;color:var(--ink3)">3.0×</span></th>
+            <th style="text-align:right">175% NRR<br><span style="font-weight:400;color:var(--ink3)">4.5×</span></th>
+            <th style="text-align:right">200%+ NRR<br><span style="font-weight:400;color:var(--ink3)">6.0×</span></th>
+          </tr></thead>
+          <tbody id="bonus-matrix-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════════ BOTTOM: INTERACTIVE CALCULATOR / TRACKER ════════ -->
+    <div class="section-header" style="margin-top:28px">
+      <span class="section-title">Bonus calculator</span>
+      <span class="section-note">Pick your name, enter a scenario, and see the quarterly payout</span>
+    </div>
+
+    <div class="prt-toolbar bonus-controls-row">
+      <div class="bonus-field" style="margin-bottom:0">
+        <label style="margin-bottom:4px">Account Manager</label>
+        <select id="bonus-am" class="hs-select" style="max-width:220px" onchange="bonusOnAMChange()"></select>
+      </div>
+      <div class="prt-seg" id="bonus-mode" style="align-self:flex-end">
+        <button class="prt-seg-btn active" data-mode="simple" onclick="bonusSetMode('simple')">Simple</button>
+        <button class="prt-seg-btn" data-mode="detailed" onclick="bonusSetMode('detailed')">Detailed</button>
+      </div>
+    </div>
+
+    <div class="bonus-layout">
+      <!-- INPUTS -->
+      <div class="bonus-panel">
+        <div class="bonus-panel-title">Inputs</div>
+
+        <!-- Simple-mode fields -->
+        <div id="bonus-simple-fields">
+          <div class="bonus-field">
+            <label>Average Managed MRR</label>
+            <input class="prt-input bonus-in" id="bi-avg" data-money="1" placeholder="$300,000">
+          </div>
+          <div class="bonus-field">
+            <label>Beginning Existing-Customer MRR</label>
+            <input class="prt-input bonus-in" id="bi-begin-s" data-money="1" placeholder="$300,000">
+          </div>
+          <div class="bonus-field">
+            <label>Ending Existing-Customer MRR</label>
+            <input class="prt-input bonus-in" id="bi-end-s" data-money="1" placeholder="$390,000">
+          </div>
+        </div>
+
+        <!-- Detailed-mode fields -->
+        <div id="bonus-detailed-fields" style="display:none">
+          <div class="bonus-field">
+            <label>Monthly Managed MRR (avg of the three)</label>
+            <div class="bonus-field-row">
+              <input class="prt-input bonus-in" id="bi-m1" data-money="1" placeholder="Month 1">
+              <input class="prt-input bonus-in" id="bi-m2" data-money="1" placeholder="Month 2">
+              <input class="prt-input bonus-in" id="bi-m3" data-money="1" placeholder="Month 3">
+            </div>
+          </div>
+          <div class="bonus-field">
+            <label>Beginning Existing-Customer MRR</label>
+            <input class="prt-input bonus-in" id="bi-begin-d" data-money="1" placeholder="$300,000">
+          </div>
+          <div class="bonus-field-row">
+            <div class="bonus-field"><label>Expansion MRR</label><input class="prt-input bonus-in" id="bi-exp" data-money="1" placeholder="$120,000"></div>
+            <div class="bonus-field"><label>Contraction MRR</label><input class="prt-input bonus-in" id="bi-con" data-money="1" placeholder="$20,000"></div>
+          </div>
+          <div class="bonus-field-row">
+            <div class="bonus-field"><label>Churned MRR</label><input class="prt-input bonus-in" id="bi-churn" data-money="1" placeholder="$10,000"></div>
+            <div class="bonus-field"><label>New Customer MRR</label><input class="prt-input bonus-in" id="bi-new" data-money="1" placeholder="$50,000"></div>
+          </div>
+        </div>
+
+        <!-- Shared -->
+        <div class="bonus-field">
+          <label>Previous Quarter NRR (%) <span class="info-icon" onmouseenter="showInfo(event,'bonusSmoothing')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span></label>
+          <input class="prt-input bonus-in" id="bi-prev" placeholder="e.g. 120  (leave blank if first quarter)">
+        </div>
+
+        <div class="bonus-divider"></div>
+
+        <label class="bonus-toggle">
+          <input type="checkbox" id="bi-smooth" class="bonus-in" checked>
+          <span>Two-quarter smoothing <span class="bt-sub">— average current &amp; previous NRR</span></span>
+        </label>
+        <label class="bonus-toggle">
+          <input type="checkbox" id="bi-interp" class="bonus-in">
+          <span>Interpolate between book tiers <span class="bt-sub">— no hard steps</span></span>
+        </label>
+        <label class="bonus-toggle">
+          <input type="checkbox" id="bi-prorate" class="bonus-in">
+          <span>Prorate below minimum book <span class="bt-sub">— admin</span></span>
+        </label>
+
+        <div class="bonus-actions">
+          <button class="prt-btn-ghost" onclick="bonusReset()">Reset</button>
+          <button class="prt-btn-ghost" onclick="bonusCopy(event)">Copy results</button>
+          <button class="prt-btn-ghost" onclick="window.print()">Print</button>
+          <button class="prt-btn-primary" onclick="bonusSaveScenario()">Save scenario</button>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="bonus-results">
+        <div class="bonus-err" id="bonus-err"></div>
+
+        <div class="bonus-hero">
+          <div class="bonus-hero-label">Quarterly bonus</div>
+          <div class="bonus-hero-value" id="bonus-hero-value">$0</div>
+          <div class="bonus-hero-sub" id="bonus-hero-sub">Enter a scenario to calculate</div>
+          <div class="bonus-hero-annual">
+            <span>Annualized run-rate <span class="info-icon" onmouseenter="showInfo(event,'bonusAnnual')" onmousemove="posTip(event)" onmouseleave="hideTip()" style="border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.8)">i</span></span>
+            <b id="bonus-hero-annual-value">$0</b>
+          </div>
+        </div>
+
+        <div class="bonus-summary" id="bonus-summary" style="display:none"></div>
+
+        <div class="bonus-out-grid">
+          <div class="bonus-out"><div class="bonus-out-label">Avg Managed MRR</div><div class="bonus-out-value" id="bo-avg">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Book Tier</div><div class="bonus-out-value" id="bo-tier">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Baseline Bonus</div><div class="bonus-out-value" id="bo-baseline">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Beginning MRR</div><div class="bonus-out-value" id="bo-begin">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Ending Existing MRR</div><div class="bonus-out-value" id="bo-end">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Net Expansion</div><div class="bonus-out-value" id="bo-net">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Current Qtr NRR</div><div class="bonus-out-value" id="bo-cur">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Previous Qtr NRR</div><div class="bonus-out-value" id="bo-prev">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Smoothed NRR</div><div class="bonus-out-value teal" id="bo-smooth">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Applied Tier</div><div class="bonus-out-value" id="bo-applied">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Multiplier</div><div class="bonus-out-value" id="bo-mult">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Ending Total Book <span class="info-icon" onmouseenter="showInfo(event,'bonusTotalBook')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span></div><div class="bonus-out-value" id="bo-total">—</div></div>
+        </div>
+
+        <div class="bonus-progress" id="bonus-progress" style="display:none">
+          <div class="bonus-panel-title" style="margin-bottom:6px">Next milestone</div>
+          <div class="bonus-progress-bar"><div class="bonus-progress-fill" id="bonus-progress-fill" style="width:0%"></div></div>
+          <div class="bonus-progress-note" id="bonus-progress-note"></div>
+        </div>
+
+        <div class="chart-card" style="margin-bottom:0">
+          <div class="chart-card-title" id="bonus-exp-title">Net expansion required by milestone</div>
+          <div class="table-wrap" style="margin-top:8px">
+            <table class="bonus-matrix">
+              <thead><tr><th style="text-align:left">Quarterly NRR</th><th style="text-align:right">Net expansion needed</th><th style="text-align:right">Quarterly bonus</th></tr></thead>
+              <tbody id="bonus-exp-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENARIO COMPARISON -->
+    <div class="section-header" style="margin-top:28px">
+      <span class="section-title">Scenario comparison</span>
+      <span class="section-note">Save up to three scenarios to compare side by side</span>
+    </div>
+    <div class="bonus-scenario-slots" id="bonus-scenario-slots"></div>
+
+  </div>
+
 </main>
 <footer id="footer-date"></footer>
 
+<script src="bonus-calculator.js"></script>
 <script>
 const SUPABASE_URL  = 'https://ylplirptcybuzxnecsgp.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlscGxpcnB0Y3lidXp4bmVjc2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDAwNjcsImV4cCI6MjA2NzA3NjA2N30.H7BnhxTNvZ8WnByos5P84M2f8qhthIRlt_5Whkwt1wg';
@@ -1438,6 +1709,7 @@ function switchTab(e, name) {
   document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   if(e&&e.target) e.target.classList.add('active');
+  if(name==='bonus'){ bonusEnsureInit(); return; }
   if(name==='responses'){ rtEnsureLoaded(); return; }
   if(!allCompanies.length) return;
   const exclude=document.getElementById('exclude-virio').checked;
@@ -1957,6 +2229,16 @@ function showInfoTip(e, title, html){
 }
 function showInfo(e, key){ const info=FC_INFO[key]; if(info) showInfoTip(e, info.title, info.html); }
 const FC_INFO = {
+  bonusSmoothing:{ title:'Two-quarter smoothing', html:
+    "<div class='r'>Your bonus tier is set using the <b>average of your current-quarter and previous-quarter Quarterly NRR</b>, so a single spiky quarter doesn't swing the payout.</div>"
+    +"<div class='r'>For your first measured quarter, current-quarter NRR is used by itself. Leave this blank if there's no prior quarter.</div>"
+    +"<div class='r'>Toggle smoothing off (in Inputs) to score on the current quarter alone.</div>" },
+  bonusAnnual:{ title:'Annualized run-rate', html:
+    "<div class='r'>This is simply your quarterly bonus × 4 — an <b>annualized run-rate for illustration</b>, not a guaranteed annual bonus.</div>"
+    +"<div class='r'>Each quarter is calculated on its own book size and NRR.</div>" },
+  bonusTotalBook:{ title:'Ending total managed book', html:
+    "<div class='r'>Your ending <b>existing-customer</b> MRR plus any <b>new customers</b> assigned during the quarter.</div>"
+    +"<div class='r'>New-logo MRR grows your book (and future book tier) but is <b>excluded</b> from Quarterly NRR, which measures only the existing cohort.</div>" },
   convFc:{ title:'How pilot-conversion likelihood is scored', html:
     "<div class='r'>Forecasts which <b>active pilots</b> (status “In progress”) convert after the 90-day proof of concept.</div>"
     +"<div class='h'>Score = health baseline + expansion + deals − TTV ding</div>"
@@ -3242,6 +3524,309 @@ window.addEventListener('DOMContentLoaded', async () => {
     showAuthScreen(true);
   }
 });
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  BONUS CALCULATOR — UI glue (logic lives in bonus-calculator.js)
+// ══════════════════════════════════════════════════════════════
+const bonusState = { initialized:false, mode:'simple', currentAM:'General (example)' };
+const BONUS_FIELDS = ['bi-avg','bi-begin-s','bi-end-s','bi-m1','bi-m2','bi-m3','bi-begin-d','bi-exp','bi-con','bi-churn','bi-new','bi-prev'];
+const BONUS_TOGGLES = ['bi-smooth','bi-interp','bi-prorate'];
+const BONUS_SCEN_KEY = 'virio-bonus-scenarios';
+const bonusExample = { 'bi-avg':'$300,000','bi-begin-s':'$300,000','bi-end-s':'$390,000','bi-prev':'120' };
+
+// ── formatters / parsers ───────────────────────────────────────
+function bFmt$(n){ if(n==null||!isFinite(n)) return '—'; const neg=n<0; return (neg?'-$':'$')+Math.round(Math.abs(n)).toLocaleString('en-US'); }
+function bFmtK(n){ if(n==null||!isFinite(n)) return '—'; const a=Math.abs(n),s=n<0?'-':'';
+  if(a>=1e6) return s+'$'+(a/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';
+  if(a>=1000) return s+'$'+(a/1000).toFixed(1).replace(/\.0$/,'')+'k';
+  return s+'$'+Math.round(a); }
+function bPct(x){ return (x==null||!isFinite(x))?'—':(x*100).toFixed(1)+'%'; }
+function bParseMoney(s){ if(s==null) return 0; const n=parseFloat(String(s).replace(/[^0-9.\-]/g,'')); return isFinite(n)?n:0; }
+function bHasVal(s){ return s!=null && String(s).replace(/[^0-9.\-]/g,'')!==''; }
+function bParsePct(s){ if(!bHasVal(s)) return null; const n=parseFloat(String(s).replace(/[^0-9.\-]/g,'')); return isFinite(n)?n/100:null; }
+function bVal(id){ const el=document.getElementById(id); return el?el.value:''; }
+function bChecked(id){ const el=document.getElementById(id); return el?el.checked:false; }
+
+// ── init (idempotent — runs on first open of the tab) ──────────
+function bonusEnsureInit(){
+  if(bonusState.initialized) return;
+  bonusState.initialized = true;
+  bonusPopulateAMs();
+  bonusRenderMatrix();
+  // bind every input/toggle to persist + recompute
+  document.querySelectorAll('#tab-bonus .bonus-in').forEach(el=>{
+    const ev = el.type==='checkbox' ? 'change' : 'input';
+    el.addEventListener(ev, ()=>{ bonusPersistInputs(); bonusRecompute(); });
+  });
+  bonusLoadInputs(bonusState.currentAM);
+  bonusRenderSlots();
+  bonusRecompute();
+}
+
+function bonusPopulateAMs(){
+  const sel = document.getElementById('bonus-am');
+  const ams = (typeof CURRENT_AMS!=='undefined' && CURRENT_AMS.length) ? CURRENT_AMS : [];
+  const opts = ['General (example)', ...ams];
+  sel.innerHTML = opts.map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
+  sel.value = bonusState.currentAM;
+}
+
+// ── mode switch ────────────────────────────────────────────────
+function bonusSetMode(mode){
+  bonusState.mode = mode;
+  document.querySelectorAll('#bonus-mode .prt-seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+  document.getElementById('bonus-simple-fields').style.display   = mode==='simple' ? '' : 'none';
+  document.getElementById('bonus-detailed-fields').style.display = mode==='detailed' ? '' : 'none';
+  bonusPersistInputs();
+  bonusRecompute();
+}
+
+// ── AM picker (loads that person's saved scenario) ─────────────
+function bonusOnAMChange(){
+  bonusState.currentAM = document.getElementById('bonus-am').value;
+  bonusLoadInputs(bonusState.currentAM);
+  bonusRecompute();
+}
+
+// ── persistence (per-AM, so it doubles as a tracker) ───────────
+function bonusInputsKey(am){ return 'virio-bonus-inputs::'+am; }
+function bonusPersistInputs(){
+  const data = { mode: bonusState.mode };
+  BONUS_FIELDS.forEach(id=> data[id]=bVal(id));
+  BONUS_TOGGLES.forEach(id=> data[id]=bChecked(id));
+  try{ localStorage.setItem(bonusInputsKey(bonusState.currentAM), JSON.stringify(data)); }catch(e){}
+}
+function bonusApplyData(data){
+  BONUS_FIELDS.forEach(id=>{ const el=document.getElementById(id); if(el) el.value = data[id]!=null?data[id]:''; });
+  BONUS_TOGGLES.forEach(id=>{ const el=document.getElementById(id); if(el && data[id]!=null) el.checked=!!data[id]; });
+  bonusSetMode(data.mode||'simple');
+}
+function bonusLoadInputs(am){
+  let data=null;
+  try{ const raw=localStorage.getItem(bonusInputsKey(am)); if(raw) data=JSON.parse(raw); }catch(e){}
+  if(!data){
+    // no saved scenario: seed the example for "General", otherwise a clean slate
+    const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank['bi-smooth']=true; blank['bi-interp']=false; blank['bi-prorate']=false; blank.mode='simple';
+    data = (am==='General (example)') ? Object.assign(blank, bonusExample) : blank;
+  }
+  bonusApplyData(data);
+}
+
+// ── read inputs → normalized object for the engine ─────────────
+function bonusReadInputs(){
+  const mode = bonusState.mode;
+  const inp = {
+    mode,
+    smoothingOn: bChecked('bi-smooth'),
+    interpolate: bChecked('bi-interp'),
+    previousNRR: bParsePct(bVal('bi-prev')),
+    newCustomerMRR: 0
+  };
+  if(mode==='simple'){
+    inp.avgManagedMRR = bParseMoney(bVal('bi-avg'));
+    inp.beginningMRR  = bParseMoney(bVal('bi-begin-s'));
+    inp.endingMRR     = bParseMoney(bVal('bi-end-s'));
+  } else {
+    if(bHasVal(bVal('bi-m1'))) inp.m1 = bParseMoney(bVal('bi-m1'));
+    if(bHasVal(bVal('bi-m2'))) inp.m2 = bParseMoney(bVal('bi-m2'));
+    if(bHasVal(bVal('bi-m3'))) inp.m3 = bParseMoney(bVal('bi-m3'));
+    inp.beginningMRR   = bParseMoney(bVal('bi-begin-d'));
+    inp.expansion      = bParseMoney(bVal('bi-exp'));
+    inp.contraction    = bParseMoney(bVal('bi-con'));
+    inp.churned        = bParseMoney(bVal('bi-churn'));
+    inp.newCustomerMRR = bParseMoney(bVal('bi-new'));
+  }
+  return inp;
+}
+function bonusConfig(){
+  return Object.assign({}, BonusCalc.DEFAULT_CONFIG, { allowProrateBelowMinimum: bChecked('bi-prorate') });
+}
+
+// ── the main recompute + render ────────────────────────────────
+let bonusLastResult = null;
+function bonusRecompute(){
+  const inp = bonusReadInputs();
+  const cfg = bonusConfig();
+  const r = BonusCalc.compute(inp, cfg);
+  bonusLastResult = r;
+
+  // error banner
+  const errEl = document.getElementById('bonus-err');
+  if(r.errors.length){ errEl.textContent = r.errors[0]; errEl.classList.add('show'); }
+  else errEl.classList.remove('show');
+
+  // book-tier label
+  let tierLabel;
+  if(r.interpolated) tierLabel = 'Interpolated';
+  else if(r.bookTierStatus==='below-minimum') tierLabel = 'Below $50k';
+  else if(r.bookTierStatus==='above-maximum') tierLabel = bFmtK(r.bookTier.mrr)+' (custom)';
+  else tierLabel = r.bookTier ? bFmtK(r.bookTier.mrr) : '—';
+
+  // hero
+  document.getElementById('bonus-hero-value').textContent = bFmt$(r.quarterlyBonus);
+  document.getElementById('bonus-hero-annual-value').textContent = bFmt$(r.annualizedBonus);
+  const subEl = document.getElementById('bonus-hero-sub');
+  if(!r.valid) subEl.textContent = 'Fix the highlighted input to calculate';
+  else if(r.quarterlyBonus===0 && r.bookTierStatus==='below-minimum') subEl.textContent = 'Below the minimum published book tier';
+  else if(r.quarterlyBonus===0) subEl.textContent = 'Below the 110% NRR threshold — no bonus this quarter';
+  else subEl.textContent = `${r.appliedNRRTier.label} NRR tier · ${r.multiplier}× multiplier · ${tierLabel} book`;
+
+  // output grid
+  set('bo-avg', bFmt$(r.avgManagedMRR));
+  set('bo-tier', tierLabel);
+  set('bo-baseline', bFmt$(r.baselineBonus));
+  set('bo-begin', bFmt$(r.beginningMRR));
+  set('bo-end', bFmt$(r.endingExistingMRR));
+  const netEl=document.getElementById('bo-net'); netEl.textContent=bFmt$(r.netExpansionMRR);
+  netEl.className='bonus-out-value'+(r.netExpansionMRR<0?' coral':'');
+  set('bo-cur', bPct(r.currentNRR));
+  set('bo-prev', r.previousNRR==null?'—':bPct(r.previousNRR));
+  set('bo-smooth', bPct(r.smoothedNRR));
+  set('bo-applied', r.appliedNRRTier.label);
+  set('bo-mult', r.multiplier+'×');
+  set('bo-total', bFmt$(r.endingTotalManagedMRR));
+
+  // plain-English summary
+  const sumEl = document.getElementById('bonus-summary');
+  if(r.valid && r.avgManagedMRR>0){
+    sumEl.style.display='';
+    let s = `You manage an average ${bFmt$(r.avgManagedMRR)} MRR portfolio. `;
+    s += `Your current-quarter NRR is ${bPct(r.currentNRR)}`;
+    s += r.smoothingApplied ? `, and your two-quarter average NRR is ${bPct(r.smoothedNRR)}. ` : `. `;
+    if(r.quarterlyBonus>0){
+      s += `This places you in the ${r.appliedNRRTier.label} NRR tier with a ${r.multiplier}× multiplier. `;
+      s += `Your quarterly bonus is <b>${bFmt$(r.quarterlyBonus)}</b>, equivalent to a ${bFmt$(r.annualizedBonus)} annualized run-rate.`;
+    } else if(r.bookTierStatus==='below-minimum'){
+      s += `Your book is below the $50k minimum published tier, so no bonus applies yet.`;
+    } else {
+      s += `That's below the 110% threshold, so the quarterly bonus is $0.`;
+    }
+    sumEl.innerHTML = s;
+  } else sumEl.style.display='none';
+
+  bonusRenderProgress(r);
+  bonusRenderExpansion(r);
+  bonusHighlightMatrix(r);
+}
+
+// ── matrix (config-driven) ─────────────────────────────────────
+function bonusRenderMatrix(){
+  const cfg = BonusCalc.DEFAULT_CONFIG;
+  const mults = cfg.nrrTiers.slice(1).map(t=>t.multiplier); // skip below-110
+  const rows = cfg.bookTiers.map((bt,bi)=>{
+    const cells = mults.map((m,ci)=>`<td id="bmx-${bi}-${ci}" style="text-align:right">${bFmtK(bt.baselineBonus*m)}</td>`).join('');
+    return `<tr><td class="book-col">${bFmtK(bt.mrr)} MRR</td>${cells}</tr>`;
+  }).join('');
+  document.getElementById('bonus-matrix-body').innerHTML = rows;
+}
+function bonusHighlightMatrix(r){
+  document.querySelectorAll('#bonus-matrix-body td.hit').forEach(td=>td.classList.remove('hit'));
+  if(!r.valid || !r.bookTier || r.appliedNRRTierIndex<1) return;
+  const bi = BonusCalc.DEFAULT_CONFIG.bookTiers.findIndex(t=>t.mrr===r.bookTier.mrr);
+  const ci = r.appliedNRRTierIndex-1; // col 0 == 110% tier (nrrTiers index 1)
+  const td = document.getElementById(`bmx-${bi}-${ci}`);
+  if(td) td.classList.add('hit');
+}
+
+// ── next-milestone progress ────────────────────────────────────
+function bonusRenderProgress(r){
+  const box=document.getElementById('bonus-progress'), fill=document.getElementById('bonus-progress-fill'), note=document.getElementById('bonus-progress-note');
+  if(!r.valid){ box.style.display='none'; return; }
+  box.style.display='';
+  if(!r.next){
+    fill.style.width='100%';
+    note.innerHTML = `You're at the top tier — <b>${r.appliedNRRTier.label} NRR, ${r.multiplier}× multiplier</b>. 🎉`;
+    return;
+  }
+  const cfg=BonusCalc.DEFAULT_CONFIG;
+  const curMin = cfg.nrrTiers[r.appliedNRRTierIndex].minimumNRR || 1.0;
+  const nextMin = cfg.nrrTiers[r.appliedNRRTierIndex+1].minimumNRR;
+  const frac = Math.max(0, Math.min(1, (r.smoothedNRR - curMin)/(nextMin - curMin)));
+  fill.style.width = (frac*100).toFixed(0)+'%';
+  const need = Math.max(0, r.next.additionalExpansionNeeded);
+  note.innerHTML = `You're at <b>${bPct(r.smoothedNRR)}</b> smoothed NRR. Reaching the <b>${r.next.tierLabel} tier</b> needs about `
+    + `<b>${bFmt$(need)}</b> more net expansion this quarter`
+    + (r.smoothingApplied ? ` (a current-quarter NRR of ${bPct(r.next.requiredCurrentNRR)})` : ``)
+    + ` — unlocking <b>+${bFmt$(r.next.additionalBonus)}</b> (total ${bFmt$(r.next.nextBonus)}).`;
+}
+
+// ── expansion-required-by-milestone table (personalized) ───────
+function bonusRenderExpansion(r){
+  const cfg=BonusCalc.DEFAULT_CONFIG;
+  const base = (r.beginningMRR>0) ? r.beginningMRR : (r.avgManagedMRR>0 ? r.avgManagedMRR : (r.bookTier?r.bookTier.mrr:0));
+  document.getElementById('bonus-exp-title').textContent =
+    base>0 ? `Net expansion required on your ${bFmt$(base)} cohort` : 'Net expansion required by milestone';
+  const rows = cfg.nrrTiers.slice(1).map((t)=>{
+    const needed = BonusCalc.calculateExpansionRequiredForNRR(base, t.minimumNRR);
+    const bonus = r.baselineBonus * t.multiplier;
+    const hit = r.valid && r.appliedNRRTier && r.appliedNRRTier.label===t.label ? ' class="hit"' : '';
+    return `<tr><td style="text-align:left"${hit}>${t.label}</td><td style="text-align:right"${hit}>${bFmt$(needed)}</td><td style="text-align:right"${hit}>${bFmt$(bonus)}</td></tr>`;
+  }).join('');
+  document.getElementById('bonus-exp-body').innerHTML = rows;
+}
+
+// ── reset / copy / print ───────────────────────────────────────
+function bonusReset(){
+  const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank['bi-smooth']=true; blank['bi-interp']=false; blank['bi-prorate']=false; blank.mode='simple';
+  bonusApplyData(blank);
+  bonusPersistInputs();
+  bonusRecompute();
+}
+function bonusCopy(ev){
+  const r=bonusLastResult; if(!r) return;
+  const L=[];
+  L.push('AM Quarterly Bonus — '+bonusState.currentAM);
+  L.push('Average managed MRR: '+bFmt$(r.avgManagedMRR));
+  L.push('Book tier: '+(r.bookTier?bFmtK(r.bookTier.mrr):'—')+'   Baseline: '+bFmt$(r.baselineBonus));
+  L.push('Beginning existing MRR: '+bFmt$(r.beginningMRR)+'   Ending existing MRR: '+bFmt$(r.endingExistingMRR));
+  L.push('Net expansion: '+bFmt$(r.netExpansionMRR));
+  L.push('Current NRR: '+bPct(r.currentNRR)+'   Previous: '+(r.previousNRR==null?'—':bPct(r.previousNRR))+'   Smoothed: '+bPct(r.smoothedNRR));
+  L.push('Applied tier: '+r.appliedNRRTier.label+' ('+r.multiplier+'×)');
+  L.push('QUARTERLY BONUS: '+bFmt$(r.quarterlyBonus)+'   (annualized run-rate '+bFmt$(r.annualizedBonus)+')');
+  L.push('Ending total managed book: '+bFmt$(r.endingTotalManagedMRR));
+  const txt=L.join('\n');
+  const done=()=>{ const b=ev&&ev.currentTarget; if(b){ const o=b.textContent; b.textContent='Copied!'; setTimeout(()=>b.textContent=o,1400);} };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done,()=>{});
+  else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); done(); }
+}
+
+// ── scenario comparison (persisted, max 3) ─────────────────────
+function bonusGetScenarios(){ try{ return JSON.parse(localStorage.getItem(BONUS_SCEN_KEY))||[]; }catch(e){ return []; } }
+function bonusSetScenarios(a){ try{ localStorage.setItem(BONUS_SCEN_KEY, JSON.stringify(a)); }catch(e){} }
+function bonusSaveScenario(){
+  const r=bonusLastResult; if(!r||!r.valid) return;
+  const list=bonusGetScenarios();
+  list.push({
+    name: bonusState.currentAM==='General (example)' ? ('Scenario '+(list.length+1)) : bonusState.currentAM,
+    book: r.bookTier?bFmtK(r.bookTier.mrr):(r.interpolated?'interp':'—'),
+    cur: bPct(r.currentNRR), smooth: bPct(r.smoothedNRR),
+    tier: r.appliedNRRTier.label, mult: r.multiplier,
+    bonus: r.quarterlyBonus, annual: r.annualizedBonus
+  });
+  while(list.length>3) list.shift();
+  bonusSetScenarios(list);
+  bonusRenderSlots();
+}
+function bonusDeleteScenario(i){ const list=bonusGetScenarios(); list.splice(i,1); bonusSetScenarios(list); bonusRenderSlots(); }
+function bonusRenderSlots(){
+  const list=bonusGetScenarios();
+  const slots=[0,1,2].map(i=>{
+    const s=list[i];
+    if(!s) return `<div class="bonus-slot"><div class="bonus-slot-empty">Empty slot —<br>save a scenario to compare</div></div>`;
+    return `<div class="bonus-slot filled">
+      <div class="bonus-slot-name">${escapeHtml(s.name)}<button title="Remove" onclick="bonusDeleteScenario(${i})">×</button></div>
+      <div class="bonus-slot-row"><span>Book</span><b>${s.book}</b></div>
+      <div class="bonus-slot-row"><span>Current NRR</span><b>${s.cur}</b></div>
+      <div class="bonus-slot-row"><span>Smoothed NRR</span><b>${s.smooth}</b></div>
+      <div class="bonus-slot-row"><span>Tier</span><b>${s.tier} · ${s.mult}×</b></div>
+      <div class="bonus-slot-bonus">${bFmt$(s.bonus)}</div>
+      <div class="bonus-slot-row" style="margin-top:4px"><span>Annualized</span><b>${bFmt$(s.annual)}</b></div>
+    </div>`;
+  }).join('');
+  document.getElementById('bonus-scenario-slots').innerHTML = slots;
+}
 </script>
 </body>
 </html>
