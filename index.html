@@ -390,7 +390,7 @@ textarea.prt-input{resize:vertical}
 .prt-btn-primary:disabled{opacity:0.5;cursor:wait}
 /* ── BONUS CALCULATOR ─────────────────────────────────────────── */
 .bonus-intro{font-size:13px;color:var(--ink2);line-height:1.65;max-width:820px;margin-bottom:18px}
-.bonus-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:8px}
+.bonus-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:8px}
 @media(max-width:900px){.bonus-steps{grid-template-columns:1fr 1fr}}
 .bonus-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);position:relative}
 .bonus-step-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--teal);letter-spacing:0.08em}
@@ -1218,35 +1218,30 @@ textarea.prt-input{resize:vertical}
     <div class="bonus-steps">
       <div class="bonus-step">
         <div class="bonus-step-num">STEP 1</div>
-        <div class="bonus-step-title">Managed Book</div>
-        <div class="bonus-step-desc">Your average managed MRR across the quarter picks a book tier ($50k → $1M). The tier sets your <b>baseline bonus</b> — the amount earned at 110% NRR.</div>
+        <div class="bonus-step-title">Book Band</div>
+        <div class="bonus-step-desc">Your total managed book falls into a band ($50k–$75k … $1M+). The band sets your <b>baseline bonus</b> — the amount earned at 110% NRR.</div>
       </div>
       <div class="bonus-step">
         <div class="bonus-step-num">STEP 2</div>
         <div class="bonus-step-title">Quarterly NRR</div>
-        <div class="bonus-step-desc">Ending ÷ beginning MRR for your <b>existing-customer cohort</b>. Net expansion = expansion − contraction − churn. New logos are excluded here.</div>
+        <div class="bonus-step-desc">Ending ÷ beginning MRR for your <b>existing-customer cohort</b> — how much you grew the book you started the quarter with. Net expansion = expansion − contraction − churn; new logos are excluded.</div>
       </div>
       <div class="bonus-step">
         <div class="bonus-step-num">STEP 3</div>
-        <div class="bonus-step-title">2-Quarter Smoothing</div>
-        <div class="bonus-step-desc">Your bonus tier uses the average of this quarter's and last quarter's NRR, so one spiky quarter doesn't swing the payout. First measured quarter uses current NRR alone.</div>
-      </div>
-      <div class="bonus-step">
-        <div class="bonus-step-num">STEP 4</div>
-        <div class="bonus-step-title">Bonus Matrix</div>
-        <div class="bonus-step-desc">The smoothed NRR lands in a tier (110% → 200%+) with a multiplier (1.0× → 6.0×). <b>Bonus = baseline × multiplier</b>.</div>
+        <div class="bonus-step-title">Bonus = Baseline × Multiplier</div>
+        <div class="bonus-step-desc">How much you grew sets a multiplier — <b>1.0×</b> at 110% NRR up to <b>6.0×</b> at 200%+. Your quarterly bonus is your band's baseline × that multiplier.</div>
       </div>
     </div>
 
     <div class="section-header" style="margin-top:24px">
       <span class="section-title">Full quarterly bonus matrix</span>
-      <span class="section-note">Baseline (110% NRR) × NRR multiplier · below 110% smoothed NRR pays $0</span>
+      <span class="section-note">Baseline (110% NRR) × NRR multiplier · below 110% NRR pays $0</span>
     </div>
     <div class="table-card">
       <div class="table-wrap">
         <table class="bonus-matrix" id="bonus-matrix">
           <thead><tr>
-            <th class="book-col">Managed Book</th>
+            <th class="book-col">Book Band</th>
             <th style="text-align:right">110% NRR<br><span style="font-weight:400;color:var(--ink3)">1.0×</span></th>
             <th style="text-align:right">120% NRR<br><span style="font-weight:400;color:var(--ink3)">1.4×</span></th>
             <th style="text-align:right">130% NRR<br><span style="font-weight:400;color:var(--ink3)">2.0×</span></th>
@@ -1287,12 +1282,24 @@ textarea.prt-input{resize:vertical}
       <div class="bonus-panel">
         <div class="bonus-panel-title">Inputs</div>
 
+        <!-- Shared: Book Band (auto-selected from the book) -->
+        <div class="bonus-field">
+          <label>Book Band <span class="info-icon" onmouseenter="showInfo(event,'bonusBand')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span></label>
+          <select class="prt-input bonus-in" id="bi-band">
+            <option value="">— Select band —</option>
+            <option value="0">Below $50k</option>
+            <option value="50000">$50k–$75k</option>
+            <option value="75000">$75k–$150k</option>
+            <option value="150000">$150k–$300k</option>
+            <option value="300000">$300k–$500k</option>
+            <option value="500000">$500k–$750k</option>
+            <option value="750000">$750k–$1M</option>
+            <option value="1000000">$1M+</option>
+          </select>
+        </div>
+
         <!-- Simple-mode fields -->
         <div id="bonus-simple-fields">
-          <div class="bonus-field">
-            <label>Average Managed MRR</label>
-            <input class="prt-input bonus-in" id="bi-avg" data-money="1" placeholder="$300,000">
-          </div>
           <div class="bonus-field">
             <label>Beginning Existing-Customer MRR</label>
             <input class="prt-input bonus-in" id="bi-begin-s" data-money="1" placeholder="$300,000">
@@ -1306,14 +1313,6 @@ textarea.prt-input{resize:vertical}
         <!-- Detailed-mode fields -->
         <div id="bonus-detailed-fields" style="display:none">
           <div class="bonus-field">
-            <label>Monthly Managed MRR (avg of the three)</label>
-            <div class="bonus-field-row">
-              <input class="prt-input bonus-in" id="bi-m1" data-money="1" placeholder="Month 1">
-              <input class="prt-input bonus-in" id="bi-m2" data-money="1" placeholder="Month 2">
-              <input class="prt-input bonus-in" id="bi-m3" data-money="1" placeholder="Month 3">
-            </div>
-          </div>
-          <div class="bonus-field">
             <label>Beginning Existing-Customer MRR</label>
             <input class="prt-input bonus-in" id="bi-begin-d" data-money="1" placeholder="$300,000">
           </div>
@@ -1326,27 +1325,6 @@ textarea.prt-input{resize:vertical}
             <div class="bonus-field"><label>New Customer MRR</label><input class="prt-input bonus-in" id="bi-new" data-money="1" placeholder="$50,000"></div>
           </div>
         </div>
-
-        <!-- Shared -->
-        <div class="bonus-field">
-          <label>Previous Quarter NRR (%) <span class="info-icon" onmouseenter="showInfo(event,'bonusSmoothing')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span></label>
-          <input class="prt-input bonus-in" id="bi-prev" placeholder="e.g. 120  (leave blank if first quarter)">
-        </div>
-
-        <div class="bonus-divider"></div>
-
-        <label class="bonus-toggle">
-          <input type="checkbox" id="bi-smooth" class="bonus-in" checked>
-          <span>Two-quarter smoothing <span class="bt-sub">— average current &amp; previous NRR</span></span>
-        </label>
-        <label class="bonus-toggle">
-          <input type="checkbox" id="bi-interp" class="bonus-in">
-          <span>Interpolate between book tiers <span class="bt-sub">— no hard steps</span></span>
-        </label>
-        <label class="bonus-toggle">
-          <input type="checkbox" id="bi-prorate" class="bonus-in">
-          <span>Prorate below minimum book <span class="bt-sub">— admin</span></span>
-        </label>
 
         <div class="bonus-actions">
           <button class="prt-btn-ghost" onclick="bonusReset()">Reset</button>
@@ -1373,15 +1351,12 @@ textarea.prt-input{resize:vertical}
         <div class="bonus-summary" id="bonus-summary" style="display:none"></div>
 
         <div class="bonus-out-grid">
-          <div class="bonus-out"><div class="bonus-out-label">Avg Managed MRR</div><div class="bonus-out-value" id="bo-avg">—</div></div>
-          <div class="bonus-out"><div class="bonus-out-label">Book Tier</div><div class="bonus-out-value" id="bo-tier">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Book Band</div><div class="bonus-out-value" id="bo-band">—</div></div>
           <div class="bonus-out"><div class="bonus-out-label">Baseline Bonus</div><div class="bonus-out-value" id="bo-baseline">—</div></div>
+          <div class="bonus-out"><div class="bonus-out-label">Quarterly NRR</div><div class="bonus-out-value teal" id="bo-cur">—</div></div>
           <div class="bonus-out"><div class="bonus-out-label">Beginning MRR</div><div class="bonus-out-value" id="bo-begin">—</div></div>
           <div class="bonus-out"><div class="bonus-out-label">Ending Existing MRR</div><div class="bonus-out-value" id="bo-end">—</div></div>
           <div class="bonus-out"><div class="bonus-out-label">Net Expansion</div><div class="bonus-out-value" id="bo-net">—</div></div>
-          <div class="bonus-out"><div class="bonus-out-label">Current Qtr NRR</div><div class="bonus-out-value" id="bo-cur">—</div></div>
-          <div class="bonus-out"><div class="bonus-out-label">Previous Qtr NRR</div><div class="bonus-out-value" id="bo-prev">—</div></div>
-          <div class="bonus-out"><div class="bonus-out-label">Smoothed NRR</div><div class="bonus-out-value teal" id="bo-smooth">—</div></div>
           <div class="bonus-out"><div class="bonus-out-label">Applied Tier</div><div class="bonus-out-value" id="bo-applied">—</div></div>
           <div class="bonus-out"><div class="bonus-out-label">Multiplier</div><div class="bonus-out-value" id="bo-mult">—</div></div>
           <div class="bonus-out"><div class="bonus-out-label">Ending Total Book <span class="info-icon" onmouseenter="showInfo(event,'bonusTotalBook')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span></div><div class="bonus-out-value" id="bo-total">—</div></div>
@@ -2237,6 +2212,9 @@ function showInfoTip(e, title, html){
 }
 function showInfo(e, key){ const info=FC_INFO[key]; if(info) showInfoTip(e, info.title, info.html); }
 const FC_INFO = {
+  bonusBand:{ title:'Book band', html:
+    "<div class='r'>Your <b>total managed book</b> — every account you manage, including new customers — falls into a band ($50k–$75k … $1M+).</div>"
+    +"<div class='r'>The band sets your <b>baseline bonus</b> (the amount earned at 110% NRR). It auto-selects from your HubSpot book; change it to model a bigger or smaller book.</div>" },
   bonusSmoothing:{ title:'Two-quarter smoothing', html:
     "<div class='r'>Your bonus tier is set using the <b>average of your current-quarter and previous-quarter Quarterly NRR</b>, so a single spiky quarter doesn't swing the payout.</div>"
     +"<div class='r'>For your first measured quarter, current-quarter NRR is used by itself. Leave this blank if there's no prior quarter.</div>"
@@ -3539,10 +3517,13 @@ window.addEventListener('DOMContentLoaded', async () => {
 //  BONUS CALCULATOR — UI glue (logic lives in bonus-calculator.js)
 // ══════════════════════════════════════════════════════════════
 const bonusState = { initialized:false, mode:'simple', currentAM:'General (example)' };
-const BONUS_FIELDS = ['bi-avg','bi-begin-s','bi-end-s','bi-m1','bi-m2','bi-m3','bi-begin-d','bi-exp','bi-con','bi-churn','bi-new','bi-prev'];
-const BONUS_TOGGLES = ['bi-smooth','bi-interp','bi-prorate'];
+const BONUS_FIELDS = ['bi-band','bi-begin-s','bi-end-s','bi-begin-d','bi-exp','bi-con','bi-churn','bi-new'];
+const BONUS_TOGGLES = [];
 const BONUS_SCEN_KEY = 'virio-bonus-scenarios';
-const bonusExample = { 'bi-avg':'$300,000','bi-begin-s':'$300,000','bi-end-s':'$390,000','bi-prev':'120' };
+const bonusExample = { 'bi-band':'300000','bi-begin-s':'$300,000','bi-end-s':'$390,000' };
+// Book-band labels keyed by the band's tier-floor MRR (the dropdown value).
+const BONUS_BAND_LABELS = { '50000':'$50k–$75k','75000':'$75k–$150k','150000':'$150k–$300k','300000':'$300k–$500k','500000':'$500k–$750k','750000':'$750k–$1M','1000000':'$1M+' };
+function bonusBandLabel(tierMrr){ return BONUS_BAND_LABELS[String(tierMrr)] || 'Below $50k'; }
 
 // ── formatters / parsers ───────────────────────────────────────
 function bFmt$(n){ if(n==null||!isFinite(n)) return '—'; const neg=n<0; return (neg?'-$':'$')+Math.round(Math.abs(n)).toLocaleString('en-US'); }
@@ -3655,14 +3636,14 @@ function bonusAggregateForAM(am){
 function bSetMoney(id,v){ const el=document.getElementById(id); if(el) el.value=(v||v===0)?bFmt$(v):''; }
 function bonusPrefillFromAM(am){
   const a=bonusAggregateForAM(am);
+  // book band, auto-selected from the total managed book
+  const sel=BonusCalc.selectBookTier(a.avgManaged);
+  const bandVal=(sel.status==='below-minimum')?0:sel.tier.mrr;
+  const bandEl=document.getElementById('bi-band'); if(bandEl) bandEl.value=String(bandVal);
   // detailed-mode fields (full breakdown)
-  bSetMoney('bi-m1',a.avgManaged); bSetMoney('bi-m2',a.avgManaged); bSetMoney('bi-m3',a.avgManaged);
   bSetMoney('bi-begin-d',a.begin); bSetMoney('bi-exp',a.exp); bSetMoney('bi-con',0); bSetMoney('bi-churn',a.churn); bSetMoney('bi-new',a.newMRR);
   // simple-mode fields (mirror, so switching modes keeps the scenario)
-  bSetMoney('bi-avg',a.avgManaged); bSetMoney('bi-begin-s',a.begin); bSetMoney('bi-end-s',a.ending);
-  document.getElementById('bi-prev').value = (a.previousNRR!=null) ? (a.previousNRR*100).toFixed(1) : '';
-  const sm=document.getElementById('bi-smooth'), ip=document.getElementById('bi-interp'), pr=document.getElementById('bi-prorate');
-  if(sm) sm.checked=true; if(ip) ip.checked=false; if(pr) pr.checked=false;
+  bSetMoney('bi-begin-s',a.begin); bSetMoney('bi-end-s',a.ending);
   bonusSetMode('detailed');   // show the breakdown; also recomputes
   // source note
   if(a.nAll===0){
@@ -3671,20 +3652,17 @@ function bonusPrefillFromAM(am){
     const expLine = (a.basis==='snapshot'||a.basis==='partial')
       ? `In-quarter expansion <b>${bFmt$(a.exp)}</b>${a.churn?`, churn ${bFmt$(a.churn)}`:''}, measured against the <b>${a.cq}</b> baseline snapshot.`
       : `No <b>${a.cq}</b> baseline captured yet, so all expansion (${bFmt$(a.exp)}) counts as this quarter's — hit “Capture baseline now” to start tracking true per-quarter expansion.`;
-    const prevLine = (a.previousNRR!=null)
-      ? `Previous-quarter (${a.pq}) NRR <b>${(a.previousNRR*100).toFixed(1)}%</b> pulled from snapshots — two-quarter smoothing is on.`
-      : `Previous-quarter NRR isn't available yet — add it manually (or it fills in automatically once two quarters of snapshots exist).`;
     bonusSetSource(
       `Auto-filled from HubSpot for <b>${escapeHtml(am)}</b> · ${a.nAll} account${a.nAll===1?'':'s'} `
       +`(${a.nExisting} existing${a.nNew?`, ${a.nNew} new this quarter`:''}) · ${a.cq}.<br>`
-      +`Managed book <b>${bFmt$(a.avgManaged)}</b> · existing cohort ${bFmt$(a.begin)} → ${bFmt$(a.ending)}`
+      +`Book band <b>${bonusBandLabel(bandVal)}</b> (managed book ${bFmt$(a.avgManaged)}) · existing cohort ${bFmt$(a.begin)} → ${bFmt$(a.ending)}`
       +`${a.newMRR?` · new-customer MRR ${bFmt$(a.newMRR)}`:''}.<br>`
-      +expLine+' '+prevLine+' Every field stays editable for what-ifs.'
+      +expLine+' Every field stays editable for what-ifs.'
     );
   }
 }
 function bonusClearFields(){
-  const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank['bi-smooth']=true; blank['bi-interp']=false; blank['bi-prorate']=false; blank.mode='detailed';
+  const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank.mode='detailed';
   bonusApplyData(blank);
 }
 function bonusSetSource(html){ const el=document.getElementById('bonus-source'); if(el) el.innerHTML=html||''; }
@@ -3745,7 +3723,7 @@ function bonusLoadInputs(am){
   try{ const raw=localStorage.getItem(bonusInputsKey(am)); if(raw) data=JSON.parse(raw); }catch(e){}
   if(!data){
     // no saved scenario: seed the example for "General", otherwise a clean slate
-    const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank['bi-smooth']=true; blank['bi-interp']=false; blank['bi-prorate']=false; blank.mode='simple';
+    const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank.mode='simple';
     data = (am==='General (example)') ? Object.assign(blank, bonusExample) : blank;
   }
   bonusApplyData(data);
@@ -3754,21 +3732,20 @@ function bonusLoadInputs(am){
 // ── read inputs → normalized object for the engine ─────────────
 function bonusReadInputs(){
   const mode = bonusState.mode;
+  // The book band's tier-floor MRR drives the tier/baseline (no smoothing,
+  // no interpolation — a single spiky quarter now pays full value).
   const inp = {
     mode,
-    smoothingOn: bChecked('bi-smooth'),
-    interpolate: bChecked('bi-interp'),
-    previousNRR: bParsePct(bVal('bi-prev')),
+    smoothingOn: false,
+    interpolate: false,
+    previousNRR: null,
+    avgManagedMRR: parseFloat(bVal('bi-band')) || 0,
     newCustomerMRR: 0
   };
   if(mode==='simple'){
-    inp.avgManagedMRR = bParseMoney(bVal('bi-avg'));
-    inp.beginningMRR  = bParseMoney(bVal('bi-begin-s'));
-    inp.endingMRR     = bParseMoney(bVal('bi-end-s'));
+    inp.beginningMRR = bParseMoney(bVal('bi-begin-s'));
+    inp.endingMRR    = bParseMoney(bVal('bi-end-s'));
   } else {
-    if(bHasVal(bVal('bi-m1'))) inp.m1 = bParseMoney(bVal('bi-m1'));
-    if(bHasVal(bVal('bi-m2'))) inp.m2 = bParseMoney(bVal('bi-m2'));
-    if(bHasVal(bVal('bi-m3'))) inp.m3 = bParseMoney(bVal('bi-m3'));
     inp.beginningMRR   = bParseMoney(bVal('bi-begin-d'));
     inp.expansion      = bParseMoney(bVal('bi-exp'));
     inp.contraction    = bParseMoney(bVal('bi-con'));
@@ -3777,9 +3754,7 @@ function bonusReadInputs(){
   }
   return inp;
 }
-function bonusConfig(){
-  return Object.assign({}, BonusCalc.DEFAULT_CONFIG, { allowProrateBelowMinimum: bChecked('bi-prorate') });
-}
+function bonusConfig(){ return BonusCalc.DEFAULT_CONFIG; }
 
 // ── the main recompute + render ────────────────────────────────
 let bonusLastResult = null;
@@ -3794,49 +3769,39 @@ function bonusRecompute(){
   if(r.errors.length){ errEl.textContent = r.errors[0]; errEl.classList.add('show'); }
   else errEl.classList.remove('show');
 
-  // book-tier label
-  let tierLabel;
-  if(r.interpolated) tierLabel = 'Interpolated';
-  else if(r.bookTierStatus==='below-minimum') tierLabel = 'Below $50k';
-  else if(r.bookTierStatus==='above-maximum') tierLabel = bFmtK(r.bookTier.mrr)+' (custom)';
-  else tierLabel = r.bookTier ? bFmtK(r.bookTier.mrr) : '—';
+  // book-band label
+  const bandLabel = (r.bookTierStatus==='below-minimum' || !r.bookTier) ? 'Below $50k' : bonusBandLabel(r.bookTier.mrr);
 
   // hero
   document.getElementById('bonus-hero-value').textContent = bFmt$(r.quarterlyBonus);
   document.getElementById('bonus-hero-annual-value').textContent = bFmt$(r.annualizedBonus);
   const subEl = document.getElementById('bonus-hero-sub');
   if(!r.valid) subEl.textContent = 'Fix the highlighted input to calculate';
-  else if(r.quarterlyBonus===0 && r.bookTierStatus==='below-minimum') subEl.textContent = 'Below the minimum published book tier';
+  else if(r.quarterlyBonus===0 && r.bookTierStatus==='below-minimum') subEl.textContent = 'Book is below the $50k minimum band';
   else if(r.quarterlyBonus===0) subEl.textContent = 'Below the 110% NRR threshold — no bonus this quarter';
-  else subEl.textContent = `${r.appliedNRRTier.label} NRR tier · ${r.multiplier}× multiplier · ${tierLabel} book`;
+  else subEl.textContent = `${r.appliedNRRTier.label} NRR · ${r.multiplier}× multiplier · ${bandLabel} band`;
 
   // output grid
-  set('bo-avg', bFmt$(r.avgManagedMRR));
-  set('bo-tier', tierLabel);
+  set('bo-band', bandLabel);
   set('bo-baseline', bFmt$(r.baselineBonus));
   set('bo-begin', bFmt$(r.beginningMRR));
   set('bo-end', bFmt$(r.endingExistingMRR));
   const netEl=document.getElementById('bo-net'); netEl.textContent=bFmt$(r.netExpansionMRR);
   netEl.className='bonus-out-value'+(r.netExpansionMRR<0?' coral':'');
   set('bo-cur', bPct(r.currentNRR));
-  set('bo-prev', r.previousNRR==null?'—':bPct(r.previousNRR));
-  set('bo-smooth', bPct(r.smoothedNRR));
   set('bo-applied', r.appliedNRRTier.label);
   set('bo-mult', r.multiplier+'×');
   set('bo-total', bFmt$(r.endingTotalManagedMRR));
 
   // plain-English summary
   const sumEl = document.getElementById('bonus-summary');
-  if(r.valid && r.avgManagedMRR>0){
+  if(r.valid && r.beginningMRR>0){
     sumEl.style.display='';
-    let s = `You manage an average ${bFmt$(r.avgManagedMRR)} MRR portfolio. `;
-    s += `Your current-quarter NRR is ${bPct(r.currentNRR)}`;
-    s += r.smoothingApplied ? `, and your two-quarter average NRR is ${bPct(r.smoothedNRR)}. ` : `. `;
+    let s = `You're in the <b>${bandLabel}</b> book band. Your quarterly NRR is ${bPct(r.currentNRR)}. `;
     if(r.quarterlyBonus>0){
-      s += `This places you in the ${r.appliedNRRTier.label} NRR tier with a ${r.multiplier}× multiplier. `;
-      s += `Your quarterly bonus is <b>${bFmt$(r.quarterlyBonus)}</b>, equivalent to a ${bFmt$(r.annualizedBonus)} annualized run-rate.`;
+      s += `That's the ${r.appliedNRRTier.label} tier (${r.multiplier}× multiplier), so your quarterly bonus is <b>${bFmt$(r.quarterlyBonus)}</b> — a ${bFmt$(r.annualizedBonus)} annualized run-rate.`;
     } else if(r.bookTierStatus==='below-minimum'){
-      s += `Your book is below the $50k minimum published tier, so no bonus applies yet.`;
+      s += `Your book is below the $50k minimum band, so no bonus applies yet.`;
     } else {
       s += `That's below the 110% threshold, so the quarterly bonus is $0.`;
     }
@@ -3852,9 +3817,11 @@ function bonusRecompute(){
 function bonusRenderMatrix(){
   const cfg = BonusCalc.DEFAULT_CONFIG;
   const mults = cfg.nrrTiers.slice(1).map(t=>t.multiplier); // skip below-110
-  const rows = cfg.bookTiers.map((bt,bi)=>{
+  const tiers = cfg.bookTiers;
+  const rows = tiers.map((bt,bi)=>{
+    const band = (bi<tiers.length-1) ? `${bFmtK(bt.mrr)}–${bFmtK(tiers[bi+1].mrr)}` : `${bFmtK(bt.mrr)}+`;
     const cells = mults.map((m,ci)=>`<td id="bmx-${bi}-${ci}" style="text-align:right">${bFmtK(bt.baselineBonus*m)}</td>`).join('');
-    return `<tr><td class="book-col">${bFmtK(bt.mrr)} MRR</td>${cells}</tr>`;
+    return `<tr><td class="book-col">${band}</td>${cells}</tr>`;
   }).join('');
   document.getElementById('bonus-matrix-body').innerHTML = rows;
 }
@@ -3883,9 +3850,8 @@ function bonusRenderProgress(r){
   const frac = Math.max(0, Math.min(1, (r.smoothedNRR - curMin)/(nextMin - curMin)));
   fill.style.width = (frac*100).toFixed(0)+'%';
   const need = Math.max(0, r.next.additionalExpansionNeeded);
-  note.innerHTML = `You're at <b>${bPct(r.smoothedNRR)}</b> smoothed NRR. Reaching the <b>${r.next.tierLabel} tier</b> needs about `
+  note.innerHTML = `You're at <b>${bPct(r.smoothedNRR)}</b> quarterly NRR. Reaching the <b>${r.next.tierLabel} tier</b> needs about `
     + `<b>${bFmt$(need)}</b> more net expansion this quarter`
-    + (r.smoothingApplied ? ` (a current-quarter NRR of ${bPct(r.next.requiredCurrentNRR)})` : ``)
     + ` — unlocking <b>+${bFmt$(r.next.additionalBonus)}</b> (total ${bFmt$(r.next.nextBonus)}).`;
 }
 
@@ -3906,20 +3872,20 @@ function bonusRenderExpansion(r){
 
 // ── reset / copy / print ───────────────────────────────────────
 function bonusReset(){
-  const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank['bi-smooth']=true; blank['bi-interp']=false; blank['bi-prorate']=false; blank.mode='simple';
+  const blank={}; BONUS_FIELDS.forEach(id=>blank[id]=''); blank.mode='simple';
   bonusApplyData(blank);
   bonusPersistInputs();
   bonusRecompute();
 }
 function bonusCopy(ev){
   const r=bonusLastResult; if(!r) return;
+  const band = (r.bookTierStatus==='below-minimum'||!r.bookTier) ? 'Below $50k' : bonusBandLabel(r.bookTier.mrr);
   const L=[];
   L.push('AM Quarterly Bonus — '+bonusState.currentAM);
-  L.push('Average managed MRR: '+bFmt$(r.avgManagedMRR));
-  L.push('Book tier: '+(r.bookTier?bFmtK(r.bookTier.mrr):'—')+'   Baseline: '+bFmt$(r.baselineBonus));
+  L.push('Book band: '+band+'   Baseline: '+bFmt$(r.baselineBonus));
   L.push('Beginning existing MRR: '+bFmt$(r.beginningMRR)+'   Ending existing MRR: '+bFmt$(r.endingExistingMRR));
   L.push('Net expansion: '+bFmt$(r.netExpansionMRR));
-  L.push('Current NRR: '+bPct(r.currentNRR)+'   Previous: '+(r.previousNRR==null?'—':bPct(r.previousNRR))+'   Smoothed: '+bPct(r.smoothedNRR));
+  L.push('Quarterly NRR: '+bPct(r.currentNRR));
   L.push('Applied tier: '+r.appliedNRRTier.label+' ('+r.multiplier+'×)');
   L.push('QUARTERLY BONUS: '+bFmt$(r.quarterlyBonus)+'   (annualized run-rate '+bFmt$(r.annualizedBonus)+')');
   L.push('Ending total managed book: '+bFmt$(r.endingTotalManagedMRR));
@@ -3937,8 +3903,8 @@ function bonusSaveScenario(){
   const list=bonusGetScenarios();
   list.push({
     name: bonusState.currentAM==='General (example)' ? ('Scenario '+(list.length+1)) : bonusState.currentAM,
-    book: r.bookTier?bFmtK(r.bookTier.mrr):(r.interpolated?'interp':'—'),
-    cur: bPct(r.currentNRR), smooth: bPct(r.smoothedNRR),
+    book: (r.bookTierStatus==='below-minimum'||!r.bookTier) ? 'Below $50k' : bonusBandLabel(r.bookTier.mrr),
+    cur: bPct(r.currentNRR),
     tier: r.appliedNRRTier.label, mult: r.multiplier,
     bonus: r.quarterlyBonus, annual: r.annualizedBonus
   });
@@ -3954,9 +3920,8 @@ function bonusRenderSlots(){
     if(!s) return `<div class="bonus-slot"><div class="bonus-slot-empty">Empty slot —<br>save a scenario to compare</div></div>`;
     return `<div class="bonus-slot filled">
       <div class="bonus-slot-name">${escapeHtml(s.name)}<button title="Remove" onclick="bonusDeleteScenario(${i})">×</button></div>
-      <div class="bonus-slot-row"><span>Book</span><b>${s.book}</b></div>
-      <div class="bonus-slot-row"><span>Current NRR</span><b>${s.cur}</b></div>
-      <div class="bonus-slot-row"><span>Smoothed NRR</span><b>${s.smooth}</b></div>
+      <div class="bonus-slot-row"><span>Book band</span><b>${s.book}</b></div>
+      <div class="bonus-slot-row"><span>Quarterly NRR</span><b>${s.cur}</b></div>
       <div class="bonus-slot-row"><span>Tier</span><b>${s.tier} · ${s.mult}×</b></div>
       <div class="bonus-slot-bonus">${bFmt$(s.bonus)}</div>
       <div class="bonus-slot-row" style="margin-top:4px"><span>Annualized</span><b>${bFmt$(s.annual)}</b></div>
