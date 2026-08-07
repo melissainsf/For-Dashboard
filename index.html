@@ -1264,6 +1264,27 @@ textarea.prt-input{resize:vertical}
       </div>
     </div>
 
+    <div class="section-header" style="margin-top:24px">
+      <span class="section-title">Net expansion needed to reach each tier</span>
+      <span class="section-note">Net new MRR to hit each NRR milestone · 110% is the minimum to earn any bonus · shown at each band's starting MRR (scales with your actual book)</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table class="bonus-matrix" id="bonus-expneed">
+          <thead><tr>
+            <th class="book-col">Book Band</th>
+            <th style="text-align:right">110% NRR</th>
+            <th style="text-align:right">120% NRR</th>
+            <th style="text-align:right">130% NRR</th>
+            <th style="text-align:right">150% NRR</th>
+            <th style="text-align:right">175% NRR</th>
+            <th style="text-align:right">200%+ NRR</th>
+          </tr></thead>
+          <tbody id="bonus-expneed-body"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ════════ BOTTOM: INTERACTIVE CALCULATOR / TRACKER ════════ -->
     <div class="section-header" style="margin-top:28px">
       <span class="section-title">Bonus calculator</span>
@@ -3564,6 +3585,7 @@ function bonusEnsureInit(){
   bonusState.initialized = true;
   bonusPopulateAMs();
   bonusRenderMatrix();
+  bonusRenderExpNeedMatrix();
   // bind every input/toggle to persist + recompute
   document.querySelectorAll('#tab-bonus .bonus-in').forEach(el=>{
     const ev = el.type==='checkbox' ? 'change' : 'input';
@@ -3881,6 +3903,22 @@ function bonusRenderMatrix(){
   }).join('');
   document.getElementById('bonus-matrix-body').innerHTML = rows;
 }
+// Companion reference: net expansion MRR needed to reach each tier, per band.
+// Uses the band's floor MRR as the cohort basis (the entry point of the band).
+function bonusRenderExpNeedMatrix(){
+  const cfg = BonusCalc.DEFAULT_CONFIG;
+  const nrrCols = cfg.nrrTiers.slice(1);   // skip below-110
+  const tiers = cfg.bookTiers;
+  const rows = tiers.map((bt,bi)=>{
+    const band = (bi<tiers.length-1) ? `${bFmtK(bt.mrr)}–${bFmtK(tiers[bi+1].mrr)}` : `${bFmtK(bt.mrr)}+`;
+    const cells = nrrCols.map(t=>{
+      const needed = BonusCalc.calculateExpansionRequiredForNRR(bt.mrr, t.minimumNRR);
+      return `<td style="text-align:right">${bFmt$(needed)}</td>`;
+    }).join('');
+    return `<tr><td class="book-col">${band}</td>${cells}</tr>`;
+  }).join('');
+  document.getElementById('bonus-expneed-body').innerHTML = rows;
+}
 function bonusHighlightMatrix(r){
   document.querySelectorAll('#bonus-matrix-body td.hit').forEach(td=>td.classList.remove('hit'));
   if(!r.valid || !r.bookTier || r.appliedNRRTierIndex<1) return;
@@ -3916,7 +3954,7 @@ function bonusRenderExpansion(r){
   const cfg=BonusCalc.DEFAULT_CONFIG;
   const base = (r.beginningMRR>0) ? r.beginningMRR : (r.avgManagedMRR>0 ? r.avgManagedMRR : (r.bookTier?r.bookTier.mrr:0));
   document.getElementById('bonus-exp-title').textContent =
-    base>0 ? `Net expansion required on your ${bFmt$(base)} cohort` : 'Net expansion required by milestone';
+    base>0 ? `Expansion needed to reach each bonus — your ${bFmt$(base)} cohort (110% = minimum to earn any bonus)` : 'Expansion needed to reach each bonus';
   const rows = cfg.nrrTiers.slice(1).map((t)=>{
     const needed = BonusCalc.calculateExpansionRequiredForNRR(base, t.minimumNRR);
     const bonus = BonusCalc.capBonusToExpansion(r.baselineBonus * t.multiplier, needed, cfg);
