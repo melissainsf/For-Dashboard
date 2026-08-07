@@ -4030,12 +4030,9 @@ function bonusRenderExpNeedMatrix(){
   document.getElementById('bonus-expneed-body').innerHTML = rows;
 }
 function bonusHighlightMatrix(r){
+  // The top matrix is a clean, uniform reference — no per-scenario highlight.
+  // (The current tier is highlighted in the calculator's own expansion table.)
   document.querySelectorAll('#bonus-matrix-body td.hit').forEach(td=>td.classList.remove('hit'));
-  if(!r.valid || !r.bookTier || r.appliedNRRTierIndex<1) return;
-  const bi = BonusCalc.DEFAULT_CONFIG.bookTiers.findIndex(t=>t.mrr===r.bookTier.mrr);
-  const ci = r.appliedNRRTierIndex-1; // col 0 == 110% tier (nrrTiers index 1)
-  const td = document.getElementById(`bmx-${bi}-${ci}`);
-  if(td) td.classList.add('hit');
 }
 
 // ── next-milestone progress ────────────────────────────────────
