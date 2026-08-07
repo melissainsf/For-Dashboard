@@ -3695,15 +3695,18 @@ function bonusAggregateTeam(){
   return { begin:agg.begin, exp:agg.exp, churn:agg.churn, ending:agg.ending, newMRR:agg.newMRR,
            avgManaged:agg.avgManaged, nAll:cohort.length, nAMs:eligible.size };
 }
-// Team compute result + effective (capped) team multiplier. Cached per recompute.
+// Team compute result + effective (capped) team multiplier. Never throws — a
+// bad account shape must not break an AM's prefill or the whole calculator.
 function bonusTeamResult(){
-  const a=bonusAggregateTeam();
-  if(!a || a.begin<=0) return null;
-  const r=BonusCalc.compute({ mode:'detailed', avgManagedMRR:a.avgManaged, beginningMRR:a.begin,
-    expansion:a.exp, contraction:0, churned:a.churn, newCustomerMRR:a.newMRR,
-    previousNRR:null, smoothingOn:false, maxChurnsInMonth:0 }, BonusCalc.DEFAULT_CONFIG);
-  const effMult = r.baselineBonus>0 ? r.quarterlyBonus/r.baselineBonus : 0;
-  return { agg:a, r, effMult, nrr:r.currentNRR };
+  try {
+    const a=bonusAggregateTeam();
+    if(!a || a.begin<=0) return null;
+    const r=BonusCalc.compute({ mode:'detailed', avgManagedMRR:a.avgManaged, beginningMRR:a.begin,
+      expansion:a.exp, contraction:0, churned:a.churn, newCustomerMRR:a.newMRR,
+      previousNRR:null, smoothingOn:false, maxChurnsInMonth:0 }, BonusCalc.DEFAULT_CONFIG);
+    const effMult = r.baselineBonus>0 ? r.quarterlyBonus/r.baselineBonus : 0;
+    return { agg:a, r, effMult, nrr:r.currentNRR };
+  } catch(e){ console.warn('bonus: team aggregate failed —', e && e.message); return null; }
 }
 function bonusPrefillFromTeam(){
   const t=bonusTeamResult();
