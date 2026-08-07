@@ -43,7 +43,15 @@
     maximumPublishedManagedMRR: 1000000,
     // When true, portfolios below the minimum published tier earn a
     // prorated baseline (linear from $0 at $0 MRR up to the first tier).
-    allowProrateBelowMinimum: false
+    allowProrateBelowMinimum: false,
+    // Hard fairness ceiling: a quarter's bonus can never exceed this fraction
+    // of the expansion the AM generated, so an AM's rate on expansion never
+    // exceeds what an AE earns on new business. The expansion is scaled by
+    // expansionCapMonths first (12 = annualized/ARR value of the net MRR added;
+    // 1 = the raw quarterly MRR figure). Set maxBonusPctOfExpansion to 0 to
+    // disable the ceiling.
+    maxBonusPctOfExpansion: 0.06,
+    expansionCapMonths: 12
   };
 
   // ── Small helpers ──────────────────────────────────────────────
@@ -171,6 +179,22 @@
   // ── 10. Annualized bonus (run-rate) ────────────────────────────
   function calculateAnnualizedBonus(quarterlyBonus) {
     return num(quarterlyBonus) * 4;
+  }
+
+  // ── Fairness ceiling: max bonus as a % of the expansion generated ──
+  // Returns the largest bonus payable for a given net expansion MRR, so the
+  // bonus never exceeds maxBonusPctOfExpansion of that expansion's value
+  // (scaled by expansionCapMonths). Infinity when the ceiling is disabled or
+  // expansion is non-positive-capped.
+  function maxBonusForExpansion(netExpansionMRR, config) {
+    const cfg = config || DEFAULT_CONFIG;
+    if (!(cfg.maxBonusPctOfExpansion > 0)) return Infinity;
+    const months = cfg.expansionCapMonths || 1;
+    return cfg.maxBonusPctOfExpansion * Math.max(0, num(netExpansionMRR)) * months;
+  }
+  // Apply the ceiling to a bonus for a given expansion.
+  function capBonusToExpansion(bonus, netExpansionMRR, config) {
+    return Math.min(num(bonus), maxBonusForExpansion(netExpansionMRR, config));
   }
 
   // ── 11. Expansion required to reach an NRR level ───────────────
@@ -346,6 +370,11 @@
     // Below the minimum book tier with proration off ⇒ $0
     if (bookSel.status === 'below-minimum' && !cfg.allowProrateBelowMinimum) quarterlyBonus = 0;
     if (errors.length) quarterlyBonus = 0;
+    // Fairness ceiling: never more than X% of the expansion generated.
+    const uncappedBonus = quarterlyBonus;
+    const expansionCeiling = maxBonusForExpansion(netExpansion, cfg);
+    quarterlyBonus = Math.min(quarterlyBonus, expansionCeiling);
+    const capped = quarterlyBonus < uncappedBonus;
     const annualizedBonus = calculateAnnualizedBonus(quarterlyBonus);
 
     // Next-tier progress
@@ -357,11 +386,15 @@
       smoothingOn: input.smoothingOn,
       config: cfg
     });
-    let additionalBonusNext = null;
+    // Next-tier bonus, also held under the expansion ceiling (the next tier
+    // requires more expansion, which raises its ceiling accordingly).
+    let additionalBonusNext = null, nextBonusCapped = null;
     if (nextInfo) {
-      additionalBonusNext = calculateAdditionalBonusAtNextTier(
-        baselineBonus, multiplier, nextInfo.nextTier.multiplier
+      nextBonusCapped = Math.min(
+        baselineBonus * nextInfo.nextTier.multiplier,
+        maxBonusForExpansion(nextInfo.requiredNetExpansion, cfg)
       );
+      additionalBonusNext = nextBonusCapped - quarterlyBonus;
     }
 
     const endingTotalManagedMRR = ending + num(input.newCustomerMRR);
@@ -385,6 +418,9 @@
       appliedNRRTierIndex: nrrSel.index,
       multiplier,
       quarterlyBonus,
+      uncappedBonus,
+      capped,
+      expansionCeiling,
       annualizedBonus,
       newCustomerMRR: num(input.newCustomerMRR),
       endingTotalManagedMRR,
@@ -394,7 +430,7 @@
         requiredNetExpansion: nextInfo.requiredNetExpansion,
         additionalExpansionNeeded: nextInfo.additionalNeeded,
         additionalBonus: additionalBonusNext,
-        nextBonus: baselineBonus * nextInfo.nextTier.multiplier
+        nextBonus: nextBonusCapped
       } : null
     };
   }
@@ -416,6 +452,8 @@
     calculateCurrentNRRRequiredForSmoothedTarget,
     calculateAdditionalExpansionNeededForNextTier,
     calculateAdditionalBonusAtNextTier,
+    maxBonusForExpansion,
+    capBonusToExpansion,
     computeQuarterAggregate,
     compute
   };

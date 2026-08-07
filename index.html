@@ -429,6 +429,8 @@ textarea.prt-input{resize:vertical}
 .bonus-progress-fill{height:100%;background:linear-gradient(90deg,var(--teal-mid),var(--teal));border-radius:20px;transition:width 0.4s ease}
 .bonus-progress-note{font-size:12px;color:var(--ink2);line-height:1.55}
 .bonus-matrix td.hit{background:var(--teal-light);color:var(--teal);font-weight:700}
+.bonus-matrix td.capd{color:var(--ink3)}
+.bonus-matrix td.capd::after{content:"*";color:var(--amber);font-weight:700}
 .bonus-matrix td.book-col,.bonus-matrix th.book-col{text-align:left;font-weight:600;color:var(--ink)}
 .bonus-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .bonus-scenario-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
@@ -1229,13 +1231,13 @@ textarea.prt-input{resize:vertical}
       <div class="bonus-step">
         <div class="bonus-step-num">STEP 3</div>
         <div class="bonus-step-title">Bonus = Baseline × Multiplier</div>
-        <div class="bonus-step-desc">How much you grew sets a multiplier — <b>1.0×</b> at 110% NRR up to <b>6.0×</b> at 200%+. Your quarterly bonus is your band's baseline × that multiplier.</div>
+        <div class="bonus-step-desc">How much you grew sets a multiplier — <b>1.0×</b> at 110% NRR up to <b>6.0×</b> at 200%+. Bonus = band baseline × multiplier, <b>capped at 6% of the expansion you generated</b> (so it never outpaces AE commission).</div>
       </div>
     </div>
 
     <div class="section-header" style="margin-top:24px">
       <span class="section-title">Full quarterly bonus matrix</span>
-      <span class="section-note">Baseline (110% NRR) × NRR multiplier · below 110% NRR pays $0</span>
+      <span class="section-note">Baseline (110% NRR) × NRR multiplier · <b>*capped at 6% of the expansion generated</b> · below 110% NRR pays $0</span>
     </div>
     <div class="table-card">
       <div class="table-wrap">
@@ -3779,7 +3781,8 @@ function bonusRecompute(){
   if(!r.valid) subEl.textContent = 'Fix the highlighted input to calculate';
   else if(r.quarterlyBonus===0 && r.bookTierStatus==='below-minimum') subEl.textContent = 'Book is below the $50k minimum band';
   else if(r.quarterlyBonus===0) subEl.textContent = 'Below the 110% NRR threshold — no bonus this quarter';
-  else subEl.textContent = `${r.appliedNRRTier.label} NRR · ${r.multiplier}× multiplier · ${bandLabel} band`;
+  else subEl.textContent = `${r.appliedNRRTier.label} NRR · ${r.multiplier}× multiplier · ${bandLabel} band`
+    + (r.capped ? ' · capped at 6% of expansion' : '');
 
   // output grid
   set('bo-band', bandLabel);
@@ -3800,6 +3803,7 @@ function bonusRecompute(){
     let s = `You're in the <b>${bandLabel}</b> book band. Your quarterly NRR is ${bPct(r.currentNRR)}. `;
     if(r.quarterlyBonus>0){
       s += `That's the ${r.appliedNRRTier.label} tier (${r.multiplier}× multiplier), so your quarterly bonus is <b>${bFmt$(r.quarterlyBonus)}</b> — a ${bFmt$(r.annualizedBonus)} annualized run-rate.`;
+      if(r.capped) s += ` (Held at the 6% ceiling — the ${bFmt$(r.uncappedBonus)} schedule amount would exceed 6% of the expansion generated.)`;
     } else if(r.bookTierStatus==='below-minimum'){
       s += `Your book is below the $50k minimum band, so no bonus applies yet.`;
     } else {
@@ -3816,11 +3820,19 @@ function bonusRecompute(){
 // ── matrix (config-driven) ─────────────────────────────────────
 function bonusRenderMatrix(){
   const cfg = BonusCalc.DEFAULT_CONFIG;
-  const mults = cfg.nrrTiers.slice(1).map(t=>t.multiplier); // skip below-110
+  const nrrCols = cfg.nrrTiers.slice(1);   // skip below-110
   const tiers = cfg.bookTiers;
   const rows = tiers.map((bt,bi)=>{
     const band = (bi<tiers.length-1) ? `${bFmtK(bt.mrr)}–${bFmtK(tiers[bi+1].mrr)}` : `${bFmtK(bt.mrr)}+`;
-    const cells = mults.map((m,ci)=>`<td id="bmx-${bi}-${ci}" style="text-align:right">${bFmtK(bt.baselineBonus*m)}</td>`).join('');
+    const cells = nrrCols.map((t,ci)=>{
+      const gross = bt.baselineBonus * t.multiplier;
+      // Expansion to reach this NRR on this band, then the 6%-of-expansion ceiling.
+      const expansion = bt.mrr * (t.minimumNRR - 1);
+      const val = BonusCalc.capBonusToExpansion(gross, expansion, cfg);
+      const capped = val < gross;
+      const title = capped ? ` title="Capped at 6% of expansion (uncapped ${bFmtK(gross)})"` : '';
+      return `<td id="bmx-${bi}-${ci}" class="${capped?'capd':''}" style="text-align:right"${title}>${bFmtK(val)}</td>`;
+    }).join('');
     return `<tr><td class="book-col">${band}</td>${cells}</tr>`;
   }).join('');
   document.getElementById('bonus-matrix-body').innerHTML = rows;
@@ -3863,7 +3875,7 @@ function bonusRenderExpansion(r){
     base>0 ? `Net expansion required on your ${bFmt$(base)} cohort` : 'Net expansion required by milestone';
   const rows = cfg.nrrTiers.slice(1).map((t)=>{
     const needed = BonusCalc.calculateExpansionRequiredForNRR(base, t.minimumNRR);
-    const bonus = r.baselineBonus * t.multiplier;
+    const bonus = BonusCalc.capBonusToExpansion(r.baselineBonus * t.multiplier, needed, cfg);
     const hit = r.valid && r.appliedNRRTier && r.appliedNRRTier.label===t.label ? ' class="hit"' : '';
     return `<tr><td style="text-align:left"${hit}>${t.label}</td><td style="text-align:right"${hit}>${bFmt$(needed)}</td><td style="text-align:right"${hit}>${bFmt$(bonus)}</td></tr>`;
   }).join('');

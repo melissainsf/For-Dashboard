@@ -229,6 +229,30 @@ const aggR = BC.compute({ mode:'detailed', m1:agg.avgManaged, m2:agg.avgManaged,
 eq('agg->compute current NRR = 337/300', aggR.currentNRR, 337000/300000);
 eq('agg->compute book tier 300k', aggR.bookTier.mrr, 300000);
 
+// ── Fairness ceiling: bonus ≤ 6% of annualized expansion ────────
+// $1M book doubling (200%): net expansion $1M MRR = $12M ARR; 6% = $720k.
+eq('maxBonusForExpansion 1M MRR -> $720k', BC.maxBonusForExpansion(1000000), 720000);
+eq('capBonus: $900k capped to $720k', BC.capBonusToExpansion(900000, 1000000), 720000);
+eq('capBonus: under ceiling passes through', BC.capBonusToExpansion(210000, 300000), 210000); // 6% of $3.6M=$216k
+ok('ceiling disabled -> Infinity', BC.maxBonusForExpansion(1000000, Object.assign({}, BC.DEFAULT_CONFIG, {maxBonusPctOfExpansion:0})) === Infinity);
+eq('ceiling non-negative expansion', BC.maxBonusForExpansion(-50000), 0);
+
+// compute(): $1M @200% (via band floor) with matching expansion is held to $720k
+const capHigh = BC.compute({ mode:'simple', avgManagedMRR:1000000, beginningMRR:1000000, endingMRR:2000000, smoothingOn:false });
+eq('compute: 1M@200% uncapped would be $900k', capHigh.uncappedBonus, 900000);
+eq('compute: 1M@200% capped to $720k', capHigh.quarterlyBonus, 720000);
+eq('compute: capped flag set', capHigh.capped, true);
+eq('compute: annualized reflects cap ($2.88M)', capHigh.annualizedBonus, 2880000);
+
+// $300k @200% ($210k) sits just under 6% of $3.6M ($216k) -> not capped
+const capMid = BC.compute({ mode:'simple', avgManagedMRR:300000, beginningMRR:300000, endingMRR:600000, smoothingOn:false });
+eq('compute: 300k@200% not capped ($210k)', capMid.quarterlyBonus, 210000);
+eq('compute: 300k@200% capped flag false', capMid.capped, false);
+
+// $1M @110% baseline ($150k) exceeds 6% of $1.2M ($72k) -> capped
+const capBaseline = BC.compute({ mode:'simple', avgManagedMRR:1000000, beginningMRR:1000000, endingMRR:1100000, smoothingOn:false });
+eq('compute: 1M@110% baseline capped to $72k', capBaseline.quarterlyBonus, 72000);
+
 // ── Report ──────────────────────────────────────────────────────
 console.log(`\n${passed} passed, ${failed} failed  (${passed + failed} total)`);
 process.exit(failed ? 1 : 0);
