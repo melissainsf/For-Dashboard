@@ -263,6 +263,25 @@ eq('3 churns -> disqualified $0', BC.compute(Object.assign({}, dqBase, {maxChurn
 eq('disqualifier overrides even a huge quarter', BC.compute({ mode:'simple', avgManagedMRR:1000000, beginningMRR:1000000, endingMRR:2000000, maxChurnsInMonth:2, smoothingOn:false }).quarterlyBonus, 0);
 eq('disqualifier tunable via config', BC.compute(Object.assign({}, dqBase, {maxChurnsInMonth:2}), Object.assign({}, BC.DEFAULT_CONFIG, {churnLogoDisqualifierPerMonth:3})).quarterlyBonus, 210000);
 
+// ── 50/50 individual + team split ───────────────────────────────
+// $300k baseline $35k; individual (capped) $64,800; team NRR 120% -> 1.4×.
+const cb = BC.combineBonus(64800, 35000, 1.4);
+eq('combine individual half = $32,400', cb.individualHalf, 32400);
+eq('combine team half = $24,500', cb.teamHalf, 24500);
+eq('combine total = $56,900', cb.total, 56900);
+// equal multipliers -> equal halves (true 50/50)
+const cbEqual = BC.combineBonus(35000*2.0, 35000, 2.0);
+eq('equal mults -> equal halves', cbEqual.individualHalf, cbEqual.teamHalf);
+// individual disqualified ($0) still pays the team half
+const cbDq = BC.combineBonus(0, 35000, 1.4);
+eq('disqualified individual -> half is $0', cbDq.individualHalf, 0);
+eq('disqualified individual -> team half still $24,500', cbDq.teamHalf, 24500);
+eq('disqualified total = team half only', cbDq.total, 24500);
+// weight is config-driven
+const cbW = BC.combineBonus(100000, 50000, 2.0, Object.assign({}, BC.DEFAULT_CONFIG, {individualWeight:0.7}));
+eq('weighted 70/30 individual half', cbW.individualHalf, 70000);
+eq('weighted 70/30 team half', cbW.teamHalf, 0.3*50000*2.0);
+
 // ── Report ──────────────────────────────────────────────────────
 console.log(`\n${passed} passed, ${failed} failed  (${passed + failed} total)`);
 process.exit(failed ? 1 : 0);

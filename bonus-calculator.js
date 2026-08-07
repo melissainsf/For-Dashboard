@@ -55,7 +55,11 @@
     // Hard disqualifier: this many customer logos churning within a SINGLE month
     // voids the entire quarterly bonus, regardless of expansion. Set to 0 to
     // disable.
-    churnLogoDisqualifierPerMonth: 2
+    churnLogoDisqualifierPerMonth: 2,
+    // Split between individual and team performance. 0.5 = 50% of the bonus is
+    // driven by the AM's own NRR, 50% by the team's NRR (both on the AM's own
+    // band baseline).
+    individualWeight: 0.5
   };
 
   // ── Small helpers ──────────────────────────────────────────────
@@ -199,6 +203,18 @@
   // Apply the ceiling to a bonus for a given expansion.
   function capBonusToExpansion(bonus, netExpansionMRR, config) {
     return Math.min(num(bonus), maxBonusForExpansion(netExpansionMRR, config));
+  }
+
+  // ── 50/50 split: combine individual + team into the final bonus ──
+  // individualBonus = the AM's own capped/disqualified bonus. teamEffMult = the
+  // team's (capped) NRR multiplier. Both halves share the AM's band baseline, so
+  // the team half is 50% of the AM's own scale driven by team performance.
+  function combineBonus(individualBonus, baseline, teamEffMult, config) {
+    const cfg = config || DEFAULT_CONFIG;
+    const w = (cfg.individualWeight == null) ? 0.5 : cfg.individualWeight;
+    const individualHalf = w * num(individualBonus);
+    const teamHalf = (1 - w) * num(baseline) * num(teamEffMult);
+    return { individualHalf, teamHalf, total: individualHalf + teamHalf, weight: w };
   }
 
   // ── 11. Expansion required to reach an NRR level ───────────────
@@ -466,6 +482,7 @@
     calculateAdditionalBonusAtNextTier,
     maxBonusForExpansion,
     capBonusToExpansion,
+    combineBonus,
     computeQuarterAggregate,
     compute
   };

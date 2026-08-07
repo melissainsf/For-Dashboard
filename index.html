@@ -390,6 +390,15 @@ textarea.prt-input{resize:vertical}
 .prt-btn-primary:disabled{opacity:0.5;cursor:wait}
 /* ── BONUS CALCULATOR ─────────────────────────────────────────── */
 .bonus-intro{font-size:13px;color:var(--ink2);line-height:1.65;max-width:820px;margin-bottom:18px}
+.bonus-split-callout{display:flex;align-items:center;gap:16px;background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px}
+.bonus-split-callout-icon{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--teal);white-space:nowrap;letter-spacing:-0.02em;flex-shrink:0}
+.bonus-split-callout-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;color:var(--teal);margin-bottom:3px}
+.bonus-split-callout-body{font-size:12.5px;color:var(--ink2);line-height:1.55}
+.bonus-hero-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.18)}
+.bonus-hero-split .bhs{background:rgba(255,255,255,0.10);border-radius:var(--radius-sm);padding:9px 12px}
+.bonus-hero-split .bhs-lab{font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:rgba(255,255,255,0.7)}
+.bonus-hero-split .bhs-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#fff;line-height:1.1;margin-top:2px}
+.bonus-hero-split .bhs-sub{font-size:10.5px;color:rgba(255,255,255,0.75);margin-top:2px}
 .bonus-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:8px}
 @media(max-width:900px){.bonus-steps{grid-template-columns:1fr 1fr}}
 .bonus-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);position:relative}
@@ -1220,6 +1229,14 @@ textarea.prt-input{resize:vertical}
       mid-quarter grow your book size but don't count toward the existing-cohort NRR.
     </div>
 
+    <div class="bonus-split-callout">
+      <div class="bonus-split-callout-icon">50 / 50</div>
+      <div>
+        <div class="bonus-split-callout-title">Half your bonus is your own performance · half is the team's</div>
+        <div class="bonus-split-callout-body">Every AM's quarterly bonus is <b>50% individual + 50% team</b>. Your half runs on <b>your</b> Quarterly NRR; the team half runs on the <b>whole team's</b> combined NRR — both measured on the same scale below and paid on your book's baseline. Pick <b>“Team (whole book)”</b> in the calculator to see where the team stands.</div>
+      </div>
+    </div>
+
     <div class="bonus-steps">
       <div class="bonus-step">
         <div class="bonus-step-num">STEP 1</div>
@@ -1329,6 +1346,11 @@ textarea.prt-input{resize:vertical}
           </select>
         </div>
 
+        <div class="bonus-field">
+          <label>Team NRR (%) — drives your team half <span class="info-icon" onmouseenter="showInfo(event,'bonusTeamNrr')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span></label>
+          <input class="prt-input bonus-in" id="bi-teamnrr" inputmode="decimal" placeholder="e.g. 120">
+        </div>
+
         <!-- Simple-mode fields -->
         <div id="bonus-simple-fields">
           <div class="bonus-field">
@@ -1379,6 +1401,10 @@ textarea.prt-input{resize:vertical}
           <div class="bonus-hero-label">Quarterly bonus</div>
           <div class="bonus-hero-value" id="bonus-hero-value">$0</div>
           <div class="bonus-hero-sub" id="bonus-hero-sub">Enter a scenario to calculate</div>
+          <div class="bonus-hero-split" id="bonus-hero-split" style="display:none">
+            <div class="bhs"><div class="bhs-lab">Individual (50%)</div><div class="bhs-val" id="bonus-half-ind">$0</div><div class="bhs-sub" id="bonus-half-ind-sub"></div></div>
+            <div class="bhs"><div class="bhs-lab">Team (50%)</div><div class="bhs-val" id="bonus-half-team">$0</div><div class="bhs-sub" id="bonus-half-team-sub"></div></div>
+          </div>
           <div class="bonus-hero-annual">
             <span>Annualized run-rate <span class="info-icon" onmouseenter="showInfo(event,'bonusAnnual')" onmousemove="posTip(event)" onmouseleave="hideTip()" style="border-color:rgba(255,255,255,0.5);color:rgba(255,255,255,0.8)">i</span></span>
             <b id="bonus-hero-annual-value">$0</b>
@@ -2249,6 +2275,10 @@ function showInfoTip(e, title, html){
 }
 function showInfo(e, key){ const info=FC_INFO[key]; if(info) showInfoTip(e, info.title, info.html); }
 const FC_INFO = {
+  bonusTeamNrr:{ title:'Team half (50%)', html:
+    "<div class='r'>Half of every AM's bonus rides on the <b>whole team's</b> combined Quarterly NRR — the same number for everyone.</div>"
+    +"<div class='r'>Your team half = <b>50% × your band baseline × the team's NRR multiplier</b> (capped at 6% of team expansion). Your own churn never affects it.</div>"
+    +"<div class='r'>Auto-filled from the team's live aggregate; pick “Team (whole book)” to see the team's full standing.</div>" },
   bonusChurnDq:{ title:'Churn disqualifier', html:
     "<div class='r'>Enter the <b>most customer logos that churned in any single month</b> of the quarter.</div>"
     +"<div class='r'><b>2 or more in one month voids the entire bonus</b> for the quarter — regardless of how much was expanded.</div>"
@@ -3557,11 +3587,12 @@ window.addEventListener('DOMContentLoaded', async () => {
 // ══════════════════════════════════════════════════════════════
 //  BONUS CALCULATOR — UI glue (logic lives in bonus-calculator.js)
 // ══════════════════════════════════════════════════════════════
-const bonusState = { initialized:false, mode:'simple', currentAM:'General (example)' };
-const BONUS_FIELDS = ['bi-band','bi-begin-s','bi-end-s','bi-begin-d','bi-exp','bi-con','bi-churn','bi-new','bi-churnmax'];
+const bonusState = { initialized:false, mode:'simple', currentAM:'General (example)', isTeamView:false };
+const BONUS_TEAM_OPTION = 'Team (whole book)';
+const BONUS_FIELDS = ['bi-band','bi-teamnrr','bi-begin-s','bi-end-s','bi-begin-d','bi-exp','bi-con','bi-churn','bi-new','bi-churnmax'];
 const BONUS_TOGGLES = [];
 const BONUS_SCEN_KEY = 'virio-bonus-scenarios';
-const bonusExample = { 'bi-band':'300000','bi-begin-s':'$300,000','bi-end-s':'$390,000' };
+const bonusExample = { 'bi-band':'300000','bi-teamnrr':'120','bi-begin-s':'$300,000','bi-end-s':'$390,000' };
 // Book-band labels keyed by the band's tier-floor MRR (the dropdown value).
 const BONUS_BAND_LABELS = { '50000':'$50k–$75k','75000':'$75k–$150k','150000':'$150k–$300k','300000':'$300k–$500k','500000':'$500k–$750k','750000':'$750k–$1M','1000000':'$1M+' };
 function bonusBandLabel(tierMrr){ return BONUS_BAND_LABELS[String(tierMrr)] || 'Below $50k'; }
@@ -3605,7 +3636,7 @@ function bonusPopulateAMs(){
   const sel = document.getElementById('bonus-am');
   const ams = (typeof CURRENT_AMS!=='undefined' && CURRENT_AMS.length) ? CURRENT_AMS : [];
   const eligible = ams.filter(a => !BONUS_EXCLUDE_AMS.includes(a));
-  const opts = ['General (example)', ...eligible];
+  const opts = ['General (example)', BONUS_TEAM_OPTION, ...eligible];
   sel.innerHTML = opts.map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
   sel.value = bonusState.currentAM;
 }
@@ -3626,9 +3657,13 @@ function bonusSetMode(mode){
 // selected, then remains editable for what-if modeling.
 function bonusOnAMChange(){
   bonusState.currentAM = document.getElementById('bonus-am').value;
+  bonusState.isTeamView = (bonusState.currentAM===BONUS_TEAM_OPTION);
   if(bonusState.currentAM==='General (example)'){
     bonusSetSource('');
     bonusLoadInputs(bonusState.currentAM);
+  } else if(bonusState.isTeamView){
+    bonusPrefillFromTeam();   // calls recompute via setMode
+    return;
   } else if(typeof allCompanies!=='undefined' && allCompanies && allCompanies.length){
     bonusPrefillFromAM(bonusState.currentAM);   // calls recompute via setMode
     return;
@@ -3637,6 +3672,52 @@ function bonusOnAMChange(){
     bonusSetSource(`<b>${escapeHtml(bonusState.currentAM)}</b> — dashboard data isn't loaded yet, so there's nothing to auto-fill. Open the main dashboard (or hit ↻ Refresh) to pull live HubSpot numbers, then reselect the name.`);
   }
   bonusRecompute();
+}
+
+// ── team aggregate (drives the 50% team half for everyone) ─────
+function bonusEligibleAMs(){
+  const ams=(typeof CURRENT_AMS!=='undefined'?CURRENT_AMS:[]);
+  return ams.filter(a=>!BONUS_EXCLUDE_AMS.includes(a));
+}
+function bonusAggregateTeam(){
+  if(typeof allCompanies==='undefined' || !allCompanies || !allCompanies.length) return null;
+  const eligible=new Set(bonusEligibleAMs());
+  const cohort=allCompanies.filter(inNrrCohort).filter(c=>eligible.has(displayAM(c.csm)));
+  if(!cohort.length) return null;
+  const cq=bonusQLabel(new Date());
+  const snaps=bonusSnapshots||{};
+  const curAcc=snaps[cq]?snaps[cq].accounts:null;
+  const ids=new Set(cohort.map(c=>c.id));
+  const baseline=curAcc?(()=>{const o={};ids.forEach(id=>{if(curAcc[id])o[id]=curAcc[id];});return o;})():null;
+  const isNewFn=c=>baseline?!baseline[c.id]:bonusIsNewThisQuarter(c);
+  const accounts=cohort.map(c=>({id:c.id,mrr:c.mrr,expansion_mrr:c.expansion_mrr,churned_mrr:c.churned_mrr,isNew:isNewFn(c)}));
+  const agg=BonusCalc.computeQuarterAggregate({accounts,baseline,priorBaseline:null});
+  return { begin:agg.begin, exp:agg.exp, churn:agg.churn, ending:agg.ending, newMRR:agg.newMRR,
+           avgManaged:agg.avgManaged, nAll:cohort.length, nAMs:eligible.size };
+}
+// Team compute result + effective (capped) team multiplier. Cached per recompute.
+function bonusTeamResult(){
+  const a=bonusAggregateTeam();
+  if(!a || a.begin<=0) return null;
+  const r=BonusCalc.compute({ mode:'detailed', avgManagedMRR:a.avgManaged, beginningMRR:a.begin,
+    expansion:a.exp, contraction:0, churned:a.churn, newCustomerMRR:a.newMRR,
+    previousNRR:null, smoothingOn:false, maxChurnsInMonth:0 }, BonusCalc.DEFAULT_CONFIG);
+  const effMult = r.baselineBonus>0 ? r.quarterlyBonus/r.baselineBonus : 0;
+  return { agg:a, r, effMult, nrr:r.currentNRR };
+}
+function bonusPrefillFromTeam(){
+  const t=bonusTeamResult();
+  if(!t){ bonusClearFields(); bonusSetSource('No team data loaded yet — open the main dashboard (or ↻ Refresh) to populate the team view.'); bonusRecompute(); return; }
+  const a=t.agg;
+  const sel=BonusCalc.selectBookTier(a.avgManaged);
+  const bandVal=(sel.status==='below-minimum')?0:sel.tier.mrr;
+  document.getElementById('bi-band').value=String(bandVal);
+  document.getElementById('bi-teamnrr').value=(t.nrr!=null)?(t.nrr*100).toFixed(1):'';
+  bSetMoney('bi-begin-d',a.begin); bSetMoney('bi-exp',a.exp); bSetMoney('bi-con',0); bSetMoney('bi-churn',a.churn); bSetMoney('bi-new',a.newMRR);
+  bSetMoney('bi-begin-s',a.begin); bSetMoney('bi-end-s',a.ending);
+  document.getElementById('bi-churnmax').value='';
+  bonusSetMode('detailed');
+  bonusSetSource(`<b>Team (whole book)</b> · ${a.nAll} accounts across ${a.nAMs} AMs · ${bonusBandLabel(bandVal)} band (${bFmt$(a.avgManaged)}). Team NRR <b>${bPct(t.nrr)}</b> — this is the number that drives the <b>50% team half</b> of every AM's bonus. Each AM's team half = 50% × their own baseline × the team multiplier.`);
 }
 
 // ── live per-AM aggregation from HubSpot data ──────────────────
@@ -3700,6 +3781,8 @@ function bonusPrefillFromAM(am){
   bSetMoney('bi-begin-s',a.begin); bSetMoney('bi-end-s',a.ending);
   // churn disqualifier — worst single month, from HubSpot churn dates
   const churnEl=document.getElementById('bi-churnmax'); if(churnEl) churnEl.value = a.maxChurnsInMonth ? String(a.maxChurnsInMonth) : '';
+  // team NRR — from the live team aggregate (drives the 50% team half)
+  const t=bonusTeamResult(); const tnEl=document.getElementById('bi-teamnrr'); if(tnEl) tnEl.value = (t&&t.nrr!=null) ? (t.nrr*100).toFixed(1) : '';
   bonusSetMode('detailed');   // show the breakdown; also recomputes
   // source note
   if(a.nAll===0){
@@ -3816,7 +3899,7 @@ function bonusReadInputs(){
 function bonusConfig(){ return BonusCalc.DEFAULT_CONFIG; }
 
 // ── the main recompute + render ────────────────────────────────
-let bonusLastResult = null;
+let bonusLastResult = null, bonusLastCombo = null, bonusLastTeamNRR = null, bonusDisplayTotal = 0;
 function bonusRecompute(){
   const inp = bonusReadInputs();
   const cfg = bonusConfig();
@@ -3832,16 +3915,44 @@ function bonusRecompute(){
   // book-band label
   const bandLabel = (r.bookTierStatus==='below-minimum' || !r.bookTier) ? 'Below $50k' : bonusBandLabel(r.bookTier.mrr);
 
-  // hero
-  document.getElementById('bonus-hero-value').textContent = bFmt$(r.quarterlyBonus);
-  document.getElementById('bonus-hero-annual-value').textContent = bFmt$(r.annualizedBonus);
+  // ── 50/50 split: individual half + team half ──
+  const teamNRRfield = bParsePct(bVal('bi-teamnrr'));
+  const live = bonusTeamResult();
+  let teamEffMult = 0, teamNRRused = null;
+  if(live && teamNRRfield!=null && Math.round(teamNRRfield*1000)===Math.round(live.nrr*1000)){
+    teamEffMult = live.effMult; teamNRRused = live.nrr;                                   // live, capped
+  } else if(teamNRRfield!=null){
+    teamEffMult = BonusCalc.selectNRRTier(teamNRRfield).tier.multiplier; teamNRRused = teamNRRfield;  // manual / what-if
+  } else if(live){
+    teamEffMult = live.effMult; teamNRRused = live.nrr;
+  }
+  const combo = BonusCalc.combineBonus(r.quarterlyBonus, r.baselineBonus, teamEffMult, cfg);
+  bonusLastCombo = combo; bonusLastTeamNRR = teamNRRused;
+
+  const splitEl=document.getElementById('bonus-hero-split');
   const subEl = document.getElementById('bonus-hero-sub');
-  if(!r.valid) subEl.textContent = 'Fix the highlighted input to calculate';
-  else if(r.disqualified) subEl.textContent = 'Disqualified — 2+ customers churned in one month';
-  else if(r.quarterlyBonus===0 && r.bookTierStatus==='below-minimum') subEl.textContent = 'Book is below the $50k minimum band';
-  else if(r.quarterlyBonus===0) subEl.textContent = 'Below the 110% NRR threshold — no bonus this quarter';
-  else subEl.textContent = `${r.appliedNRRTier.label} NRR · ${r.multiplier}× multiplier · ${bandLabel} band`
-    + (r.capped ? ' · capped at 6% of expansion' : '');
+  if(bonusState.isTeamView){
+    splitEl.style.display='none';
+    document.getElementById('bonus-hero-value').textContent = bFmt$(r.quarterlyBonus);
+    document.getElementById('bonus-hero-annual-value').textContent = bFmt$(r.annualizedBonus);
+    bonusDisplayTotal = r.quarterlyBonus;
+    subEl.textContent = !r.valid ? 'Load team data to calculate'
+      : `Team standing · ${bandLabel} band · ${r.appliedNRRTier.label} NRR · ${r.multiplier}× · sets everyone's team half`;
+  } else {
+    document.getElementById('bonus-hero-value').textContent = bFmt$(combo.total);
+    document.getElementById('bonus-hero-annual-value').textContent = bFmt$(combo.total*4);
+    bonusDisplayTotal = combo.total;
+    splitEl.style.display = r.valid ? 'grid' : 'none';
+    set('bonus-half-ind', bFmt$(combo.individualHalf));
+    set('bonus-half-team', bFmt$(combo.teamHalf));
+    set('bonus-half-ind-sub', r.disqualified ? 'void — 2+ churns' : (`your ${r.appliedNRRTier.label} · ${r.multiplier}×`+(r.capped?' · capped':'')));
+    const tTier = (teamNRRused!=null)?BonusCalc.selectNRRTier(teamNRRused).tier:null;
+    set('bonus-half-team-sub', tTier ? `team ${bPct(teamNRRused)} · ${tTier.multiplier}×` : 'no team data yet');
+    if(!r.valid) subEl.textContent = 'Fix the highlighted input to calculate';
+    else if(r.disqualified) subEl.textContent = 'Individual half void (2+ churns) — team half still applies';
+    else if(r.quarterlyBonus===0 && r.bookTierStatus==='below-minimum') subEl.textContent = 'Book below the $50k minimum band';
+    else subEl.textContent = `${bandLabel} band · 50% you + 50% team`;
+  }
 
   // output grid
   set('bo-band', bandLabel);
@@ -3857,23 +3968,22 @@ function bonusRecompute(){
 
   // plain-English summary
   const sumEl = document.getElementById('bonus-summary');
-  if(r.valid && r.beginningMRR>0){
+  if(bonusState.isTeamView){
+    if(r.valid && r.beginningMRR>0){
+      sumEl.style.display='';
+      sumEl.innerHTML = `This is the <b>whole team's</b> standing: a ${bandLabel} combined book at <b>${bPct(r.currentNRR)}</b> team NRR (${r.appliedNRRTier.label} tier · ${r.multiplier}×). It sets the <b>50% team half</b> of every AM's bonus — each AM earns 50% × their own baseline × this ${r.multiplier}× team multiplier.`;
+    } else sumEl.style.display='none';
+  } else if(r.valid && r.beginningMRR>0){
     sumEl.style.display='';
+    const teamPct = (bonusLastTeamNRR!=null)?bPct(bonusLastTeamNRR):'—';
     let s;
     if(r.disqualified){
-      s = `<b>Bonus disqualified.</b> ${r.maxChurnsInMonth} customers churned in a single month — 2 or more in one month voids the entire quarterly bonus, regardless of expansion. (The schedule would otherwise have paid ${bFmt$(r.capped?r.expansionCeiling:r.uncappedBonus)}.)`;
-      sumEl.innerHTML = s;
-      bonusRenderProgress(r); bonusRenderExpansion(r); bonusHighlightMatrix(r);
-      return;
-    }
-    s = `You're in the <b>${bandLabel}</b> book band. Your quarterly NRR is ${bPct(r.currentNRR)}. `;
-    if(r.quarterlyBonus>0){
-      s += `That's the ${r.appliedNRRTier.label} tier (${r.multiplier}× multiplier), so your quarterly bonus is <b>${bFmt$(r.quarterlyBonus)}</b> — a ${bFmt$(r.annualizedBonus)} annualized run-rate.`;
-      if(r.capped) s += ` (Held at the 6% ceiling — the ${bFmt$(r.uncappedBonus)} schedule amount would exceed 6% of the expansion generated.)`;
-    } else if(r.bookTierStatus==='below-minimum'){
-      s += `Your book is below the $50k minimum band, so no bonus applies yet.`;
+      s = `<b>Individual half disqualified</b> — ${r.maxChurnsInMonth} customers churned in a single month (2+ voids the individual half, regardless of expansion). You still earn the <b>team half of ${bFmt$(combo.teamHalf)}</b> (team NRR ${teamPct}), for a total of <b>${bFmt$(combo.total)}</b>.`;
     } else {
-      s += `That's below the 110% threshold, so the quarterly bonus is $0.`;
+      s = `You're in the <b>${bandLabel}</b> band. Your NRR ${bPct(r.currentNRR)} earns an individual half of <b>${bFmt$(combo.individualHalf)}</b>`;
+      if(r.capped) s += ` (held at the 6% ceiling)`;
+      s += `; the team's ${teamPct} NRR adds a team half of <b>${bFmt$(combo.teamHalf)}</b>. `;
+      s += `Total quarterly bonus <b>${bFmt$(combo.total)}</b> — a ${bFmt$(combo.total*4)} annualized run-rate.`;
     }
     sumEl.innerHTML = s;
   } else sumEl.style.display='none';
@@ -3979,9 +4089,15 @@ function bonusCopy(ev){
   L.push('Book band: '+band+'   Baseline: '+bFmt$(r.baselineBonus));
   L.push('Beginning existing MRR: '+bFmt$(r.beginningMRR)+'   Ending existing MRR: '+bFmt$(r.endingExistingMRR));
   L.push('Net expansion: '+bFmt$(r.netExpansionMRR));
-  L.push('Quarterly NRR: '+bPct(r.currentNRR));
+  L.push('Quarterly NRR: '+bPct(r.currentNRR)+'   Team NRR: '+(bonusLastTeamNRR!=null?bPct(bonusLastTeamNRR):'—'));
   L.push('Applied tier: '+r.appliedNRRTier.label+' ('+r.multiplier+'×)');
-  L.push('QUARTERLY BONUS: '+bFmt$(r.quarterlyBonus)+'   (annualized run-rate '+bFmt$(r.annualizedBonus)+')');
+  if(bonusState.isTeamView){
+    L.push('TEAM BONUS (sets everyone’s team half): '+bFmt$(r.quarterlyBonus));
+  } else if(bonusLastCombo){
+    L.push('Individual half (50%): '+bFmt$(bonusLastCombo.individualHalf));
+    L.push('Team half (50%): '+bFmt$(bonusLastCombo.teamHalf));
+    L.push('QUARTERLY BONUS (total): '+bFmt$(bonusLastCombo.total)+'   (annualized run-rate '+bFmt$(bonusLastCombo.total*4)+')');
+  }
   L.push('Ending total managed book: '+bFmt$(r.endingTotalManagedMRR));
   const txt=L.join('\n');
   const done=()=>{ const b=ev&&ev.currentTarget; if(b){ const o=b.textContent; b.textContent='Copied!'; setTimeout(()=>b.textContent=o,1400);} };
@@ -4000,7 +4116,7 @@ function bonusSaveScenario(){
     book: (r.bookTierStatus==='below-minimum'||!r.bookTier) ? 'Below $50k' : bonusBandLabel(r.bookTier.mrr),
     cur: bPct(r.currentNRR),
     tier: r.appliedNRRTier.label, mult: r.multiplier,
-    bonus: r.quarterlyBonus, annual: r.annualizedBonus
+    bonus: bonusDisplayTotal, annual: bonusDisplayTotal*4
   });
   while(list.length>3) list.shift();
   bonusSetScenarios(list);
