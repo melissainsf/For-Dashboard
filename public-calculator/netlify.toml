@@ -1,0 +1,18 @@
+# Netlify config for the PUBLIC (candidate-facing) AM bonus calculator.
+# This is a standalone static site — no serverless functions, no auth, no
+# HubSpot/company data. Safe to share publicly.
+#
+# In the Netlify site settings for this site, set:
+#   Base directory:    public-calculator
+#   Publish directory:  public-calculator   (i.e. "." relative to the base)
+#   Build command:      (leave empty — static site)
+
+[build]
+  publish = "."
+
+# Belt-and-suspenders: ask crawlers not to index it (the page also sends
+# a noindex meta tag).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
