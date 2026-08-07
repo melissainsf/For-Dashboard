@@ -51,7 +51,11 @@
     // 1 = the raw quarterly MRR figure). Set maxBonusPctOfExpansion to 0 to
     // disable the ceiling.
     maxBonusPctOfExpansion: 0.06,
-    expansionCapMonths: 12
+    expansionCapMonths: 12,
+    // Hard disqualifier: this many customer logos churning within a SINGLE month
+    // voids the entire quarterly bonus, regardless of expansion. Set to 0 to
+    // disable.
+    churnLogoDisqualifierPerMonth: 2
   };
 
   // ── Small helpers ──────────────────────────────────────────────
@@ -375,6 +379,12 @@
     const expansionCeiling = maxBonusForExpansion(netExpansion, cfg);
     quarterlyBonus = Math.min(quarterlyBonus, expansionCeiling);
     const capped = quarterlyBonus < uncappedBonus;
+    // Hard disqualifier: N customer logos churning in a single month voids the
+    // whole bonus, regardless of expansion.
+    const maxChurnsInMonth = num(input.maxChurnsInMonth);
+    const disqualified = cfg.churnLogoDisqualifierPerMonth > 0 &&
+      maxChurnsInMonth >= cfg.churnLogoDisqualifierPerMonth;
+    if (disqualified) quarterlyBonus = 0;
     const annualizedBonus = calculateAnnualizedBonus(quarterlyBonus);
 
     // Next-tier progress
@@ -421,6 +431,8 @@
       uncappedBonus,
       capped,
       expansionCeiling,
+      disqualified,
+      maxChurnsInMonth,
       annualizedBonus,
       newCustomerMRR: num(input.newCustomerMRR),
       endingTotalManagedMRR,

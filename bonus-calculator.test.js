@@ -253,6 +253,16 @@ eq('compute: 300k@200% capped flag false', capMid.capped, false);
 const capBaseline = BC.compute({ mode:'simple', avgManagedMRR:1000000, beginningMRR:1000000, endingMRR:1100000, smoothingOn:false });
 eq('compute: 1M@110% baseline capped to $72k', capBaseline.quarterlyBonus, 72000);
 
+// ── Churn disqualifier: 2+ logos in one month voids the bonus ───
+const dqBase = { mode:'simple', avgManagedMRR:300000, beginningMRR:300000, endingMRR:600000, smoothingOn:false };
+eq('0 churns in a month -> normal bonus', BC.compute(Object.assign({}, dqBase, {maxChurnsInMonth:0})).quarterlyBonus, 210000);
+eq('1 churn in a month -> still pays', BC.compute(Object.assign({}, dqBase, {maxChurnsInMonth:1})).quarterlyBonus, 210000);
+eq('2 churns in a month -> disqualified $0', BC.compute(Object.assign({}, dqBase, {maxChurnsInMonth:2})).quarterlyBonus, 0);
+eq('2 churns -> disqualified flag', BC.compute(Object.assign({}, dqBase, {maxChurnsInMonth:2})).disqualified, true);
+eq('3 churns -> disqualified $0', BC.compute(Object.assign({}, dqBase, {maxChurnsInMonth:3})).quarterlyBonus, 0);
+eq('disqualifier overrides even a huge quarter', BC.compute({ mode:'simple', avgManagedMRR:1000000, beginningMRR:1000000, endingMRR:2000000, maxChurnsInMonth:2, smoothingOn:false }).quarterlyBonus, 0);
+eq('disqualifier tunable via config', BC.compute(Object.assign({}, dqBase, {maxChurnsInMonth:2}), Object.assign({}, BC.DEFAULT_CONFIG, {churnLogoDisqualifierPerMonth:3})).quarterlyBonus, 210000);
+
 // ── Report ──────────────────────────────────────────────────────
 console.log(`\n${passed} passed, ${failed} failed  (${passed + failed} total)`);
 process.exit(failed ? 1 : 0);

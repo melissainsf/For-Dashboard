@@ -390,9 +390,12 @@ textarea.prt-input{resize:vertical}
 .prt-btn-primary:disabled{opacity:0.5;cursor:wait}
 /* ── BONUS CALCULATOR ─────────────────────────────────────────── */
 .bonus-intro{font-size:13px;color:var(--ink2);line-height:1.65;max-width:820px;margin-bottom:18px}
-.bonus-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:8px}
+.bonus-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:8px}
 @media(max-width:900px){.bonus-steps{grid-template-columns:1fr 1fr}}
 .bonus-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);position:relative}
+.bonus-step.warn{background:var(--coral-light);border-color:var(--coral-mid)}
+.bonus-step.warn .bonus-step-num{color:var(--coral)}
+.bonus-step.warn .bonus-step-title{color:var(--coral)}
 .bonus-step-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--teal);letter-spacing:0.08em}
 .bonus-step-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;margin:6px 0 5px}
 .bonus-step-desc{font-size:12px;color:var(--ink2);line-height:1.55}
@@ -1233,6 +1236,11 @@ textarea.prt-input{resize:vertical}
         <div class="bonus-step-title">Bonus = Baseline × Multiplier</div>
         <div class="bonus-step-desc">How much you grew sets a multiplier — <b>1.0×</b> at 110% NRR up to <b>6.0×</b> at 200%+. Bonus = band baseline × multiplier, <b>capped at 6% of the expansion you generated</b> (so it never outpaces AE commission).</div>
       </div>
+      <div class="bonus-step warn">
+        <div class="bonus-step-num">NOTE</div>
+        <div class="bonus-step-title">Churn Disqualifier</div>
+        <div class="bonus-step-desc"><b>2 churned customers in one month</b> disqualifies the entire quarterly bonus — <b>regardless of expansion</b>.</div>
+      </div>
     </div>
 
     <div class="section-header" style="margin-top:24px">
@@ -1326,6 +1334,12 @@ textarea.prt-input{resize:vertical}
             <div class="bonus-field"><label>Churned MRR</label><input class="prt-input bonus-in" id="bi-churn" data-money="1" placeholder="$10,000"></div>
             <div class="bonus-field"><label>New Customer MRR</label><input class="prt-input bonus-in" id="bi-new" data-money="1" placeholder="$50,000"></div>
           </div>
+        </div>
+
+        <!-- Shared: churn disqualifier input -->
+        <div class="bonus-field">
+          <label>Customer churns — most in a single month <span class="info-icon" onmouseenter="showInfo(event,'bonusChurnDq')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span></label>
+          <input class="prt-input bonus-in" id="bi-churnmax" inputmode="numeric" placeholder="0  (2+ in one month = no bonus)">
         </div>
 
         <div class="bonus-actions">
@@ -2214,6 +2228,10 @@ function showInfoTip(e, title, html){
 }
 function showInfo(e, key){ const info=FC_INFO[key]; if(info) showInfoTip(e, info.title, info.html); }
 const FC_INFO = {
+  bonusChurnDq:{ title:'Churn disqualifier', html:
+    "<div class='r'>Enter the <b>most customer logos that churned in any single month</b> of the quarter.</div>"
+    +"<div class='r'><b>2 or more in one month voids the entire bonus</b> for the quarter — regardless of how much was expanded.</div>"
+    +"<div class='r'>Auto-filled from HubSpot churn dates when you pick your name.</div>" },
   bonusBand:{ title:'Book band', html:
     "<div class='r'>Your <b>total managed book</b> — every account you manage, including new customers — falls into a band ($50k–$75k … $1M+).</div>"
     +"<div class='r'>The band sets your <b>baseline bonus</b> (the amount earned at 110% NRR). It auto-selects from your HubSpot book; change it to model a bigger or smaller book.</div>" },
@@ -3519,7 +3537,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 //  BONUS CALCULATOR — UI glue (logic lives in bonus-calculator.js)
 // ══════════════════════════════════════════════════════════════
 const bonusState = { initialized:false, mode:'simple', currentAM:'General (example)' };
-const BONUS_FIELDS = ['bi-band','bi-begin-s','bi-end-s','bi-begin-d','bi-exp','bi-con','bi-churn','bi-new'];
+const BONUS_FIELDS = ['bi-band','bi-begin-s','bi-end-s','bi-begin-d','bi-exp','bi-con','bi-churn','bi-new','bi-churnmax'];
 const BONUS_TOGGLES = [];
 const BONUS_SCEN_KEY = 'virio-bonus-scenarios';
 const bonusExample = { 'bi-band':'300000','bi-begin-s':'$300,000','bi-end-s':'$390,000' };
@@ -3629,9 +3647,21 @@ function bonusAggregateForAM(am){
   const accounts=cohort.map(c=>({ id:c.id, mrr:c.mrr, expansion_mrr:c.expansion_mrr, churned_mrr:c.churned_mrr, isNew:isNewFn(c) }));
   const agg=BonusCalc.computeQuarterAggregate({ accounts, baseline, priorBaseline });
   const nNew=accounts.filter(a=>a.isNew).length;
+  // Most customer logos churned in any single month of this quarter (disqualifier).
+  const qStart=bonusCurrentQuarter().start;
+  const byMonth={};
+  cohort.forEach(c=>{
+    if(!c.churn_date) return;
+    const d=new Date(c.churn_date);
+    if(isNaN(d.getTime()) || d<qStart) return;
+    const key=d.getUTCFullYear()+'-'+d.getUTCMonth();
+    byMonth[key]=(byMonth[key]||0)+1;
+  });
+  const maxChurnsInMonth=Object.values(byMonth).reduce((m,v)=>Math.max(m,v),0);
   return { am, nAll:cohort.length, nExisting:cohort.length-nNew, nNew,
            begin:agg.begin, exp:agg.exp, churn:agg.churn, ending:agg.ending, newMRR:agg.newMRR,
            avgManaged:agg.avgManaged, previousNRR:agg.previousNRR, basis:agg.basis, cq, pq,
+           maxChurnsInMonth,
            hasBaseline:!!(baseline&&Object.keys(baseline).length),
            hasPrior:!!(priorBaseline&&Object.keys(priorBaseline).length) };
 }
@@ -3646,6 +3676,8 @@ function bonusPrefillFromAM(am){
   bSetMoney('bi-begin-d',a.begin); bSetMoney('bi-exp',a.exp); bSetMoney('bi-con',0); bSetMoney('bi-churn',a.churn); bSetMoney('bi-new',a.newMRR);
   // simple-mode fields (mirror, so switching modes keeps the scenario)
   bSetMoney('bi-begin-s',a.begin); bSetMoney('bi-end-s',a.ending);
+  // churn disqualifier — worst single month, from HubSpot churn dates
+  const churnEl=document.getElementById('bi-churnmax'); if(churnEl) churnEl.value = a.maxChurnsInMonth ? String(a.maxChurnsInMonth) : '';
   bonusSetMode('detailed');   // show the breakdown; also recomputes
   // source note
   if(a.nAll===0){
@@ -3659,7 +3691,9 @@ function bonusPrefillFromAM(am){
       +`(${a.nExisting} existing${a.nNew?`, ${a.nNew} new this quarter`:''}) · ${a.cq}.<br>`
       +`Book band <b>${bonusBandLabel(bandVal)}</b> (managed book ${bFmt$(a.avgManaged)}) · existing cohort ${bFmt$(a.begin)} → ${bFmt$(a.ending)}`
       +`${a.newMRR?` · new-customer MRR ${bFmt$(a.newMRR)}`:''}.<br>`
-      +expLine+' Every field stays editable for what-ifs.'
+      +expLine
+      +(a.maxChurnsInMonth>=2 ? ` <b style="color:var(--coral)">Bonus disqualified: ${a.maxChurnsInMonth} customers churned in one month.</b>` : '')
+      +' Every field stays editable for what-ifs.'
     );
   }
 }
@@ -3742,7 +3776,8 @@ function bonusReadInputs(){
     interpolate: false,
     previousNRR: null,
     avgManagedMRR: parseFloat(bVal('bi-band')) || 0,
-    newCustomerMRR: 0
+    newCustomerMRR: 0,
+    maxChurnsInMonth: parseInt(String(bVal('bi-churnmax')).replace(/[^0-9]/g,''),10) || 0
   };
   if(mode==='simple'){
     inp.beginningMRR = bParseMoney(bVal('bi-begin-s'));
@@ -3766,9 +3801,10 @@ function bonusRecompute(){
   const r = BonusCalc.compute(inp, cfg);
   bonusLastResult = r;
 
-  // error banner
+  // error / disqualifier banner
   const errEl = document.getElementById('bonus-err');
   if(r.errors.length){ errEl.textContent = r.errors[0]; errEl.classList.add('show'); }
+  else if(r.disqualified){ errEl.textContent = `Bonus disqualified — ${r.maxChurnsInMonth} customers churned in a single month (2+ in one month voids the bonus, regardless of expansion).`; errEl.classList.add('show'); }
   else errEl.classList.remove('show');
 
   // book-band label
@@ -3779,6 +3815,7 @@ function bonusRecompute(){
   document.getElementById('bonus-hero-annual-value').textContent = bFmt$(r.annualizedBonus);
   const subEl = document.getElementById('bonus-hero-sub');
   if(!r.valid) subEl.textContent = 'Fix the highlighted input to calculate';
+  else if(r.disqualified) subEl.textContent = 'Disqualified — 2+ customers churned in one month';
   else if(r.quarterlyBonus===0 && r.bookTierStatus==='below-minimum') subEl.textContent = 'Book is below the $50k minimum band';
   else if(r.quarterlyBonus===0) subEl.textContent = 'Below the 110% NRR threshold — no bonus this quarter';
   else subEl.textContent = `${r.appliedNRRTier.label} NRR · ${r.multiplier}× multiplier · ${bandLabel} band`
@@ -3800,7 +3837,14 @@ function bonusRecompute(){
   const sumEl = document.getElementById('bonus-summary');
   if(r.valid && r.beginningMRR>0){
     sumEl.style.display='';
-    let s = `You're in the <b>${bandLabel}</b> book band. Your quarterly NRR is ${bPct(r.currentNRR)}. `;
+    let s;
+    if(r.disqualified){
+      s = `<b>Bonus disqualified.</b> ${r.maxChurnsInMonth} customers churned in a single month — 2 or more in one month voids the entire quarterly bonus, regardless of expansion. (The schedule would otherwise have paid ${bFmt$(r.capped?r.expansionCeiling:r.uncappedBonus)}.)`;
+      sumEl.innerHTML = s;
+      bonusRenderProgress(r); bonusRenderExpansion(r); bonusHighlightMatrix(r);
+      return;
+    }
+    s = `You're in the <b>${bandLabel}</b> book band. Your quarterly NRR is ${bPct(r.currentNRR)}. `;
     if(r.quarterlyBonus>0){
       s += `That's the ${r.appliedNRRTier.label} tier (${r.multiplier}× multiplier), so your quarterly bonus is <b>${bFmt$(r.quarterlyBonus)}</b> — a ${bFmt$(r.annualizedBonus)} annualized run-rate.`;
       if(r.capped) s += ` (Held at the 6% ceiling — the ${bFmt$(r.uncappedBonus)} schedule amount would exceed 6% of the expansion generated.)`;
@@ -3849,7 +3893,7 @@ function bonusHighlightMatrix(r){
 // ── next-milestone progress ────────────────────────────────────
 function bonusRenderProgress(r){
   const box=document.getElementById('bonus-progress'), fill=document.getElementById('bonus-progress-fill'), note=document.getElementById('bonus-progress-note');
-  if(!r.valid){ box.style.display='none'; return; }
+  if(!r.valid || r.disqualified){ box.style.display='none'; return; }
   box.style.display='';
   if(!r.next){
     fill.style.width='100%';
