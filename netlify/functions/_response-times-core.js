@@ -101,7 +101,7 @@ async function channelHistory(channelId, oldest, token) {
 // so the widgets always match HubSpot (no static drift). Falls back to the bundled
 // snapshot (_cs-accounts.js) if HubSpot is unavailable.
 const AM_LABEL = { 'CSM 2': 'David', 'Max': 'Maxwell' };      // HubSpot csm internal name -> dropdown label
-const FORMER_AMS = new Set(['Yichen', 'Lakeisha', 'Emmett']); // former team members -> Unassigned
+const FORMER_AMS = new Set(['Yichen', 'Lakeisha', 'Emmett', 'Jacob']); // former team members -> Unassigned
 function amLabel(csm) {
   if (!csm || FORMER_AMS.has(csm)) return 'Unassigned';
   return AM_LABEL[csm] || csm;
