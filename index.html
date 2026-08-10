@@ -235,6 +235,43 @@ tbody td:first-child{font-weight:500}
 .fc-date{width:130px;font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 5px}
 .fc-date:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
 .fc-date:disabled{opacity:0.5;cursor:wait}
+/* Company-goal gauges (churn / expansion) */
+.goal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:720px){.goal-grid{grid-template-columns:1fr}}
+.goal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.goal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.goal-title{font-size:12px;font-weight:600;color:var(--ink2);letter-spacing:0.02em}
+.goal-pill{font-size:10px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.goal-pill.good{background:rgba(29,158,117,0.15);color:#1D9E75}
+.goal-pill.warn{background:rgba(186,117,23,0.16);color:#BA7517}
+.goal-pill.bad{background:rgba(226,75,74,0.15);color:#E24B4A}
+.goal-pill.na{background:var(--surface2);color:var(--ink3)}
+.goal-now{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.goal-now-v{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--ink);line-height:1}
+.goal-now-lbl{font-size:11px;color:var(--ink3)}
+.goal-track{position:relative;height:8px;background:var(--surface2);border-radius:5px;overflow:hidden;margin-bottom:8px}
+.goal-fill{position:absolute;left:0;top:0;height:100%;border-radius:5px;background:linear-gradient(90deg,#E24B4A,#BA7517);transition:width .4s ease}
+.goal-fill.up{background:linear-gradient(90deg,#BA7517,#1D9E75)}
+.goal-marker{position:absolute;top:-2px;width:2px;height:12px;background:var(--ink);opacity:.55}
+.goal-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--ink3)}
+.goal-foot b{color:var(--ink2)}
+/* Per-AM quarter book cards (#5) */
+.ambook-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.ambook-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px}
+.ambook-name{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.ambook-sub{font-size:10px;color:var(--ink3);margin-bottom:10px}
+.ambook-row{display:flex;align-items:baseline;justify-content:space-between;font-size:12px;padding:2px 0}
+.ambook-row .k{color:var(--ink3)}
+.ambook-row .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink2)}
+.ambook-row .v.pos{color:#1D9E75}
+.ambook-row .v.neg{color:#E24B4A}
+.ambook-div{height:1px;background:var(--border);margin:8px 0}
+.ambook-proj{display:flex;align-items:baseline;justify-content:space-between;margin-top:2px}
+.ambook-proj .k{font-size:11px;font-weight:600;color:var(--ink2)}
+.ambook-proj .v{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--ink)}
+.ambook-delta{font-size:10px;margin-top:3px;text-align:right}
+.ambook-delta.pos{color:#1D9E75}
+.ambook-delta.neg{color:#E24B4A}
 .fc-cohort-header{display:flex;align-items:baseline;gap:12px;margin:28px 0 16px;padding:12px 16px;background:var(--surface2);border-radius:var(--radius);border-left:4px solid var(--blue)}
 .fc-cohort-header.renewal{border-left-color:var(--teal)}
 .fc-cohort-header .t{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em;color:var(--ink)}
@@ -954,8 +991,41 @@ textarea.prt-input{resize:vertical}
         <button type="button" class="prt-seg-btn" data-tier="Both" onclick="onForecastTierChange(this)">Both</button>
       </div>
     </div>
+    <!-- ══════════ COMPANY GOALS (churn + expansion) ══════════ -->
+    <div class="section-header" style="margin-top:6px">
+      <span class="section-title">Company Goals</span>
+      <span class="info-icon" onmouseenter="showInfo(event,'goals')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
+      <span class="section-note">Company-wide — not affected by the AM / product filters above</span>
+    </div>
+    <div class="goal-grid">
+      <div class="goal-card" id="goal-churn">
+        <div class="goal-head">
+          <span class="goal-title">Monthly churn</span>
+          <span class="goal-pill" id="goal-churn-pill">—</span>
+        </div>
+        <div class="goal-now"><span class="goal-now-v" id="goal-churn-now">—</span><span class="goal-now-lbl">now · avg monthly (trailing 90d)</span></div>
+        <div class="goal-track"><div class="goal-fill" id="goal-churn-fill"></div><div class="goal-marker" id="goal-churn-goalmark" title="Goal 0.5%"></div></div>
+        <div class="goal-foot"><span>Goal <b>≤ 0.5%/mo</b> by <b>Apr 2027</b></span><span id="goal-churn-foot"></span></div>
+      </div>
+      <div class="goal-card" id="goal-exp">
+        <div class="goal-head">
+          <span class="goal-title">Monthly expansion</span>
+          <span class="goal-pill" id="goal-exp-pill">—</span>
+        </div>
+        <div class="goal-now"><span class="goal-now-v" id="goal-exp-now">—</span><span class="goal-now-lbl">now · MoM (quarter-to-date)</span></div>
+        <div class="goal-track"><div class="goal-fill up" id="goal-exp-fill"></div><div class="goal-marker" id="goal-exp-goalmark" title="Glidepath target"></div></div>
+        <div class="goal-foot"><span>Goal <b>5%/mo</b> by <b>Sep 2026</b> → <b>16%/mo</b> by <b>Aug 2027</b></span><span id="goal-exp-foot"></span></div>
+      </div>
+    </div>
+    <!-- ══════════ QUARTER BOOK BY ACCOUNT MANAGER ══════════ -->
+    <div class="section-header" style="margin-top:20px">
+      <span class="section-title">Quarter Book by Account Manager</span>
+      <span class="info-icon" onmouseenter="showInfo(event,'amBook')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
+      <span class="section-note" id="fc-ambook-note">Start-of-quarter ARR → projected end-of-quarter book</span>
+    </div>
+    <div class="ambook-grid" id="fc-ambook-grid"></div>
     <!-- ══════════ PILOTS · CONVERSION ══════════ -->
-    <div class="fc-cohort-header">
+    <div class="fc-cohort-header" style="margin-top:24px">
       <span class="t">Pilots · Conversion</span>
       <span class="s">In-progress pilots · likelihood to convert after the 90-day proof of concept</span>
     </div>
@@ -2399,7 +2469,20 @@ const FC_INFO = {
     +"<div class='r'>• <b>Invoice amt</b>: the recurring invoice amount from Measure; “($X due)” shows the unpaid total when overdue.</div>"
     +"<div class='r'>• <b>Target expansion close</b>: the date <b>you</b> expect to close this account's expansion — type it in; it saves for everyone.</div>"
     +"<div class='r'>• <b>Month</b>: months since kickoff, out of 12. <b>Health</b>: click to set the baseline likelihood. <b>Expansion</b>: current expansion MRR.</div>"
-    +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal. <b>Likelihood</b>: banded score — hover for reasons.</div>" }
+    +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal. <b>Likelihood</b>: banded score — hover for reasons.</div>" },
+  goals:{ title:'Company goals — churn & expansion', html:
+    "<div class='r'>Company-wide targets. These <b>ignore the AM and product filters</b> above.</div>"
+    +"<div class='h'>Monthly churn — goal ≤ 0.5%/mo by Apr 2027</div>"
+    +"<div class='r'>Revenue (MRR) churn: churned MRR over the <b>trailing 90 days ÷ 3</b> (avg per month), as a % of the current active book. Green ≤ 0.5% · amber ≤ 1% · red above.</div>"
+    +"<div class='h'>Monthly expansion — goal 5%/mo by Sep 2026 → 16%/mo by Aug 2027</div>"
+    +"<div class='r'>Quarter-to-date expansion (current expansion MRR − start-of-quarter baseline) ÷ months elapsed, as a % of the start-of-quarter book. Measured against the nearest milestone; needs a captured quarter baseline (Bonus tab).</div>" },
+  amBook:{ title:'Quarter book by account manager', html:
+    "<div class='r'>Per-AM, whole book (all tiers), quarter-to-date. Respects the AM filter above.</div>"
+    +"<div class='h'>Projected end-of-Q = start + expansion − churn − projected at-risk churn + new</div>"
+    +"<div class='r'>• <b>Start-of-Q ARR</b>: the AM's existing-cohort MRR at quarter start (×12), from the captured baseline. No baseline yet → start = current book.</div>"
+    +"<div class='r'>• <b>Expansion / Churned</b>: actual in-quarter change so far.</div>"
+    +"<div class='r'>• <b>At-risk (projected)</b>: ARR of the AM's converted accounts in the <b>At-risk</b> likelihood band (score &lt; 45) — the expected-churn haircut.</div>"
+    +"<div class='r'>• <b>New customers</b>: MRR from accounts that started this quarter.</div>" }
 };
 // Account-manager filter for both forecast boards (and their tiles). Mirrors the
 // Whole Portfolio filter: '__none__' = Unassigned, 'all' = everyone; the option
@@ -2421,6 +2504,130 @@ function resolveForecastAmFilter(cos){
 }
 function onForecastAmFilterChange(sel){ window.__forecastAmFilter=sel.value; renderForecastTab(window.__forecastCos||[]); }
 function onForecastTierChange(btn){ window.__forecastTier=btn.dataset.tier; renderForecastTab(window.__forecastCos||[]); }
+
+// ── COMPANY GOALS: churn (#6) + expansion (#7) ─────────────────
+// Company-wide, whole-book (ignore the AM/product filters). Definitions:
+//  • Churn = revenue (MRR) churn. Avg monthly $ over the trailing 90 days
+//    (churned_mrr of accounts with a churn_date in-window ÷ 3) as a % of the
+//    current active book. Goal: ≤0.5%/mo by Apr 2027.
+//  • Expansion = MoM revenue expansion. Quarter-to-date expansion (current
+//    expansion_mrr − start-of-quarter snapshot) ÷ months elapsed, as a % of the
+//    start-of-quarter book. Goal: 5%/mo by Sep 2026 → 16%/mo by Aug 2027.
+const GOAL = {
+  churnTargetPct:0.5, churnWarnPct:1.0, churnDate:'2027-04-30',
+  expMilestones:[{date:'2026-09-30', pct:5, label:'Sep 2026'},{date:'2027-08-31', pct:16, label:'Aug 2027'}]
+};
+function fcActiveBookMRR(cos){ return cos.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted').reduce((s,c)=>s+(c.mrr||0),0); }
+function fcMonthsUntil(iso){ const d=new Date(iso).getTime(); return (d-Date.now())/(86400000*30.44); }
+function fcComputeChurn(cos){
+  const now=Date.now(), win=90*86400000;
+  let lost=0;
+  cos.forEach(c=>{
+    if(c.pilot_status!=='Churned Post Conversion' && c.pilot_status!=='Exited During Pilot') return;
+    if(!c.churn_date) return;
+    const t=new Date(c.churn_date).getTime();
+    if(!Number.isNaN(t) && t<=now && (now-t)<=win) lost+=(c.churned_mrr||0);
+  });
+  const monthly=lost/3;
+  const base=fcActiveBookMRR(cos);
+  return { pct: base>0 ? monthly/base*100 : null, monthly, base, lost };
+}
+function fcComputeExpansion(cos){
+  const snaps=(typeof bonusSnapshots!=='undefined'&&bonusSnapshots)?bonusSnapshots:{};
+  const cq=(typeof bonusQLabel==='function')?bonusQLabel(new Date()):null;
+  const snap=(cq&&snaps[cq])?snaps[cq].accounts:null;
+  if(!snap) return { pct:null, reason:'no-baseline' };
+  let exp=0, base=0;
+  cos.forEach(c=>{ const s=snap[c.id]; if(!s) return; base+=(s.mrr||0); const d=(c.expansion_mrr||0)-(s.expansion_mrr||0); if(d>0) exp+=d; });
+  const now=new Date(); const qStart=new Date(Date.UTC(now.getUTCFullYear(), Math.floor(now.getUTCMonth()/3)*3, 1));
+  const monthsElapsed=Math.max(0.5,(now.getTime()-qStart.getTime())/(86400000*30.44));
+  const monthly=exp/monthsElapsed;
+  return { pct: base>0 ? monthly/base*100 : null, monthly, base, exp, monthsElapsed };
+}
+function fcSetPill(id, cls, txt){ const el=document.getElementById(id); if(el){ el.className='goal-pill '+cls; el.textContent=txt; } }
+function fcRenderGoals(cos){
+  // Churn gauge (lower is better)
+  const ch=fcComputeChurn(cos);
+  const churnNow=document.getElementById('goal-churn-now');
+  if(ch.pct===null){ if(churnNow) churnNow.textContent='—'; fcSetPill('goal-churn-pill','na','No data'); set('goal-churn-foot',''); }
+  else {
+    if(churnNow) churnNow.textContent=ch.pct.toFixed(2)+'%';
+    const scaleMax=Math.max(GOAL.churnTargetPct*4, ch.pct*1.25, 2);
+    const fill=document.getElementById('goal-churn-fill'); if(fill) fill.style.width=Math.min(100, ch.pct/scaleMax*100)+'%';
+    const gm=document.getElementById('goal-churn-goalmark'); if(gm) gm.style.left=(GOAL.churnTargetPct/scaleMax*100)+'%';
+    let cls='good', pill='Goal met'; if(ch.pct>GOAL.churnWarnPct){ cls='bad'; pill='Behind'; } else if(ch.pct>GOAL.churnTargetPct){ cls='warn'; pill='Approaching'; }
+    fcSetPill('goal-churn-pill',cls,pill);
+    const mo=Math.max(0,Math.round(fcMonthsUntil(GOAL.churnDate)));
+    const gap=ch.pct-GOAL.churnTargetPct;
+    set('goal-churn-foot', (gap>0?('+'+gap.toFixed(2)+'pp over · '):'at/under goal · ')+mo+' mo left');
+  }
+  // Expansion gauge (higher is better) — near-term milestone is the active target
+  const ex=fcComputeExpansion(cos);
+  const expNow=document.getElementById('goal-exp-now');
+  if(ex.pct===null){ if(expNow) expNow.textContent='—'; fcSetPill('goal-exp-pill','na','Baseline pending'); set('goal-exp-foot','Capture a quarter baseline to measure'); const f=document.getElementById('goal-exp-fill'); if(f) f.style.width='0%'; }
+  else {
+    if(expNow) expNow.textContent=ex.pct.toFixed(1)+'%';
+    const near=GOAL.expMilestones.find(m=>fcMonthsUntil(m.date)>=0)||GOAL.expMilestones[GOAL.expMilestones.length-1];
+    const ceiling=GOAL.expMilestones[GOAL.expMilestones.length-1].pct; // 16
+    const scaleMax=Math.max(ceiling, ex.pct*1.15);
+    const fill=document.getElementById('goal-exp-fill'); if(fill) fill.style.width=Math.min(100, Math.max(0,ex.pct)/scaleMax*100)+'%';
+    const gm=document.getElementById('goal-exp-goalmark'); if(gm) gm.style.left=(near.pct/scaleMax*100)+'%';
+    let cls='bad', pill='Behind'; if(ex.pct>=near.pct){ cls='good'; pill='On track'; } else if(ex.pct>=0.6*near.pct){ cls='warn'; pill='Building'; }
+    fcSetPill('goal-exp-pill',cls,pill);
+    const mo=Math.max(0,Math.round(fcMonthsUntil(near.date)));
+    set('goal-exp-foot', 'toward '+near.pct+'% by '+near.label+' · '+mo+' mo');
+  }
+}
+
+// ── QUARTER BOOK BY ACCOUNT MANAGER (#5) ───────────────────────
+// Start-of-quarter ARR → projected end-of-quarter book. Reuses the bonus
+// snapshot aggregation (start-of-Q book, in-quarter expansion & churn) and
+// subtracts projected churn from any converted account in the At-Risk band.
+function fcAmBook(am){
+  let agg=null;
+  try { if(typeof bonusAggregateForAM==='function') agg=bonusAggregateForAM(am); }
+  catch(e){ console.warn('fcAmBook: aggregate failed for '+am, e && e.message); }
+  const startMRR=agg?agg.begin:0, expMRR=agg?agg.exp:0, churnMRR=agg?agg.churn:0, newMRR=agg?agg.newMRR:0;
+  const hasBaseline=agg?agg.hasBaseline:false;
+  const conv=(allCompanies||[]).filter(c=>displayAM(c.csm)===am && c.pilot_status==='Converted');
+  let atRiskMRR=0; const atRiskNames=[];
+  conv.forEach(c=>{ if(fcBand(fcRenewalScore(c).score)==='risk'){ atRiskMRR+=(c.mrr||0); atRiskNames.push(c.name); } });
+  const projMRR=startMRR+expMRR-churnMRR-atRiskMRR+newMRR;
+  return { am, startMRR, expMRR, churnMRR, newMRR, atRiskMRR, atRiskNames, projMRR, hasBaseline };
+}
+function fcBookAMs(cos, amFilter){
+  const book=cos.filter(c=>c.pilot_status==='Converted'||c.pilot_status==='In progress');
+  let names=[...new Set(book.map(c=>displayAM(c.csm)))].filter(Boolean).sort();
+  if(amFilter && amFilter!=='all'){ const want=displayAM(amFilter==='__none__'?null:amFilter); names=names.filter(n=>n===want); }
+  return names;
+}
+function fcRenderAmBook(cos, amFilter){
+  const grid=document.getElementById('fc-ambook-grid'); if(!grid) return;
+  const names=fcBookAMs(cos, amFilter);
+  const A=x=>fmt$(Math.round(x*12));  // MRR → ARR
+  let anyNoBaseline=false;
+  grid.innerHTML = names.map(am=>{
+    const b=fcAmBook(am); if(!b.hasBaseline) anyNoBaseline=true;
+    const dstart=b.startMRR*12, dproj=b.projMRR*12; const delta=dproj-dstart;
+    const line=(k,v,cls)=>`<div class="ambook-row"><span class="k">${k}</span><span class="v ${cls||''}">${v}</span></div>`;
+    const atRiskTitle=b.atRiskNames.length?(' title="'+escapeHtml(b.atRiskNames.join(', '))+'"'):'';
+    return `<div class="ambook-card">
+      <div class="ambook-name">${escapeHtml(am)}</div>
+      <div class="ambook-sub">Whole book · quarter to date${b.hasBaseline?'':' · no baseline'}</div>
+      ${line('Start-of-Q ARR', A(b.startMRR))}
+      ${line('Expansion', (b.expMRR>0?'+':'')+A(b.expMRR), b.expMRR>0?'pos':'')}
+      ${line('Churned', (b.churnMRR>0?'−':'')+A(b.churnMRR), b.churnMRR>0?'neg':'')}
+      <div class="ambook-row"${atRiskTitle}><span class="k">At-risk (projected)</span><span class="v ${b.atRiskMRR>0?'neg':''}">${(b.atRiskMRR>0?'−':'')+A(b.atRiskMRR)}</span></div>
+      ${b.newMRR>0?line('New customers','+'+A(b.newMRR),'pos'):''}
+      <div class="ambook-div"></div>
+      <div class="ambook-proj"><span class="k">Projected end-of-Q</span><span class="v">${A(b.projMRR)}</span></div>
+      <div class="ambook-delta ${delta>=0?'pos':'neg'}">${delta>=0?'+':'−'}${fmt$(Math.abs(Math.round(delta)))} vs start</div>
+    </div>`;
+  }).join('') || '<div class="empty-hint" style="padding:12px">No account managers in scope.</div>';
+  set('fc-ambook-note', anyNoBaseline
+    ? 'Start-of-quarter ARR → projected end-of-quarter book. Some AMs have no captured baseline yet, so their start = current book.'
+    : 'Start-of-quarter ARR → projected end-of-quarter book (start + expansion − churn − projected at-risk churn + new customers).');
+}
 // Dimension breakdown for ONE cohort, stacked by likelihood color (red→blue),
 // so each segment (stage/vertical/AM) shows how much of its book is at-risk vs
 // likely. No cross-cohort mixing — color always means likelihood.
@@ -2496,6 +2703,11 @@ function renderForecastTab(cos){
   const tier=window.__forecastTier||'Full Service';
   const seg=document.getElementById('forecast-product-toggle');
   if(seg) seg.querySelectorAll('.prt-seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.tier===tier));
+  // Company goals (#6/#7) are company-wide; per-AM book (#5) respects the AM
+  // filter but not the product tier (ARR book is tier-agnostic). Best-effort —
+  // a failure here must not break the cohort boards below.
+  try { fcRenderGoals(cos); } catch(e){ console.warn('forecast goals render failed', e); }
+  try { fcRenderAmBook(cos, amFilter); } catch(e){ console.warn('forecast AM book render failed', e); }
   let inScope=amFilter==='all'?cos:cos.filter(c=>(c.csm||'__none__')===amFilter);
   if(tier!=='Both') inScope=inScope.filter(c=>tierOf(c)===tier);
   const pilots=inScope.filter(c=>c.pilot_status==='In progress');
@@ -3909,6 +4121,11 @@ async function bonusRefreshSnapshots(){
   if(bonusState.currentAM && bonusState.currentAM!=='General (example)' && (typeof allCompanies!=='undefined') && (allCompanies||[]).length){
     bonusPrefillFromAM(bonusState.currentAM);
   }
+  // Forecasting's expansion goal + per-AM book depend on snapshots — refresh them.
+  try {
+    const ft=document.getElementById('tab-forecasting');
+    if(ft && ft.classList.contains('active') && typeof renderForecastTab==='function') renderForecastTab(window.__forecastCos||[]);
+  } catch(e){ /* forecasting refresh is best-effort */ }
 }
 function bonusRenderSnapStatus(){
   const el=document.getElementById('bonus-snap-status'); if(!el) return;
