@@ -49,6 +49,21 @@
   status = 200
 
 [[redirects]]
+  from = "/api/billing"
+  to = "/.netlify/functions/billing"
+  status = 200
+
+[[redirects]]
+  from = "/api/forecast-expansion"
+  to = "/.netlify/functions/forecast-expansion"
+  status = 200
+
+[[redirects]]
+  from = "/api/forecast-expansion-write"
+  to = "/.netlify/functions/forecast-expansion-write"
+  status = 200
+
+[[redirects]]
   from = "/api/response-times"
   to = "/.netlify/functions/response-times"
   status = 200

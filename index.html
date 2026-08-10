@@ -228,6 +228,13 @@ tbody td:first-child{font-weight:500}
 .fc-type{font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink3)}
 .fc-type.icp{color:var(--blue)}
 .fc-muted{color:var(--ink3)}
+/* Overdue billing (renewal board): tint the whole row and badge the days late. */
+.fc-overdue-row{background:rgba(226,75,74,0.06)}
+.fc-overdue-row td{border-top:1px solid rgba(226,75,74,0.18);border-bottom:1px solid rgba(226,75,74,0.18)}
+.fc-overdue-chip{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;letter-spacing:0.02em;padding:1px 6px;border-radius:8px;background:rgba(226,75,74,0.15);color:#E24B4A;white-space:nowrap;vertical-align:middle}
+.fc-date{width:130px;font-family:inherit;font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 5px}
+.fc-date:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15)}
+.fc-date:disabled{opacity:0.5;cursor:wait}
 .fc-cohort-header{display:flex;align-items:baseline;gap:12px;margin:28px 0 16px;padding:12px 16px;background:var(--surface2);border-radius:var(--radius);border-left:4px solid var(--blue)}
 .fc-cohort-header.renewal{border-left-color:var(--teal)}
 .fc-cohort-header .t{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em;color:var(--ink)}
@@ -1038,7 +1045,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Renewal date</th><th>Month</th><th>Health</th><th>Expansion</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
+          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Next invoice sent</th><th>Invoice amt</th><th>Target expansion close</th><th>Month</th><th>Health</th><th>Expansion</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
           <tbody id="fc-renew-body"></tbody>
         </table>
       </div>
@@ -1534,6 +1541,14 @@ let healthById = {};
 // { [id]: { cc: closedCount, cv: closed$, pc: pipelineCount, pv: pipeline$ } }.
 let dealsById = {};
 
+// Billing signals from Measure (Forecasting renewal board), keyed by company
+// NAME: { [name]: { next_invoice_date, amount, overdue_since, overdue_amount } }.
+// Served by /api/billing (live blob or bundled snapshot). See _cs-billing.js.
+let billingByName = {};
+// AM-entered "Target Expansion Close Date", keyed by HubSpot company id:
+// { [id]: "YYYY-MM-DD" }. Served by /api/forecast-expansion.
+let expansionById = {};
+
 // ── LIST WIDGET SORT STATE ────────────────────────────────────
 window.__listSort = window.__listSort || {
   portfolio:        { col: null, dir: null },
@@ -1617,7 +1632,7 @@ async function signInWithGoogle() {
 async function signOut() {
   await sb.auth.signOut();
   showAuthScreen(true);
-  allCompanies = []; healthById = {}; dealsById = {};
+  allCompanies = []; healthById = {}; dealsById = {}; billingByName = {}; expansionById = {};
 }
 
 // ── TOOLTIP ────────────────────────────────────────────────────
@@ -1771,11 +1786,13 @@ async function loadData() {
   btn.disabled=true;
   setStatus('Loading data from HubSpot...','loading');
   try {
-    const [hsRes,focsRes,ahRes,dealsRes]=await Promise.all([
+    const [hsRes,focsRes,ahRes,dealsRes,billingRes,expRes]=await Promise.all([
       fetch('/api/hubspot',{method:'POST'}),
       sb.from('portfolio_focs').select('*'),
       fetch('/api/account-health',{method:'GET'}),
-      fetch('/api/forecast-deals',{method:'GET'})
+      fetch('/api/forecast-deals',{method:'GET'}),
+      fetch('/api/billing',{method:'GET'}),
+      fetch('/api/forecast-expansion',{method:'GET'})
     ]);
     if(!hsRes.ok) { const e=await hsRes.json().catch(()=>({})); throw new Error(e.error||`HubSpot ${hsRes.status}`); }
     const hsData=await hsRes.json();
@@ -1792,6 +1809,16 @@ async function loadData() {
     try {
       if(dealsRes&&dealsRes.ok){ const dl=await dealsRes.json(); Object.assign(dealsById, dl.map||{}); }
     } catch(e){ console.warn('forecast-deals load failed', e); }
+    // Billing signals from Measure (renewal board): next invoice, amount, overdue.
+    billingByName={};
+    try {
+      if(billingRes&&billingRes.ok){ const bl=await billingRes.json(); Object.assign(billingByName, bl.accounts||{}); }
+    } catch(e){ console.warn('billing load failed', e); }
+    // AM-entered Target Expansion Close Dates (renewal board).
+    expansionById={};
+    try {
+      if(expRes&&expRes.ok){ const ex=await expRes.json(); Object.assign(expansionById, ex.map||{}); }
+    } catch(e){ console.warn('forecast-expansion load failed', e); }
     allCompanies=(hsData.results||[]).map(r=>{
       const name=r.properties.name||r.properties.domain||r.id;
       return {
@@ -2234,6 +2261,50 @@ function fcTypeChip(c){ return fcIsICP(c)?'<span class="fc-type icp">ICP</span>'
 function fcPilotDay(c){ if(!c.kickoff_date) return null; const d=Math.floor((Date.now()-new Date(c.kickoff_date).getTime())/86400000); return d>=0?d:null; }
 function fcRenewalDate(c){ if(!c.kickoff_date) return null; const dt=new Date(c.kickoff_date); dt.setFullYear(dt.getFullYear()+1); return dt; }
 function fcMonthsIn(c){ if(!c.kickoff_date) return null; const m=(Date.now()-new Date(c.kickoff_date).getTime())/(86400000*30.44); return m>=0?m:null; }
+// ── Billing (Measure) helpers for the renewal board ──────────────
+// Billing is keyed by company name; overdue days are computed LIVE from
+// overdue_since so the count stays correct between billing refreshes.
+function fcBilling(c){ return billingByName[c.name] || null; }
+function fcDaysLate(overdueSince){
+  if(!overdueSince) return null;
+  const t=new Date(overdueSince).getTime(); if(Number.isNaN(t)) return null;
+  return Math.max(0, Math.floor((Date.now()-t)/86400000));
+}
+function fcIsOverdue(c){ const b=fcBilling(c); return !!(b && b.overdue_since); }
+function fcInvoiceDateCell(c){
+  const b=fcBilling(c);
+  if(!b || !b.next_invoice_date) return '<span class="fc-muted">—</span>';
+  const d=new Date(b.next_invoice_date);
+  const date=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const late=fcDaysLate(b.overdue_since);
+  const chip=(late!==null)?` <span class="fc-overdue-chip" title="Overdue since ${new Date(b.overdue_since).toLocaleDateString('en-US')}">Overdue · ${late}d late</span>`:'';
+  return date+chip;
+}
+function fcInvoiceAmtCell(c){
+  const b=fcBilling(c);
+  if(!b || !(b.amount>0)) return '<span class="fc-muted">—</span>';
+  if(b.overdue_amount>0) return `${fmt$(b.amount)} <span class="fc-muted" title="Unpaid across overdue invoices">(${fmt$(b.overdue_amount)} due)</span>`;
+  return fmt$(b.amount);
+}
+function fcExpDateInput(c){
+  const v=expansionById[c.id]||'';
+  return `<input type="date" class="fc-date" data-cid="${escapeHtml(c.id)}" value="${escapeHtml(v)}" onchange="saveExpansionDate(this)">`;
+}
+async function saveExpansionDate(input){
+  const id=input.dataset.cid; const date=input.value||'';
+  const prev=expansionById[id]||'';
+  if(date) expansionById[id]=date; else delete expansionById[id];
+  input.disabled=true;
+  try {
+    const res=await fetch('/api/forecast-expansion-write',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ id, date })});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||('forecast-expansion-write '+res.status)); }
+  } catch(e){
+    if(prev) expansionById[id]=prev; else delete expansionById[id];
+    input.value=prev;
+    alert('Could not save target expansion close date: '+(e.message||e));
+  } finally { input.disabled=false; }
+}
 function fcNumInput(c, field){
   if(!fcIsICP(c)) return '<span class="fc-muted">—</span>';
   const v=fcDeals(c)[field]||'';
@@ -2323,11 +2394,12 @@ const FC_INFO = {
     +"<div class='h'>Bands</div>"
     +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. So blue is always Likely; green is Likely on its own. “Secure” tiles = the Likely cohort.</div>" },
   renewBoard:{ title:'Reading the Renewals board', html:
-    "<div class='r'>One row per converted customer, sorted by soonest renewal.</div>"
-    +"<div class='r'>• <b>Renewal date</b>: kickoff + 12 months. <b>Month</b>: months elapsed, out of 12.</div>"
-    +"<div class='r'>• <b>Health</b>: click to set — it sets the baseline likelihood (blue is a lock). <b>Expansion</b>: current expansion MRR.</div>"
-    +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal.</div>"
-    +"<div class='r'>• <b>Likelihood</b>: banded score — hover for per-account reasons.</div>" }
+    "<div class='r'>One row per converted customer. <b>Overdue accounts sort to the top</b> (most days late first), then by soonest next invoice.</div>"
+    +"<div class='r'>• <b>Next invoice sent</b>: when Measure next bills the account. An <b>Overdue · Nd late</b> badge and a red row mean an unpaid invoice; the day count is live.</div>"
+    +"<div class='r'>• <b>Invoice amt</b>: the recurring invoice amount from Measure; “($X due)” shows the unpaid total when overdue.</div>"
+    +"<div class='r'>• <b>Target expansion close</b>: the date <b>you</b> expect to close this account's expansion — type it in; it saves for everyone.</div>"
+    +"<div class='r'>• <b>Month</b>: months since kickoff, out of 12. <b>Health</b>: click to set the baseline likelihood. <b>Expansion</b>: current expansion MRR.</div>"
+    +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal. <b>Likelihood</b>: banded score — hover for reasons.</div>" }
 };
 // Account-manager filter for both forecast boards (and their tiles). Mirrors the
 // Whole Portfolio filter: '__none__' = Unassigned, 'all' = everyone; the option
@@ -2466,9 +2538,17 @@ function fcRenderTiles(prefix, scored){
 function fcRenderBoard(bodyId, scored, mode){
   const body=document.getElementById(bodyId); if(!body) return;
   const rows=[...scored];
-  if(mode==='renew') rows.sort((a,b)=>{ const da=fcRenewalDate(a.c), db=fcRenewalDate(b.c); if(!da&&!db)return 0; if(!da)return 1; if(!db)return -1; return da-db; });
+  if(mode==='renew') rows.sort((a,b)=>{
+    // Overdue first (most days late on top), then by soonest next invoice; no billing last.
+    const la=fcDaysLate((fcBilling(a.c)||{}).overdue_since), lb=fcDaysLate((fcBilling(b.c)||{}).overdue_since);
+    if((la!==null)!==(lb!==null)) return la!==null?-1:1;
+    if(la!==null&&lb!==null&&la!==lb) return lb-la;
+    const na=(fcBilling(a.c)||{}).next_invoice_date, nb=(fcBilling(b.c)||{}).next_invoice_date;
+    if(!na&&!nb) return 0; if(!na) return 1; if(!nb) return -1;
+    return new Date(na)-new Date(nb);
+  });
   else rows.sort((a,b)=>b.score-a.score);
-  const cols=mode==='conv'?12:13;
+  const cols=mode==='conv'?12:15;
   body.innerHTML = rows.map(s=>{
     const c=s.c;
     const health=healthChip(c.account_health,{cid:c.id});
@@ -2482,11 +2562,13 @@ function fcRenderBoard(bodyId, scored, mode){
       const ttvStyle=ttvN===null?'':(ttvN>FC.ttvThreshold?'color:var(--amber)':'color:var(--teal)');
       return `<tr><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${dayCell}</td><td style="${ttvStyle}">${ttv}</td><td>${health}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
     }
-    const rd=fcRenewalDate(c);
-    const rdCell=rd?rd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'<span class="fc-muted">—</span>';
+    const invCell=fcInvoiceDateCell(c);
+    const amtCell=fcInvoiceAmtCell(c);
+    const expDate=fcExpDateInput(c);
     const mi=fcMonthsIn(c); const miCell=mi===null?'—':(Math.floor(mi)+' / 12');
     const exp=c.expansion_mrr>0?fmt$(c.expansion_mrr):'—';
-    return `<tr><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${rdCell}</td><td>${miCell}</td><td>${health}</td><td>${exp}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
+    const rowCls=fcIsOverdue(c)?' class="fc-overdue-row"':'';
+    return `<tr${rowCls}><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${invCell}</td><td>${amtCell}</td><td>${expDate}</td><td>${miCell}</td><td>${health}</td><td>${exp}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
   }).join('') || `<tr><td colspan="${cols}" class="empty-hint">No ${mode==='conv'?'active pilots':'converted customers'}.</td></tr>`;
 }
 function renderPortfolioTable(cos) {
@@ -3572,7 +3654,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if(event==='SIGNED_IN'&&session) {
       if(handleValidSession(session)) { if(!allCompanies.length) loadData(); }
     }
-    if(event==='SIGNED_OUT') { showAuthScreen(true); allCompanies=[]; healthById={}; dealsById={}; }
+    if(event==='SIGNED_OUT') { showAuthScreen(true); allCompanies=[]; healthById={}; dealsById={}; billingByName={}; expansionById={}; }
   });
   const { data: { session } } = await sb.auth.getSession();
   if(session) {
