@@ -209,18 +209,26 @@ eq('agg basis = snapshot', agg.basis, 'snapshot');
 // previous-quarter NRR = end-of-prev (300k) / start-of-prev (280k) = ~107.1%
 eq('agg previous NRR = 300k/280k', agg.previousNRR, 300000/280000);
 
-// Fallback when no snapshot: base mrr as beginning, cumulative expansion as quarter's
+// No snapshot: existing accounts are NEUTRAL — anchored at current value, with NO
+// attributed expansion or churn (crediting lifetime expansion_mrr would reward an
+// inherited book as growth). Only genuine new logos still count as newMRR.
 const aggFb = BC.computeQuarterAggregate({ accounts:AGG_ACCTS, baseline:null, priorBaseline:null });
-eq('fallback begin = base mrr 280k', aggFb.begin, 280000);
-eq('fallback expansion = cumulative 62k', aggFb.exp, 62000);
-eq('fallback basis = fallback', aggFb.basis, 'fallback');
-eq('fallback previous NRR = null', aggFb.previousNRR, null);
-eq('fallback still excludes new logo from cohort', aggFb.ending, 337000);
+eq('no-baseline begin = current totals 337k', aggFb.begin, 337000);
+eq('no-baseline expansion = 0 (not attributed without a baseline)', aggFb.exp, 0);
+eq('no-baseline churn = 0 (not attributed without a baseline)', aggFb.churn, 0);
+eq('no-baseline basis = fallback', aggFb.basis, 'fallback');
+eq('no-baseline previous NRR = null', aggFb.previousNRR, null);
+eq('no-baseline still excludes new logo from cohort', aggFb.ending, 337000);
+eq('no-baseline newMRR = genuine new logo only 100k', aggFb.newMRR, 100000);
 
-// Partial: one account has a baseline, one doesn't
+// Reassignment: an existing customer (beacon) whose owner has a baseline for their
+// OTHER accounts (acme) but not for beacon — i.e. beacon was handed over. Beacon
+// must be neutral: it adds NO expansion and is NOT counted as a new customer.
 const aggPart = BC.computeQuarterAggregate({ accounts:AGG_ACCTS, baseline:{ acme:AGG_BASELINE.acme }, priorBaseline:null });
-eq('partial basis flagged', aggPart.basis, 'partial');
-eq('partial begin = acme baseline 210k + beacon base 80k = 290k', aggPart.begin, 290000);
+eq('reassignment basis flagged partial', aggPart.basis, 'partial');
+eq('reassignment begin = acme baseline 210k + beacon current 97k = 307k', aggPart.begin, 307000);
+eq('reassignment expansion = acme only 30k (beacon adds 0)', aggPart.exp, 30000);
+eq('reassignment newMRR = genuine new logo only 100k (beacon not "new")', aggPart.newMRR, 100000);
 
 // Feeding the aggregate into compute() reproduces the $49k example
 const aggR = BC.compute({ mode:'detailed', m1:agg.avgManaged, m2:agg.avgManaged, m3:agg.avgManaged,
