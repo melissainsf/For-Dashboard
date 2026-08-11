@@ -270,11 +270,20 @@
   // Turns an AM's cohort into the calculator's quarterly inputs. When a
   // start-of-quarter snapshot is available, expansion/churn are measured as the
   // delta since that baseline (true in-quarter movement) and beginning MRR is
-  // the baseline total. Without a snapshot it falls back to the base-mrr method
-  // (base mrr as beginning, cumulative expansion as the quarter's expansion).
+  // the baseline total.
+  //
+  // `isNew` means a genuinely NEW LOGO this quarter (new business), NOT merely an
+  // account that is new to this AM's book. That distinction matters: a customer
+  // reassigned to a different AM must never read as new-customer growth or as
+  // expansion for the receiving AM. So an existing account that is NOT in this
+  // AM's baseline (a reassigned/handed-over book, or an AM with no snapshot at
+  // all) is treated as NEUTRAL — it anchors the book at its current value with
+  // zero attributed expansion or churn. In-quarter expansion is credited ONLY
+  // against a real start-of-quarter baseline, so no one is credited for a book
+  // they simply inherited.
   //
   // All inputs are pre-filtered to one AM:
-  //   accounts:      [{ id, mrr, expansion_mrr, churned_mrr, isNew }]
+  //   accounts:      [{ id, mrr, expansion_mrr, churned_mrr, isNew }]  isNew = new logo this Q
   //   baseline:      { [id]: {mrr, expansion_mrr, churned_mrr} }  start-of-current-Q, or null
   //   priorBaseline: { [id]: {mrr, expansion_mrr, churned_mrr} }  start-of-previous-Q, or null
   function accountTotal(a) { return num(a.mrr) + num(a.expansion_mrr) - num(a.churned_mrr); }
@@ -287,7 +296,7 @@
 
     accounts.forEach(a => {
       const cur = accountTotal(a);
-      if (a.isNew) { newMRR += cur; return; }
+      if (a.isNew) { newMRR += cur; return; }              // genuinely new logo → new business, never expansion
       const b = baseline && baseline[a.id];
       if (b) {
         begin  += num(b.mrr) + num(b.expansion_mrr) - num(b.churned_mrr);
@@ -296,9 +305,11 @@
         ending += cur;
         snapshotAccounts++;
       } else {
-        begin  += num(a.mrr);
-        exp    += num(a.expansion_mrr);
-        churn  += num(a.churned_mrr);
+        // Existing logo with no start-of-quarter baseline for THIS owner (e.g. a
+        // reassigned book). Neutral: anchor the book at its current value and
+        // attribute NO expansion/churn — crediting its lifetime expansion_mrr
+        // here would reward a reassignment as growth the owner didn't generate.
+        begin  += cur;
         ending += cur;
         fallbackAccounts++;
       }

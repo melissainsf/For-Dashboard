@@ -867,7 +867,7 @@ textarea.prt-input{resize:vertical}
 
     <div class="section-header">
       <span class="section-title">Individual 2026 NRR Progress Toward Goal</span>
-      <span class="section-note">Each AM's whole-cohort NRR (incl. churn) climbing to the EOY 2026 checkpoint · fill = current NRR, ticks = 100% flat and the goal</span>
+      <span class="section-note">Each AM's whole-cohort NRR (incl. churn) climbing to the EOY 2026 checkpoint · fill = current NRR, ticks = 100% flat and the goal · lifetime figures follow the account's <b>current</b> owner — the Bonus tab measures quarter growth against a start-of-quarter baseline so reassignments aren't miscredited</span>
     </div>
     <div id="nrr-am-thermo" class="nrr-am-card"><div class="team-loading">Loading...</div></div>
 
@@ -891,7 +891,7 @@ textarea.prt-input{resize:vertical}
     </div>
     <div class="chart-card" style="margin-bottom:20px">
       <div class="chart-card-title">Expansion vs. churn by AM</div>
-      <div class="chart-card-sub">Expansion MRR gained vs. churned MRR lost per AM (in-pilot + post-pilot + churned)</div>
+      <div class="chart-card-sub">Expansion MRR gained vs. churned MRR lost per AM (in-pilot + post-pilot + churned). Lifetime totals attributed to the account's <b>current</b> owner — for quarter-accurate, reassignment-safe per-AM growth, use the Bonus tab / Quarter Book (both measure against a start-of-quarter baseline).</div>
       <div class="chart-wrap-md"><canvas id="expChurnAMBar"></canvas></div>
       <div class="legend">
         <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Expansion MRR</span>
@@ -2444,8 +2444,9 @@ const FC_INFO = {
     "<div class='r'>This is simply your quarterly bonus × 4 — an <b>annualized run-rate for illustration</b>, not a guaranteed annual bonus.</div>"
     +"<div class='r'>Each quarter is calculated on its own book size and NRR.</div>" },
   bonusTotalBook:{ title:'Ending total managed book', html:
-    "<div class='r'>Your ending <b>existing-customer</b> MRR plus any <b>new customers</b> assigned during the quarter.</div>"
-    +"<div class='r'>New-logo MRR grows your book (and future book tier) but is <b>excluded</b> from Quarterly NRR, which measures only the existing cohort.</div>" },
+    "<div class='r'>Your ending <b>existing-customer</b> MRR plus any <b>genuinely new logos</b> that started this quarter.</div>"
+    +"<div class='r'>New-logo MRR grows your book (and future book tier) but is <b>excluded</b> from Quarterly NRR, which measures only the existing cohort.</div>"
+    +"<div class='r'>A customer <b>reassigned</b> to you is not a new logo: it joins your book at its current value with <b>no expansion, churn, or new-customer credit</b> — you're never credited for growth on a book you inherited. Real in-quarter expansion is credited only against your start-of-quarter baseline.</div>" },
   convFc:{ title:'How pilot-conversion likelihood is scored', html:
     "<div class='r'>Forecasts which <b>active pilots</b> (status “In progress”) convert after the 90-day proof of concept.</div>"
     +"<div class='h'>Score = health baseline + expansion + deals − TTV ding</div>"
@@ -2488,7 +2489,7 @@ const FC_INFO = {
   amBook:{ title:'Quarter book by account manager', html:
     "<div class='r'>Per-AM, whole book (all tiers), quarter-to-date. Respects the AM filter above.</div>"
     +"<div class='h'>Projected end-of-Q = start + expansion − churn − projected at-risk churn + new</div>"
-    +"<div class='r'>• <b>Start-of-Q ARR</b>: the AM's existing-cohort MRR at quarter start (×12), from the captured baseline. <b>Expansion / Churned</b>: actual in-quarter change so far. <b>New customers</b>: MRR from accounts that started this quarter (accounts not present at quarter start).</div>"
+    +"<div class='r'>• <b>Start-of-Q ARR</b>: the AM's existing-cohort MRR at quarter start (×12), from the captured baseline. <b>Expansion / Churned</b>: actual in-quarter change vs that baseline (from <b>expansion_mrr</b> logged in HubSpot — never new customers). <b>New customers</b>: MRR from <b>genuinely new logos</b> that started this quarter. A <b>reassigned</b> account is not new and earns no growth credit — it just joins the book at current value.</div>"
     +"<div class='r'>• <b>At-risk (projected)</b>: ARR of the AM's converted accounts in the <b>At-risk</b> likelihood band (score &lt; 45) — the expected-churn haircut.</div>"
     +"<div class='h'>No baseline (e.g. a newly-assigned book)</div>"
     +"<div class='r'>Without a start-of-quarter snapshot there's no reference to measure growth against, so the card shows the AM's <b>current book</b> and applies only the at-risk haircut — <b>no expansion or new-customer growth is attributed</b> (that would count an inherited book as growth the AM didn't generate). Capture a baseline on the <b>Bonus</b> tab to unlock the full breakdown.</div>" }
@@ -4017,7 +4018,10 @@ function bonusAggregateTeam(){
   const curAcc=snaps[cq]?snaps[cq].accounts:null;
   const ids=new Set(cohort.map(c=>c.id));
   const baseline=curAcc?(()=>{const o={};ids.forEach(id=>{if(curAcc[id])o[id]=curAcc[id];});return o;})():null;
-  const isNewFn=c=>baseline?!baseline[c.id]:bonusIsNewThisQuarter(c);
+  // "New" = genuinely new logo this quarter (new business), NOT new-to-this-AM.
+  // A reassigned existing customer is therefore not "new"; the aggregate treats
+  // it as neutral (no expansion/new-customer credit) when it isn't in the baseline.
+  const isNewFn=c=>bonusIsNewThisQuarter(c);
   const accounts=cohort.map(c=>({id:c.id,mrr:c.mrr,expansion_mrr:c.expansion_mrr,churned_mrr:c.churned_mrr,isNew:isNewFn(c)}));
   const agg=BonusCalc.computeQuarterAggregate({accounts,baseline,priorBaseline:null});
   return { begin:agg.begin, exp:agg.exp, churn:agg.churn, ending:agg.ending, newMRR:agg.newMRR,
@@ -4075,9 +4079,11 @@ function bonusAggregateForAM(am){
   const ids=new Set(cohort.map(c=>c.id));
   const pick=m=>{ if(!m) return null; const o={}; ids.forEach(id=>{ if(m[id]) o[id]=m[id]; }); return o; };
   const baseline=pick(curAcc), priorBaseline=pick(prevAcc);
-  // With a baseline, "new this quarter" = not present at quarter start; otherwise
-  // fall back to kickoff-date detection.
-  const isNewFn = c => baseline ? !baseline[c.id] : bonusIsNewThisQuarter(c);
+  // "New" = genuinely new logo this quarter (kickoff this quarter), NOT merely an
+  // account new to this AM's book. A reassigned/inherited customer is not "new",
+  // so it never reads as new-customer growth; if it isn't in this AM's baseline
+  // the aggregate treats it as neutral (no expansion credit) rather than growth.
+  const isNewFn = c => bonusIsNewThisQuarter(c);
   const accounts=cohort.map(c=>({ id:c.id, mrr:c.mrr, expansion_mrr:c.expansion_mrr, churned_mrr:c.churned_mrr, isNew:isNewFn(c) }));
   const agg=BonusCalc.computeQuarterAggregate({ accounts, baseline, priorBaseline });
   const nNew=accounts.filter(a=>a.isNew).length;
