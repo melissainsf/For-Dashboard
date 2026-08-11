@@ -2446,7 +2446,8 @@ const FC_INFO = {
   bonusTotalBook:{ title:'Ending total managed book', html:
     "<div class='r'>Your ending <b>existing-customer</b> MRR plus any <b>genuinely new logos</b> that started this quarter.</div>"
     +"<div class='r'>New-logo MRR grows your book (and future book tier) but is <b>excluded</b> from Quarterly NRR, which measures only the existing cohort.</div>"
-    +"<div class='r'>A customer <b>reassigned</b> to you is not a new logo: it joins your book at its current value with <b>no expansion, churn, or new-customer credit</b> — you're never credited for growth on a book you inherited. Real in-quarter expansion is credited only against your start-of-quarter baseline.</div>" },
+    +"<div class='r'>A customer <b>reassigned</b> to you is not a new logo and the move itself is not revenue: it joins your book at its current value with <b>no new-customer or expansion credit</b> — you're never credited for growth on a book you inherited. It <b>does</b> count toward your book-size band.</div>"
+    +"<div class='r'>It becomes expansion for you <b>only</b> when the HubSpot <b>expansion_mrr</b> field grows above your start-of-quarter baseline (i.e. you log expanded products / higher expansion MRR under your ownership). Unchanged field = zero expansion.</div>" },
   convFc:{ title:'How pilot-conversion likelihood is scored', html:
     "<div class='r'>Forecasts which <b>active pilots</b> (status “In progress”) convert after the 90-day proof of concept.</div>"
     +"<div class='h'>Score = health baseline + expansion + deals − TTV ding</div>"
