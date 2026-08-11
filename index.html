@@ -2473,7 +2473,7 @@ const FC_INFO = {
     +"<div class='h'>Bands</div>"
     +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. So blue is always Likely; green is Likely on its own. “Secure” tiles = the Likely cohort.</div>" },
   renewBoard:{ title:'Reading the Renewals board', html:
-    "<div class='r'>One row per converted customer. <b>Overdue accounts sort to the top</b> (most days late first), then by soonest next invoice.</div>"
+    "<div class='r'>One row per converted customer, <b>grouped by account manager</b> so you can scan to your name. Within each AM, <b>overdue accounts sort first</b> (most days late), then by soonest next invoice. Use the <b>Account Manager</b> filter at the top of the tab to see just your accounts.</div>"
     +"<div class='r'>• <b>Next invoice sent</b>: when Measure next bills the account. An <b>Overdue · Nd late</b> badge and a red row mean an unpaid invoice; the day count is live.</div>"
     +"<div class='r'>• <b>Invoice amt</b>: the recurring invoice amount from Measure; “($X due)” shows the unpaid total when overdue.</div>"
     +"<div class='r'>• <b>Target expansion close</b>: the date <b>you</b> expect to close this account's expansion — type it in; it saves for everyone. Only editable when <b>Health = Blue</b> (actively expanding); other accounts show “—”.</div>"
@@ -2759,16 +2759,27 @@ function fcRenderTiles(prefix, scored){
 function fcRenderBoard(bodyId, scored, mode){
   const body=document.getElementById(bodyId); if(!body) return;
   const rows=[...scored];
-  if(mode==='renew') rows.sort((a,b)=>{
-    // Overdue first (most days late on top), then by soonest next invoice; no billing last.
-    const la=fcDaysLate((fcBilling(a.c)||{}).overdue_since), lb=fcDaysLate((fcBilling(b.c)||{}).overdue_since);
-    if((la!==null)!==(lb!==null)) return la!==null?-1:1;
-    if(la!==null&&lb!==null&&la!==lb) return lb-la;
-    const na=(fcBilling(a.c)||{}).next_invoice_date, nb=(fcBilling(b.c)||{}).next_invoice_date;
-    if(!na&&!nb) return 0; if(!na) return 1; if(!nb) return -1;
-    return new Date(na)-new Date(nb);
+  // Group by account manager first so an AM finds their accounts together (no
+  // hunting down the list). Within each AM keep the meaningful order — renewal:
+  // overdue first (most days late), then soonest invoice; conversion: highest
+  // likelihood first. Unassigned always sorts last. When the AM filter is set to
+  // a single AM this primary key is a no-op and the original order stands.
+  const amName=s=>displayAM(s.c.csm);
+  rows.sort((a,b)=>{
+    const an=amName(a), bn=amName(b);
+    const au=an==='Unassigned', bu=bn==='Unassigned';
+    if(au!==bu) return au?1:-1;                 // Unassigned always last
+    const am=an.toLowerCase().localeCompare(bn.toLowerCase()); if(am) return am;
+    if(mode==='renew'){
+      const la=fcDaysLate((fcBilling(a.c)||{}).overdue_since), lb=fcDaysLate((fcBilling(b.c)||{}).overdue_since);
+      if((la!==null)!==(lb!==null)) return la!==null?-1:1;
+      if(la!==null&&lb!==null&&la!==lb) return lb-la;
+      const na=(fcBilling(a.c)||{}).next_invoice_date, nb=(fcBilling(b.c)||{}).next_invoice_date;
+      if(!na&&!nb) return 0; if(!na) return 1; if(!nb) return -1;
+      return new Date(na)-new Date(nb);
+    }
+    return b.score-a.score;
   });
-  else rows.sort((a,b)=>b.score-a.score);
   const cols=mode==='conv'?12:14;
   body.innerHTML = rows.map(s=>{
     const c=s.c;
