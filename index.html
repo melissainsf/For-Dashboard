@@ -2488,10 +2488,10 @@ const FC_INFO = {
   amBook:{ title:'Quarter book by account manager', html:
     "<div class='r'>Per-AM, whole book (all tiers), quarter-to-date. Respects the AM filter above.</div>"
     +"<div class='h'>Projected end-of-Q = start + expansion − churn − projected at-risk churn + new</div>"
-    +"<div class='r'>• <b>Start-of-Q ARR</b>: the AM's existing-cohort MRR at quarter start (×12), from the captured baseline. No baseline yet → start = current book.</div>"
-    +"<div class='r'>• <b>Expansion / Churned</b>: actual in-quarter change so far.</div>"
+    +"<div class='r'>• <b>Start-of-Q ARR</b>: the AM's existing-cohort MRR at quarter start (×12), from the captured baseline. <b>Expansion / Churned</b>: actual in-quarter change so far. <b>New customers</b>: MRR from accounts that started this quarter (accounts not present at quarter start).</div>"
     +"<div class='r'>• <b>At-risk (projected)</b>: ARR of the AM's converted accounts in the <b>At-risk</b> likelihood band (score &lt; 45) — the expected-churn haircut.</div>"
-    +"<div class='r'>• <b>New customers</b>: MRR from accounts that started this quarter.</div>" }
+    +"<div class='h'>No baseline (e.g. a newly-assigned book)</div>"
+    +"<div class='r'>Without a start-of-quarter snapshot there's no reference to measure growth against, so the card shows the AM's <b>current book</b> and applies only the at-risk haircut — <b>no expansion or new-customer growth is attributed</b> (that would count an inherited book as growth the AM didn't generate). Capture a baseline on the <b>Bonus</b> tab to unlock the full breakdown.</div>" }
 };
 // Account-manager filter for both forecast boards (and their tiles). Mirrors the
 // Whole Portfolio filter: '__none__' = Unassigned, 'all' = everyone; the option
@@ -2596,13 +2596,28 @@ function fcAmBook(am){
   let agg=null;
   try { if(typeof bonusAggregateForAM==='function') agg=bonusAggregateForAM(am); }
   catch(e){ console.warn('fcAmBook: aggregate failed for '+am, e && e.message); }
-  const startMRR=agg?agg.begin:0, expMRR=agg?agg.exp:0, churnMRR=agg?agg.churn:0, newMRR=agg?agg.newMRR:0;
   const hasBaseline=agg?agg.hasBaseline:false;
+  // Projected at-risk churn is forward-looking (derived from current health), so
+  // it's knowable with or without a start-of-quarter baseline.
   const conv=(allCompanies||[]).filter(c=>displayAM(c.csm)===am && c.pilot_status==='Converted');
   let atRiskMRR=0; const atRiskNames=[];
   conv.forEach(c=>{ if(fcBand(fcRenewalScore(c).score)==='risk'){ atRiskMRR+=(c.mrr||0); atRiskNames.push(c.name); } });
-  const projMRR=startMRR+expMRR-churnMRR-atRiskMRR+newMRR;
-  return { am, startMRR, expMRR, churnMRR, newMRR, atRiskMRR, atRiskNames, projMRR, hasBaseline };
+  if(agg && hasBaseline){
+    // Proper case: measured against the captured start-of-quarter snapshot.
+    const startMRR=agg.begin, expMRR=agg.exp, churnMRR=agg.churn, newMRR=agg.newMRR;
+    const projMRR=startMRR+expMRR-churnMRR-atRiskMRR+newMRR;
+    return { am, startMRR, expMRR, churnMRR, newMRR, atRiskMRR, atRiskNames, projMRR, hasBaseline:true };
+  }
+  // No captured baseline (e.g. a newly-assigned book, like a brand-new AM): there
+  // is no start-of-quarter reference, so we CANNOT attribute quarter-over-quarter
+  // growth. Guessing "new customers" by kickoff date would count a reassigned or
+  // inherited book as growth the AM didn't generate. Instead, show the current
+  // whole book as the start and apply only the forward-looking at-risk haircut —
+  // no fabricated expansion/new-customer gains. Capturing a baseline (Bonus tab)
+  // restores the full start → expansion/churn/new breakdown.
+  const currentBook=agg?agg.avgManaged:0;      // ending + new = whole current book MRR
+  const projMRR=currentBook-atRiskMRR;
+  return { am, startMRR:currentBook, expMRR:0, churnMRR:0, newMRR:0, atRiskMRR, atRiskNames, projMRR, hasBaseline:false };
 }
 function fcBookAMs(cos, amFilter){
   const book=cos.filter(c=>c.pilot_status==='Converted'||c.pilot_status==='In progress');
@@ -2623,18 +2638,18 @@ function fcRenderAmBook(cos, amFilter){
     return `<div class="ambook-card">
       <div class="ambook-name">${escapeHtml(am)}</div>
       <div class="ambook-sub">Whole book · quarter to date${b.hasBaseline?'':' · no baseline'}</div>
-      ${line('Start-of-Q ARR', A(b.startMRR))}
+      ${line(b.hasBaseline?'Start-of-Q ARR':'Current book', A(b.startMRR))}
       ${line('Expansion', (b.expMRR>0?'+':'')+A(b.expMRR), b.expMRR>0?'pos':'')}
       ${line('Churned', (b.churnMRR>0?'−':'')+A(b.churnMRR), b.churnMRR>0?'neg':'')}
       <div class="ambook-row"${atRiskTitle}><span class="k">At-risk (projected)</span><span class="v ${b.atRiskMRR>0?'neg':''}">${(b.atRiskMRR>0?'−':'')+A(b.atRiskMRR)}</span></div>
       ${b.newMRR>0?line('New customers','+'+A(b.newMRR),'pos'):''}
       <div class="ambook-div"></div>
       <div class="ambook-proj"><span class="k">Projected end-of-Q</span><span class="v">${A(b.projMRR)}</span></div>
-      <div class="ambook-delta ${delta>=0?'pos':'neg'}">${delta>=0?'+':'−'}${fmt$(Math.abs(Math.round(delta)))} vs start</div>
+      <div class="ambook-delta ${delta>=0?'pos':'neg'}">${delta>=0?'+':'−'}${fmt$(Math.abs(Math.round(delta)))} vs ${b.hasBaseline?'start':'current book'}</div>
     </div>`;
   }).join('') || '<div class="empty-hint" style="padding:12px">No account managers in scope.</div>';
   set('fc-ambook-note', anyNoBaseline
-    ? 'Start-of-quarter ARR → projected end-of-quarter book. Some AMs have no captured baseline yet, so their start = current book.'
+    ? 'Start-of-quarter ARR → projected end-of-quarter book. AMs with no captured baseline (e.g. a newly-assigned book) show their current book and only the at-risk churn haircut — no quarter growth is attributed until a baseline is captured (Bonus tab).'
     : 'Start-of-quarter ARR → projected end-of-quarter book (start + expansion − churn − projected at-risk churn + new customers).');
 }
 // Dimension breakdown for ONE cohort, stacked by likelihood color (red→blue),
