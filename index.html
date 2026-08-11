@@ -1115,7 +1115,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Next invoice sent</th><th>Invoice amt</th><th>Target expansion close</th><th>Month</th><th>Health</th><th>Expansion</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
+          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Next invoice sent</th><th>Invoice amt</th><th>Target expansion close</th><th>Health</th><th>Expansion</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
           <tbody id="fc-renew-body"></tbody>
         </table>
       </div>
@@ -2330,7 +2330,6 @@ function fcBandHover(e, el){
 function fcTypeChip(c){ return fcIsICP(c)?'<span class="fc-type icp">ICP</span>':'<span class="fc-type">Brand</span>'; }
 function fcPilotDay(c){ if(!c.kickoff_date) return null; const d=Math.floor((Date.now()-new Date(c.kickoff_date).getTime())/86400000); return d>=0?d:null; }
 function fcRenewalDate(c){ if(!c.kickoff_date) return null; const dt=new Date(c.kickoff_date); dt.setFullYear(dt.getFullYear()+1); return dt; }
-function fcMonthsIn(c){ if(!c.kickoff_date) return null; const m=(Date.now()-new Date(c.kickoff_date).getTime())/(86400000*30.44); return m>=0?m:null; }
 // ── Billing (Measure) helpers for the renewal board ──────────────
 // Billing is keyed by company name; overdue days are computed LIVE from
 // overdue_since so the count stays correct between billing refreshes.
@@ -2358,6 +2357,16 @@ function fcInvoiceAmtCell(c){
 }
 function fcExpDateInput(c){
   const v=expansionById[c.id]||'';
+  // Only accounts whose Health is Blue (actively expanding) get an editable
+  // target-close date. Non-blue rows show a muted placeholder — or the saved
+  // date read-only if one was set while the account was Blue, so data isn't lost.
+  if(normalizeHealth(c.account_health)!=='blue'){
+    if(v){
+      const d=new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      return `<span class="fc-muted" title="Set while this account was Blue. Set Health to Blue to edit.">${escapeHtml(d)}</span>`;
+    }
+    return `<span class="fc-muted" title="Appears when Health is set to Blue (expanding)">—</span>`;
+  }
   return `<input type="date" class="fc-date" data-cid="${escapeHtml(c.id)}" value="${escapeHtml(v)}" onchange="saveExpansionDate(this)">`;
 }
 async function saveExpansionDate(input){
@@ -2464,11 +2473,11 @@ const FC_INFO = {
     +"<div class='h'>Bands</div>"
     +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. So blue is always Likely; green is Likely on its own. “Secure” tiles = the Likely cohort.</div>" },
   renewBoard:{ title:'Reading the Renewals board', html:
-    "<div class='r'>One row per converted customer. <b>Overdue accounts sort to the top</b> (most days late first), then by soonest next invoice.</div>"
+    "<div class='r'>One row per converted customer, <b>grouped by account manager</b> so you can scan to your name. Within each AM, <b>overdue accounts sort first</b> (most days late), then by soonest next invoice. Use the <b>Account Manager</b> filter at the top of the tab to see just your accounts.</div>"
     +"<div class='r'>• <b>Next invoice sent</b>: when Measure next bills the account. An <b>Overdue · Nd late</b> badge and a red row mean an unpaid invoice; the day count is live.</div>"
     +"<div class='r'>• <b>Invoice amt</b>: the recurring invoice amount from Measure; “($X due)” shows the unpaid total when overdue.</div>"
-    +"<div class='r'>• <b>Target expansion close</b>: the date <b>you</b> expect to close this account's expansion — type it in; it saves for everyone.</div>"
-    +"<div class='r'>• <b>Month</b>: months since kickoff, out of 12. <b>Health</b>: click to set the baseline likelihood. <b>Expansion</b>: current expansion MRR.</div>"
+    +"<div class='r'>• <b>Target expansion close</b>: the date <b>you</b> expect to close this account's expansion — type it in; it saves for everyone. Only editable when <b>Health = Blue</b> (actively expanding); other accounts show “—”.</div>"
+    +"<div class='r'>• <b>Health</b>: click to set the baseline likelihood. <b>Expansion</b>: current expansion MRR.</div>"
     +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal. <b>Likelihood</b>: banded score — hover for reasons.</div>" },
   goals:{ title:'Company goals — churn & expansion', html:
     "<div class='r'>Company-wide targets. These <b>ignore the AM and product filters</b> above.</div>"
@@ -2750,17 +2759,28 @@ function fcRenderTiles(prefix, scored){
 function fcRenderBoard(bodyId, scored, mode){
   const body=document.getElementById(bodyId); if(!body) return;
   const rows=[...scored];
-  if(mode==='renew') rows.sort((a,b)=>{
-    // Overdue first (most days late on top), then by soonest next invoice; no billing last.
-    const la=fcDaysLate((fcBilling(a.c)||{}).overdue_since), lb=fcDaysLate((fcBilling(b.c)||{}).overdue_since);
-    if((la!==null)!==(lb!==null)) return la!==null?-1:1;
-    if(la!==null&&lb!==null&&la!==lb) return lb-la;
-    const na=(fcBilling(a.c)||{}).next_invoice_date, nb=(fcBilling(b.c)||{}).next_invoice_date;
-    if(!na&&!nb) return 0; if(!na) return 1; if(!nb) return -1;
-    return new Date(na)-new Date(nb);
+  // Group by account manager first so an AM finds their accounts together (no
+  // hunting down the list). Within each AM keep the meaningful order — renewal:
+  // overdue first (most days late), then soonest invoice; conversion: highest
+  // likelihood first. Unassigned always sorts last. When the AM filter is set to
+  // a single AM this primary key is a no-op and the original order stands.
+  const amName=s=>displayAM(s.c.csm);
+  rows.sort((a,b)=>{
+    const an=amName(a), bn=amName(b);
+    const au=an==='Unassigned', bu=bn==='Unassigned';
+    if(au!==bu) return au?1:-1;                 // Unassigned always last
+    const am=an.toLowerCase().localeCompare(bn.toLowerCase()); if(am) return am;
+    if(mode==='renew'){
+      const la=fcDaysLate((fcBilling(a.c)||{}).overdue_since), lb=fcDaysLate((fcBilling(b.c)||{}).overdue_since);
+      if((la!==null)!==(lb!==null)) return la!==null?-1:1;
+      if(la!==null&&lb!==null&&la!==lb) return lb-la;
+      const na=(fcBilling(a.c)||{}).next_invoice_date, nb=(fcBilling(b.c)||{}).next_invoice_date;
+      if(!na&&!nb) return 0; if(!na) return 1; if(!nb) return -1;
+      return new Date(na)-new Date(nb);
+    }
+    return b.score-a.score;
   });
-  else rows.sort((a,b)=>b.score-a.score);
-  const cols=mode==='conv'?12:15;
+  const cols=mode==='conv'?12:14;
   body.innerHTML = rows.map(s=>{
     const c=s.c;
     const health=healthChip(c.account_health,{cid:c.id});
@@ -2777,10 +2797,9 @@ function fcRenderBoard(bodyId, scored, mode){
     const invCell=fcInvoiceDateCell(c);
     const amtCell=fcInvoiceAmtCell(c);
     const expDate=fcExpDateInput(c);
-    const mi=fcMonthsIn(c); const miCell=mi===null?'—':(Math.floor(mi)+' / 12');
     const exp=c.expansion_mrr>0?fmt$(c.expansion_mrr):'—';
     const rowCls=fcIsOverdue(c)?' class="fc-overdue-row"':'';
-    return `<tr${rowCls}><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${invCell}</td><td>${amtCell}</td><td>${expDate}</td><td>${miCell}</td><td>${health}</td><td>${exp}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
+    return `<tr${rowCls}><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${invCell}</td><td>${amtCell}</td><td>${expDate}</td><td>${health}</td><td>${exp}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
   }).join('') || `<tr><td colspan="${cols}" class="empty-hint">No ${mode==='conv'?'active pilots':'converted customers'}.</td></tr>`;
 }
 function renderPortfolioTable(cos) {
