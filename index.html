@@ -75,6 +75,16 @@ main{padding:24px 32px;max-width:1600px;margin:0 auto}
 #status-bar{padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:20px;display:none;align-items:center;gap:8px}
 #status-bar.loading{display:flex;background:var(--blue-light);color:var(--blue)}
 #status-bar.error{display:flex;background:var(--coral-light);color:var(--coral)}
+/* Stale-data warning: a failed refresh must never leave old numbers looking live. */
+#stale-banner{display:none;position:sticky;top:0;z-index:900;margin:0 0 20px;padding:12px 18px;border-radius:var(--radius-sm);background:var(--red-light);border:1px solid var(--red);color:var(--red);font-size:13px;align-items:center;gap:10px;box-shadow:var(--shadow)}
+#stale-banner.show{display:flex}
+#stale-banner .sb-icon{font-size:16px;line-height:1;flex:none}
+#stale-banner .sb-msg{font-weight:600}
+#stale-banner .sb-sub{font-weight:500;color:var(--ink2)}
+#stale-banner .sb-retry{margin-left:auto;flex:none;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+#stale-banner .sb-retry:disabled{opacity:0.5;cursor:default}
+#last-updated.stale{color:#FF9A8A;font-weight:600}
+body.data-stale .chart-card,body.data-stale .mcard{opacity:0.6;transition:opacity 0.2s}
 .spinner{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* TOOLTIP */
@@ -558,6 +568,11 @@ textarea.prt-input{resize:vertical}
 
 <main>
   <div id="status-bar"></div>
+  <div id="stale-banner" role="alert">
+    <span class="sb-icon">⚠️</span>
+    <span><span class="sb-msg" id="stale-msg"></span> <span class="sb-sub" id="stale-sub"></span></span>
+    <button type="button" class="sb-retry" id="stale-retry" onclick="loadData()">↻ Try again</button>
+  </div>
 
   <!-- TAB 1: PILOT & POST-PILOT -->
   <div id="tab-main" class="tab-content active">
@@ -1599,6 +1614,7 @@ function isAccountStage(c) {
 }
 
 let allCompanies = [], charts = {};
+let lastGoodRefresh = null;   // set only when a HubSpot pull fully succeeds
 
 // Account health colors are stored in the dashboard's own Netlify Blobs store
 // (via /api/account-health), keyed by HubSpot company id — no Lineage, no CRM.
@@ -1737,6 +1753,39 @@ function setStatus(msg, type) {
   if (!type) { el.style.display='none'; return; }
   el.className = type;
   el.innerHTML = type==='loading' ? `<div class="spinner"></div><span>${msg}</span>` : `<span>${msg}</span>`;
+}
+// A failed data pull must never quietly leave old numbers on screen looking
+// current. Mark the whole dashboard stale — a loud sticky banner, a red
+// "last updated" stamp, and dimmed cards — until a refresh fully succeeds.
+function markStale(reason) {
+  const hadData = allCompanies.length > 0;
+  const at = lastGoodRefresh
+    ? lastGoodRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : null;
+  const msgEl = document.getElementById('stale-msg');
+  const subEl = document.getElementById('stale-sub');
+  if (msgEl) msgEl.textContent = hadData
+    ? 'These numbers are out of date — the latest refresh from HubSpot failed.'
+    : 'Couldn’t load data from HubSpot.';
+  if (subEl) subEl.textContent = [
+    hadData && at ? `Still showing the last good pull from ${at}.` : '',
+    reason ? `(${reason})` : ''
+  ].filter(Boolean).join(' ');
+  const banner = document.getElementById('stale-banner');
+  if (banner) banner.classList.add('show');
+  document.body.classList.add('data-stale');
+  const lu = document.getElementById('last-updated');
+  if (lu && hadData) {
+    lu.classList.add('stale');
+    lu.textContent = '⚠ Stale — last updated ' + (at || 'never');
+  }
+}
+function clearStale() {
+  const banner = document.getElementById('stale-banner');
+  if (banner) banner.classList.remove('show');
+  document.body.classList.remove('data-stale');
+  const lu = document.getElementById('last-updated');
+  if (lu) lu.classList.remove('stale');
 }
 function fmt$(n) { return n>=1000?'$'+(n/1000).toFixed(1).replace(/\.0$/,'')+'k':'$'+Math.round(n); }
 function fmtBig$(n) {
@@ -1919,6 +1968,8 @@ async function loadData() {
     }).filter(isAccountStage);
     setStatus('');
     const now=new Date();
+    lastGoodRefresh=now;
+    clearStale();
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Lineage · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
@@ -1928,7 +1979,8 @@ async function loadData() {
     prtState.loaded=false;
     prtEnsureLoaded().then(()=>{ if(document.getElementById('tab-requests').classList.contains('active')) prtRender(); });
   } catch(e) {
-    setStatus('Failed to load: '+e.message,'error');
+    setStatus('');            // the sticky stale banner is now the loud signal
+    markStale(e.message);
   } finally { btn.disabled=false; }
 }
 
