@@ -85,6 +85,19 @@ main{padding:24px 32px;max-width:1600px;margin:0 auto}
 #stale-banner .sb-retry:disabled{opacity:0.5;cursor:default}
 #last-updated.stale{color:#FF9A8A;font-weight:600}
 body.data-stale .chart-card,body.data-stale .mcard{opacity:0.6;transition:opacity 0.2s}
+/* Forecasting churn lists — recent churn beneath each cohort board */
+.fc-churn-lists{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0 4px}
+@media(max-width:720px){.fc-churn-lists{grid-template-columns:1fr}}
+.fc-churn-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.fc-churn-head{display:flex;align-items:baseline;gap:8px;font-family:'Syne',sans-serif;font-weight:600;font-size:14px;color:var(--ink)}
+.fc-churn-count{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--coral);background:var(--coral-light);border-radius:20px;padding:1px 9px}
+.fc-churn-sub{font-size:12px;color:var(--ink2);margin:2px 0 10px}
+.fc-churn-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+.fc-churn-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;padding:5px 9px;border-radius:var(--radius-sm);background:var(--surface2)}
+.fc-churn-row .fcc-name{font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-churn-row .fcc-meta{flex:none;color:var(--ink2);font-variant-numeric:tabular-nums}
+.fc-churn-row .fcc-lost{color:var(--coral);font-weight:600}
+.fc-churn-empty{font-size:12px;color:var(--ink3);padding:8px 2px}
 .spinner{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* TOOLTIP */
@@ -1072,6 +1085,18 @@ textarea.prt-input{resize:vertical}
         </table>
       </div>
     </div>
+    <div class="fc-churn-lists">
+      <div class="fc-churn-card">
+        <div class="fc-churn-head">Churned this month <span class="fc-churn-count" id="fc-churn-epilot-month-n">0</span></div>
+        <div class="fc-churn-sub" id="fc-churn-epilot-month-sub">Exited during pilot</div>
+        <ul class="fc-churn-list" id="fc-churn-epilot-month"></ul>
+      </div>
+      <div class="fc-churn-card">
+        <div class="fc-churn-head">Churned this quarter <span class="fc-churn-count" id="fc-churn-epilot-qtr-n">0</span></div>
+        <div class="fc-churn-sub" id="fc-churn-epilot-qtr-sub">Exited during pilot</div>
+        <ul class="fc-churn-list" id="fc-churn-epilot-qtr"></ul>
+      </div>
+    </div>
     <div style="margin-bottom:16px"></div>
     <div class="section-header">
       <span class="section-title">Pilot Likelihood</span>
@@ -1133,6 +1158,18 @@ textarea.prt-input{resize:vertical}
           <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Next invoice sent</th><th>Invoice amt</th><th>Target expansion close</th><th>Health</th><th>Expansion</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
           <tbody id="fc-renew-body"></tbody>
         </table>
+      </div>
+    </div>
+    <div class="fc-churn-lists">
+      <div class="fc-churn-card">
+        <div class="fc-churn-head">Churned this month <span class="fc-churn-count" id="fc-churn-conv-month-n">0</span></div>
+        <div class="fc-churn-sub" id="fc-churn-conv-month-sub">Churned post-conversion</div>
+        <ul class="fc-churn-list" id="fc-churn-conv-month"></ul>
+      </div>
+      <div class="fc-churn-card">
+        <div class="fc-churn-head">Churned this quarter <span class="fc-churn-count" id="fc-churn-conv-qtr-n">0</span></div>
+        <div class="fc-churn-sub" id="fc-churn-conv-qtr-sub">Churned post-conversion</div>
+        <ul class="fc-churn-list" id="fc-churn-conv-qtr"></ul>
       </div>
     </div>
     <div style="margin-bottom:16px"></div>
@@ -2779,6 +2816,42 @@ function fcRenderCharts(pilots, converted){
   fcStackedLikChart('fc-chart-vertical-renew', converted, fcRenewalScore, c=>c.vertical||'—', null);
   fcStackedLikChart('fc-chart-am-renew', converted, fcRenewalScore, c=>displayAM(c.csm), null);
 }
+// ── FORECASTING CHURN LISTS ────────────────────────────────────
+// Recent churn beneath each cohort board — pilot churn (Exited During Pilot)
+// under the pilots board, post-conversion churn under the renewals board, each
+// split "this month" vs "this quarter" by churn_date. Respects the AM filter
+// (churn is churn, so it ignores the product-tier toggle). Dates are parsed
+// straight off the YYYY-MM-DD string to avoid any timezone drift on the buckets.
+function fcYM(iso){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||''); return m?{y:+m[1],mo:+m[2],d:+m[3]}:null; }
+function fcDayLabel(ym){ return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][ym.mo-1]+' '+ym.d; }
+function fcPaintChurn(idBase, rows, label){
+  const nEl=document.getElementById(idBase+'-n');
+  const subEl=document.getElementById(idBase+'-sub');
+  const ul=document.getElementById(idBase);
+  if(nEl) nEl.textContent=rows.length;
+  const total=rows.reduce((s,r)=>s+(r.c.churned_mrr||0),0);
+  if(subEl) subEl.textContent=label+(rows.length?(' · '+fmt$(total)+' lost'):'');
+  if(!ul) return;
+  ul.innerHTML=rows.length
+    ? rows.map(r=>`<li class="fc-churn-row"><span class="fcc-name">${escapeHtml(r.c.name)}</span><span class="fcc-meta"><span class="fcc-lost">${fmt$(r.c.churned_mrr||0)}</span> · ${fcDayLabel(r.ym)}</span></li>`).join('')
+    : '<li class="fc-churn-empty">None this period.</li>';
+}
+function fcRenderChurnLists(cos, amFilter){
+  const scope=amFilter==='all'?cos:cos.filter(c=>(c.csm||'__none__')===amFilter);
+  const now=new Date(), cy=now.getFullYear(), cm=now.getMonth()+1, cq=Math.floor((cm-1)/3);
+  const inMonth=ym=>ym&&ym.y===cy&&ym.mo===cm;
+  const inQtr=ym=>ym&&ym.y===cy&&Math.floor((ym.mo-1)/3)===cq;
+  const fill=(status, key, label)=>{
+    const rows=scope.filter(c=>c.pilot_status===status && c.churn_date)
+      .map(c=>({c, ym:fcYM(c.churn_date)}))
+      .filter(r=>r.ym)
+      .sort((a,b)=>b.c.churn_date.localeCompare(a.c.churn_date));
+    fcPaintChurn(key+'-month', rows.filter(r=>inMonth(r.ym)), label);
+    fcPaintChurn(key+'-qtr', rows.filter(r=>inQtr(r.ym)), label);
+  };
+  fill('Exited During Pilot', 'fc-churn-epilot', 'Exited during pilot');
+  fill('Churned Post Conversion', 'fc-churn-conv', 'Churned post-conversion');
+}
 function renderForecastTab(cos){
   window.__forecastCos=cos;
   const amFilter=resolveForecastAmFilter(cos);
@@ -2790,6 +2863,7 @@ function renderForecastTab(cos){
   // a failure here must not break the cohort boards below.
   try { fcRenderGoals(cos); } catch(e){ console.warn('forecast goals render failed', e); }
   try { fcRenderAmBook(cos, amFilter); } catch(e){ console.warn('forecast AM book render failed', e); }
+  try { fcRenderChurnLists(cos, amFilter); } catch(e){ console.warn('forecast churn lists render failed', e); }
   let inScope=amFilter==='all'?cos:cos.filter(c=>(c.csm||'__none__')===amFilter);
   if(tier!=='Both') inScope=inScope.filter(c=>tierOf(c)===tier);
   const pilots=inScope.filter(c=>c.pilot_status==='In progress');
