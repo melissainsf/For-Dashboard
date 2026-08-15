@@ -742,7 +742,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-fs" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Churn date</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-fs" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-portfolio-churned-mrr-fs" class="sortable">MRR lost<span class="sort-indicator">⇅</span></th><th id="th-portfolio-churned-date-fs" class="sortable">Churn date<span class="sort-indicator">⇅</span></th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
           <tbody id="portfolio-churned-roster-body-fs"></tbody>
         </table>
       </div>
@@ -768,7 +768,7 @@ textarea.prt-input{resize:vertical}
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-egc" class="sortable">AM<span class="sort-indicator">⇅</span></th><th>MRR lost</th><th>Churn date</th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
+          <thead><tr><th>Company</th><th>Status</th><th>Stage</th><th>Vertical</th><th id="th-portfolio-churned-am-egc" class="sortable">AM<span class="sort-indicator">⇅</span></th><th id="th-portfolio-churned-mrr-egc" class="sortable">MRR lost<span class="sort-indicator">⇅</span></th><th id="th-portfolio-churned-date-egc" class="sortable">Churn date<span class="sort-indicator">⇅</span></th><th>Health</th><th>Churn reason</th><th>FOCs</th></tr></thead>
           <tbody id="portfolio-churned-roster-body-egc"></tbody>
         </table>
       </div>
@@ -1651,16 +1651,20 @@ function applyListSort(arr, state, getters) {
   if (!state.col || !state.dir) return arr;
   const get = getters[state.col];
   if (!get) return arr;
+  const dir = state.dir === 'desc' ? -1 : 1;
+  const isMissing = v => v === null || v === undefined || v === '' ||
+    (typeof v === 'string' && (v.trim() === '' || v.trim() === '—' || v.trim().toLowerCase() === 'unassigned'));
   return [...arr].sort((a, b) => {
-    const av = (get(a) || '').trim();
-    const bv = (get(b) || '').trim();
-    const aMissing = !av || av === '—' || av.toLowerCase() === 'unassigned';
-    const bMissing = !bv || bv === '—' || bv.toLowerCase() === 'unassigned';
-    if (aMissing && !bMissing) return 1;
-    if (!aMissing && bMissing) return -1;
+    const av = get(a), bv = get(b);
+    const aMissing = isMissing(av), bMissing = isMissing(bv);
+    // Missing always sinks to the bottom, regardless of sort direction.
     if (aMissing && bMissing) return 0;
-    const cmp = av.toLowerCase().localeCompare(bv.toLowerCase());
-    return state.dir === 'desc' ? -cmp : cmp;
+    if (aMissing) return 1;
+    if (bMissing) return -1;
+    const cmp = (typeof av === 'number' && typeof bv === 'number')
+      ? av - bv
+      : String(av).trim().toLowerCase().localeCompare(String(bv).trim().toLowerCase());
+    return cmp * dir;
   });
 }
 function bindSortHeader(thId, key, col, rerender) {
@@ -2915,11 +2919,17 @@ function renderPortfolioChurned(churned, suffix, ctx, cos) {
   set('note-portfolio-churned-roster-'+suffix, churned.length+' churned companies');
   const churnedOrder={'Exited During Pilot':0,'Churned Post Conversion':1};
   let rows=[...churned].sort((a,b)=>(churnedOrder[a.pilot_status]??9)-(churnedOrder[b.pilot_status]??9));
-  rows=applyListSort(rows, window.__listSort[key], { am: c => displayAM(c.csm) });
+  rows=applyListSort(rows, window.__listSort[key], {
+    am: c => displayAM(c.csm),
+    churnMrr: c => c.churned_mrr || 0,
+    churnDate: c => c.churn_date || ''
+  });
   document.getElementById('portfolio-churned-roster-body-'+suffix).innerHTML=rows.map(c=>{
     return `<tr><td>${c.name}</td><td>${statusSelect(c)}</td><td>${stageSelect(c,allStages)}</td><td>${verticalSelect(c,allVerticals)}</td><td>${displayAM(c.csm)}</td><td>${f(c.churned_mrr)}</td><td>${dateInput(c,'churn_date','churn_date')}</td><td>${healthChip(c.account_health,{cid:c.id})}</td><td>${c.churn_reason||'—'}</td><td>${focsInput(c)}</td></tr>`;
   }).join('')||'<tr><td colspan="10" class="empty-hint">No churned customers.</td></tr>';
   bindSortHeader('th-portfolio-churned-am-'+suffix, key, 'am', ()=>renderPortfolioTable(cos));
+  bindSortHeader('th-portfolio-churned-mrr-'+suffix, key, 'churnMrr', ()=>renderPortfolioTable(cos));
+  bindSortHeader('th-portfolio-churned-date-'+suffix, key, 'churnDate', ()=>renderPortfolioTable(cos));
 }
 
 // ── COHORTS TAB ────────────────────────────────────────────────
