@@ -79,6 +79,21 @@
   status = 200
 
 [[redirects]]
+  from = "/api/content-requests"
+  to = "/.netlify/functions/content-requests"
+  status = 200
+
+[[redirects]]
+  from = "/api/content-request-write"
+  to = "/.netlify/functions/content-request-write"
+  status = 200
+
+[[redirects]]
+  from = "/content"
+  to = "/content.html"
+  status = 200
+
+[[redirects]]
   from = "/hs-api/*"
   to = "https://api.hubapi.com/:splat"
   status = 200
