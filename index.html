@@ -1624,10 +1624,28 @@ function monthsElapsed(fromISO, toISO) {
   const a = new Date(fromISO), b = new Date(toISO);
   return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
 }
-// Product tier: EGC if the (multi-select) product field contains "EGC";
-// otherwise Full Service (blank = Full Service, confirmed by Melissa). Rev Share,
-// Launch, etc. are upsells layered on top, not tier indicators.
-function tierOf(c) { return /EGC/i.test(c.product || '') ? 'EGC' : 'Full Service'; }
+// Product tier. `product` is a HubSpot multi-select, so one account can carry
+// several values ("EGC;Full Service"). The rule:
+//   EGC and nothing else  → an EGC customer. Its own product line, its own
+//                           rosters; never mixed into the Full Service book.
+//   EGC alongside anything→ a Full Service customer who also uses EGC, so it
+//                           stays on its SAM's managed book.
+//   blank                 → Full Service (confirmed by Melissa).
+// Rev Share, Launch, FOC etc. are upsells layered on top, never tier indicators.
+function productTokens(c) {
+  return String(c.product || '').split(';').map(v => v.trim()).filter(Boolean);
+}
+function isEgcOnly(c) {
+  const t = productTokens(c);
+  return t.length > 0 && t.every(v => /^EGC$/i.test(v));
+}
+function tierOf(c) { return isEgcOnly(c) ? 'EGC' : 'Full Service'; }
+// The managed book: every account a Strategic Account Manager owns. EGC-only
+// accounts can run a pilot and carry a pilot_status like any other account, so
+// nothing upstream separates them — this is the gate that keeps them out of the
+// Full Service funnel, NRR cohort and AM books. They remain visible in their own
+// Portfolio sections and under the Forecasting tab's EGC / Both tier filter.
+function isManaged(c) { return !isEgcOnly(c); }
 // Lifecyclestage is the source of truth for the NRR cohort. HubSpot returns the
 // internal value: "customer" for current customers (in-pilot or post-pilot), and
 // the custom-stage id "1271359806" for "Churned". A churned customer must stay in
@@ -1649,6 +1667,16 @@ function isAccountStage(c) {
   const ls = (c.lifecyclestage || '');
   return ls === 'customer' || ls === CHURNED_STAGE;
 }
+
+// Every tab derives its rows from one of these two. workingSet() is the whole
+// book minus Virio's own record; managedSet() is the Full Service book a SAM is
+// accountable for. Tabs that render EGC themselves (Portfolio's EGC rosters,
+// Forecasting's tier filter) take workingSet(); everything else takes managedSet().
+function workingSet() {
+  const exclude = document.getElementById('exclude-virio').checked;
+  return exclude ? allCompanies.filter(c => c.domain !== 'virio.ai' && c.name !== 'Virio') : allCompanies;
+}
+function managedSet() { return workingSet().filter(isManaged); }
 
 let allCompanies = [], charts = {};
 let lastGoodRefresh = null;   // set only when a HubSpot pull fully succeeds
@@ -1931,12 +1959,10 @@ function switchTab(e, name) {
   if(name==='bonus'){ bonusEnsureInit(); return; }
   if(name==='responses'){ rtEnsureLoaded(); return; }
   if(!allCompanies.length) return;
-  const exclude=document.getElementById('exclude-virio').checked;
-  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
-  if(name==='cohorts')   renderCohortsTab(cos);
-  if(name==='portfolio') renderPortfolioTable(cos);
-  if(name==='team')      renderTeamTab(cos);
-  if(name==='forecasting') renderForecastTab(cos);
+  if(name==='cohorts')   renderCohortsTab(managedSet());
+  if(name==='portfolio') renderPortfolioTable(workingSet());
+  if(name==='team')      renderTeamTab(managedSet());
+  if(name==='forecasting') renderForecastTab(workingSet());
   if(name==='requests')  prtEnsureLoaded().then(prtRender);
 }
 
@@ -2028,8 +2054,9 @@ async function loadData() {
 // ── MAIN COMPUTE ───────────────────────────────────────────────
 function recompute() {
   if(!allCompanies.length) return;
-  const exclude=document.getElementById('exclude-virio').checked;
-  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
+  // Headline metrics are the Full Service story: EGC-only accounts are reported
+  // separately and would otherwise land in the pilot funnel and the NRR cohort.
+  const cos=managedSet();
 
   const inProgress=cos.filter(c=>c.pilot_status==='In progress');
   const converted=cos.filter(c=>c.pilot_status==='Converted');
@@ -2288,14 +2315,12 @@ const HS_TO_LOCAL_PROP = { kickoff_call_date: 'kickoff_date' };
 function refreshActiveTab() {
   if(!allCompanies.length) return;
   recompute();
-  const exclude=document.getElementById('exclude-virio').checked;
-  const cos=exclude?allCompanies.filter(c=>c.domain!=='virio.ai'&&c.name!=='Virio'):allCompanies;
   const active=document.querySelector('.tab-content.active');
   if(!active) return;
-  if(active.id==='tab-cohorts') renderCohortsTab(cos);
-  else if(active.id==='tab-team') renderTeamTab(cos);
-  else if(active.id==='tab-portfolio') renderPortfolioTable(cos);
-  else if(active.id==='tab-forecasting') renderForecastTab(cos);
+  if(active.id==='tab-cohorts') renderCohortsTab(managedSet());
+  else if(active.id==='tab-team') renderTeamTab(managedSet());
+  else if(active.id==='tab-portfolio') renderPortfolioTable(workingSet());
+  else if(active.id==='tab-forecasting') renderForecastTab(workingSet());
 }
 async function updateHubspotField(sel) {
   const id=sel.dataset.cid, prop=sel.dataset.prop, prev=sel.dataset.prev, next=sel.value;
@@ -2952,8 +2977,9 @@ function fcRenderBoard(bodyId, scored, mode){
 function renderPortfolioTable(cos) {
   window.__portfolioCos = cos;
   const isChurned=c=>c.pilot_status==='Exited During Pilot'||c.pilot_status==='Churned Post Conversion';
-  // Product split: EGC always has product 'EGC'; anything else (incl. blank) is Full Service.
-  const isEGC=c=>c.product==='EGC';
+  // Product split, per tierOf: EGC-only goes to the EGC rosters, everything else
+  // (including "EGC;Full Service" and blank) to the Full Service rosters.
+  const isEGC=isEgcOnly;
 
   const allCsms=[...new Set(allCompanies.map(c=>c.csm).filter(Boolean))].sort((a,b)=>displayAM(a).localeCompare(displayAM(b)));
   const allStages=[...new Set(allCompanies.map(c=>c.stage).filter(Boolean))].sort();
