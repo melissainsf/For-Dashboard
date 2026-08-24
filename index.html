@@ -1598,12 +1598,29 @@ const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned Post Conversion'];
-// No longer Account Managers — their csm/content_manager assignments are scrubbed
-// so they drop out of every AM widget.
-// Note: the response-time widgets pull from /api/response-times, not this path, so
-// people removed here still appear there.
-const FORMER_TEAM_MEMBERS = new Set(['Yichen','Lakeisha','Emmett','Jacob']);
-const scrubFormer = v => (v && FORMER_TEAM_MEMBERS.has(v)) ? null : v;
+// Departed staff, scrubbed at ingestion so they drop out of every widget.
+// Account Manager (csm) and Content Engineer (content_manager) are separate
+// roles on separate HubSpot dropdowns, so they get separate sets: someone can
+// stop being an AM while still owning content on live accounts, and scrubbing
+// them from one field must not silently blank the other.
+//
+// Values below are HubSpot INTERNAL names, not display labels — the csm
+// dropdown stores 'CSM 2' for David and 'Max' for Maxwell (see AM_LABELS),
+// while content_manager stores 'David' and 'Maxwell' literally.
+//
+// Note: the response-time widgets pull from /api/response-times, not this path,
+// so this list is mirrored in netlify/functions/_response-times-core.js.
+const FORMER_AM_VALUES = new Set([
+  'Yichen', 'Lakeisha', 'Emmett', 'Jacob',
+  'CSM 2',            // David — no longer an AM (still a Content Engineer)
+  'Millie',           // no longer an AM (still a Content Engineer)
+  'Former Employee',  // HubSpot's catch-all for departed staff
+]);
+// Content Engineers who have left. David and Millie are deliberately NOT here:
+// they are off the AM roster but still the content owner on live accounts.
+const FORMER_CE_VALUES = new Set(['Yichen','Lakeisha','Emmett','Jacob']);
+const scrubFormerAM = v => (v && FORMER_AM_VALUES.has(v)) ? null : v;
+const scrubFormerCE = v => (v && FORMER_CE_VALUES.has(v)) ? null : v;
 
 // ── NRR GOAL CONFIG ────────────────────────────────────────────
 // Fixed leadership goalposts for the Team-tab NRR thermometers. The monthly pace
@@ -1873,7 +1890,10 @@ function displayAM(csm) { return csm ? (AM_LABELS[csm]||csm) : 'Unassigned'; }
 // Current Account Managers, by HubSpot internal value — the single source of
 // truth for who's on the team. New AMs go here so they appear across every AM
 // widget (and are assignable) before any account is assigned to them.
-const CURRENT_AM_VALUES = ['Melissa','Marghi','Max','CSM 2','Emily','Millie'];
+// Anyone taken off this list should also go into FORMER_AM_VALUES above,
+// otherwise their old book keeps attributing to them across the AM widgets.
+// Last reconciled against the HubSpot `csm` dropdown: 2026-08-24.
+const CURRENT_AM_VALUES = ['Melissa','Marghi','Max','Emily','Daniel','Karishma'];
 const CURRENT_AMS = CURRENT_AM_VALUES.map(displayAM);  // display labels
 function amDisplayList(cos) {
   const set = new Set(CURRENT_AMS);
@@ -2019,8 +2039,8 @@ async function loadData() {
         churn_reason:r.properties.churn_reason||null,
         churn_date:r.properties.churn_date||null,
         domain:r.properties.domain,
-        csm:scrubFormer(r.properties.csm)||null,
-        content_manager:scrubFormer(r.properties.content_manager)||null,
+        csm:scrubFormerAM(r.properties.csm)||null,
+        content_manager:scrubFormerCE(r.properties.content_manager)||null,
         posts_per_month:r.properties.posts_per_month||null,
         kickoff_date:r.properties.kickoff_call_date||null,
         first_post_date:r.properties.first_post_date||null,
@@ -4122,8 +4142,11 @@ function bonusEnsureInit(){
 }
 
 // AMs to hide from the BONUS CALCULATOR picker only (not the rest of the
-// dashboard) — e.g. roles not on this quarterly bonus plan.
-const BONUS_EXCLUDE_AMS = ['Millie'];
+// dashboard) — e.g. roles not on this quarterly bonus plan. This also gates
+// bonusAggregateTeam(), so anyone listed here drops out of the team-half NRR
+// that every AM's bonus is measured on — keep it empty unless someone is
+// genuinely off the plan.
+const BONUS_EXCLUDE_AMS = [];
 function bonusPopulateAMs(){
   const sel = document.getElementById('bonus-am');
   const ams = (typeof CURRENT_AMS!=='undefined' && CURRENT_AMS.length) ? CURRENT_AMS : [];

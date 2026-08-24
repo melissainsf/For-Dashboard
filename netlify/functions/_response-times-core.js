@@ -101,7 +101,16 @@ async function channelHistory(channelId, oldest, token) {
 // so the widgets always match HubSpot (no static drift). Falls back to the bundled
 // snapshot (_cs-accounts.js) if HubSpot is unavailable.
 const AM_LABEL = { 'CSM 2': 'David', 'Max': 'Maxwell' };      // HubSpot csm internal name -> dropdown label
-const FORMER_AMS = new Set(['Yichen', 'Lakeisha', 'Emmett', 'Jacob']); // former team members -> Unassigned
+// Off the AM roster -> "Unassigned". HubSpot internal values, not display
+// labels ('CSM 2' is David). Mirrors FORMER_AM_VALUES in index.html — keep the
+// two in sync. Content Engineer assignments are a separate field and are not
+// touched here, so David/Millie still own content on their live accounts.
+const FORMER_AMS = new Set([
+  'Yichen', 'Lakeisha', 'Emmett', 'Jacob',
+  'CSM 2',            // David
+  'Millie',
+  'Former Employee',  // HubSpot's catch-all for departed staff
+]);
 function amLabel(csm) {
   if (!csm || FORMER_AMS.has(csm)) return 'Unassigned';
   return AM_LABEL[csm] || csm;
