@@ -1598,31 +1598,21 @@ const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
 const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned Post Conversion'];
-// Departed staff, scrubbed at ingestion so they drop out of every widget.
-// Account Manager (csm) and Content Engineer (content_manager) are separate
-// roles on separate HubSpot dropdowns, so they get separate sets: someone can
-// stop being an AM while still owning content on live accounts, and scrubbing
-// them from one field must not silently blank the other.
+// Anyone off the AM roster, scrubbed at ingestion so they drop out of every
+// AM widget and their old accounts read as Unassigned.
 //
-// Values below are HubSpot INTERNAL names, not display labels — the csm
-// dropdown stores 'CSM 2' for David and 'Max' for Maxwell (see AM_LABELS),
-// while content_manager stores 'David' and 'Maxwell' literally.
+// Values are HubSpot INTERNAL names, not display labels — the csm dropdown
+// stores 'CSM 2' for David and 'Max' for Maxwell (see AM_LABELS).
 //
 // Note: the response-time widgets pull from /api/response-times, not this path,
 // so this list is mirrored in netlify/functions/_response-times-core.js.
 const FORMER_AM_VALUES = new Set([
   'Yichen', 'Lakeisha', 'Emmett', 'Jacob',
   'CSM 2',            // David — left Virio; Karishma backfilled the seat
-  'Millie',           // no longer an AM (still a Content Engineer)
+  'Millie',
   'Former Employee',  // HubSpot's catch-all for departed staff
 ]);
-// Content Engineers who have left Virio. Note the internal value for David is
-// 'David' here but 'CSM 2' on the csm dropdown, so he needs both entries.
-// Millie is deliberately NOT here: she is off the AM roster but still the
-// content owner on live accounts.
-const FORMER_CE_VALUES = new Set(['Yichen','Lakeisha','Emmett','Jacob','David']);
 const scrubFormerAM = v => (v && FORMER_AM_VALUES.has(v)) ? null : v;
-const scrubFormerCE = v => (v && FORMER_CE_VALUES.has(v)) ? null : v;
 
 // ── NRR GOAL CONFIG ────────────────────────────────────────────
 // Fixed leadership goalposts for the Team-tab NRR thermometers. The monthly pace
@@ -2042,7 +2032,6 @@ async function loadData() {
         churn_date:r.properties.churn_date||null,
         domain:r.properties.domain,
         csm:scrubFormerAM(r.properties.csm)||null,
-        content_manager:scrubFormerCE(r.properties.content_manager)||null,
         posts_per_month:r.properties.posts_per_month||null,
         kickoff_date:r.properties.kickoff_call_date||null,
         first_post_date:r.properties.first_post_date||null,
@@ -3380,7 +3369,10 @@ function renderTeamTab(cos) {
     });
   }
 
-  // AM aggregates by post target — always include Virio so internal workload is reflected
+  // AM aggregates by post target — always include Virio so internal workload is
+  // reflected. The `ce*` names here (and the ce-* DOM ids/CSS) are vestigial:
+  // they date from a retired Content Engineer role and now key on csm, i.e.
+  // this is the AM capacity widget. Kept as-is to avoid churning the markup.
   const ceSource=allCompanies.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
   const ceMap = {};
   amDisplayList(ceSource).forEach(am => { ceMap[am] = { accounts:[] }; });  // seed every current AM
