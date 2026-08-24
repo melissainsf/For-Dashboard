@@ -103,11 +103,11 @@ async function channelHistory(channelId, oldest, token) {
 const AM_LABEL = { 'CSM 2': 'David', 'Max': 'Maxwell' };      // HubSpot csm internal name -> dropdown label
 // Off the AM roster -> "Unassigned". HubSpot internal values, not display
 // labels ('CSM 2' is David). Mirrors FORMER_AM_VALUES in index.html — keep the
-// two in sync. Content Engineer assignments are a separate field and are not
-// touched here, so David/Millie still own content on their live accounts.
+// two in sync. This job only reads the csm field, so Content Engineer
+// assignments are unaffected by anything listed here.
 const FORMER_AMS = new Set([
   'Yichen', 'Lakeisha', 'Emmett', 'Jacob',
-  'CSM 2',            // David
+  'CSM 2',            // David — left Virio
   'Millie',
   'Former Employee',  // HubSpot's catch-all for departed staff
 ]);

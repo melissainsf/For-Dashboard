@@ -1612,13 +1612,15 @@ const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned
 // so this list is mirrored in netlify/functions/_response-times-core.js.
 const FORMER_AM_VALUES = new Set([
   'Yichen', 'Lakeisha', 'Emmett', 'Jacob',
-  'CSM 2',            // David — no longer an AM (still a Content Engineer)
+  'CSM 2',            // David — left Virio; Karishma backfilled the seat
   'Millie',           // no longer an AM (still a Content Engineer)
   'Former Employee',  // HubSpot's catch-all for departed staff
 ]);
-// Content Engineers who have left. David and Millie are deliberately NOT here:
-// they are off the AM roster but still the content owner on live accounts.
-const FORMER_CE_VALUES = new Set(['Yichen','Lakeisha','Emmett','Jacob']);
+// Content Engineers who have left Virio. Note the internal value for David is
+// 'David' here but 'CSM 2' on the csm dropdown, so he needs both entries.
+// Millie is deliberately NOT here: she is off the AM roster but still the
+// content owner on live accounts.
+const FORMER_CE_VALUES = new Set(['Yichen','Lakeisha','Emmett','Jacob','David']);
 const scrubFormerAM = v => (v && FORMER_AM_VALUES.has(v)) ? null : v;
 const scrubFormerCE = v => (v && FORMER_CE_VALUES.has(v)) ? null : v;
 
