@@ -410,7 +410,7 @@ tbody td:first-child{font-weight:500}
 .prt-card.open .prt-detail{display:block}
 .prt-ask{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
 .prt-ask:last-of-type{border-bottom:none}
-.prt-ask-co{font-size:12px;font-weight:500;color:var(--ink);min-width:150px}
+.prt-ask-co{font-size:12px;font-weight:500;color:var(--ink);min-width:196px}
 .prt-ask-co .prt-ask-meta{font-size:10px;color:var(--ink3);font-weight:400;margin-top:2px}
 .prt-ask-detail{font-size:11px;color:var(--ink2);flex:1;line-height:1.5}
 .prt-ask-x{font-size:11px;color:var(--ink3);cursor:pointer;background:none;border:none;padding:2px 6px}
@@ -3578,6 +3578,25 @@ async function prtFetchAll() {
   }
 }
 
+// Date helpers. HubSpot hands back date-only strings ("2026-03-03") and UTC
+// datetimes; both parse to UTC midnight, so all day math and formatting stays in
+// UTC. Doing it in local time drifts a day whenever a span crosses a DST change.
+function prtUtcDate(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+function prtAddDays(d, n) {
+  if (!d) return null;
+  const out = new Date(d.getTime());
+  out.setUTCDate(out.getUTCDate() + n);
+  return out;
+}
+function prtFmtDate(d) {
+  return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : null;
+}
+
 // Build an account lookup from the live HubSpot company feed.
 function prtAccountIndex() {
   const idx = {};
@@ -3586,19 +3605,20 @@ function prtAccountIndex() {
     const pm = prtState.productMap[c.id];
     const product = (pm && pm.product) || 'Unspecified';
     const churned = c.pilot_status === 'Exited During Pilot' || c.pilot_status === 'Churned Post Conversion';
-    const pilotStart = (pm && pm.closeDate) || c.kickoff_date || null;
-    idx[c.id] = { id: c.id, name: c.name, arr, product, churned, nextDate: prtNextDecisionDate(pilotStart, c.pilot_status), pilot_status: c.pilot_status };
+    // The pilot clock runs from the kickoff call, matching the Forecasting tab.
+    // The closed-won deal date is only a fallback for accounts missing a kickoff.
+    const kickoff = prtUtcDate(c.kickoff_date) || prtUtcDate(pm && pm.closeDate);
+    const pilotEnd = prtAddDays(kickoff, PRT_CFG.pilotDays);
+    idx[c.id] = { id: c.id, name: c.name, arr, product, churned, kickoff, pilotEnd, nextDate: prtNextDecisionDate(kickoff, c.pilot_status), pilot_status: c.pilot_status };
   });
   return idx;
 }
 
+// The next date this account is up for a decision: pilot end, or renewal once converted.
 function prtNextDecisionDate(start, status) {
-  if (!start) return null;
-  const d = new Date(start);
-  if (isNaN(d.getTime())) return null;
-  d.setDate(d.getDate() + PRT_CFG.pilotDays);            // pilot end
-  if (status === 'Converted') d.setDate(d.getDate() + PRT_CFG.renewalDays); // then renewal
-  return d;
+  const pilotEnd = prtAddDays(prtUtcDate(start), PRT_CFG.pilotDays);
+  if (!pilotEnd) return null;
+  return status === 'Converted' ? prtAddDays(pilotEnd, PRT_CFG.renewalDays) : pilotEnd;
 }
 
 function prtUrgency(nextDate) {
@@ -3727,9 +3747,15 @@ function prtCard(req, s, rank, kind) {
   const asksHtml = s.accounts.map(({ acc, ask }) => {
     const d = prtDaysLabel(acc.nextDate);
     const stat = acc.pilot_status === 'In progress' ? 'Pilot ends' : acc.pilot_status === 'Converted' ? 'Renews' : '';
+    const countdown = acc.nextDate ? ` · ${stat} ${d.txt}` : '';   // no date → say so once, on the line below
+    // Kickoff and the 90-day pilot end, so the countdown above has dates behind it.
+    const pilotLine = acc.kickoff
+      ? `Kickoff ${prtFmtDate(acc.kickoff)} · Pilot ${acc.pilotEnd < new Date() ? 'ended' : 'ends'} ${prtFmtDate(acc.pilotEnd)}`
+      : 'No kickoff date on file';
     return `<div class="prt-ask">
       <div class="prt-ask-co">${escapeHtml(acc.name)}
-        <div class="prt-ask-meta">${escapeHtml(acc.product)} · ${prtMoney(acc.arr)} ARR · ${stat} ${d.txt}</div>
+        <div class="prt-ask-meta">${escapeHtml(acc.product)} · ${prtMoney(acc.arr)} ARR${countdown}</div>
+        <div class="prt-ask-meta">${pilotLine}</div>
       </div>
       <div class="prt-ask-detail">${escapeHtml(ask.detail || '—')}${(ask._imageUrls && ask._imageUrls.length) ? `<div class="prt-ask-imgs">${ask._imageUrls.map(u => `<img src="${escapeHtml(u)}" alt="screenshot" onclick="window.open('${escapeHtml(u)}','_blank')">`).join('')}</div>` : ''}</div>
       <button class="prt-ask-x" title="Remove this customer's ask" onclick="prtDeleteAsk(event,'${ask.id}')">✕</button>
