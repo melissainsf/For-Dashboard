@@ -2025,6 +2025,10 @@ async function loadData() {
         pilot_status:r.properties.pilot_status,
         lifecyclestage:r.properties.lifecyclestage||null,
         stage:r.properties.stage||'Unknown',
+        // `mrr` is the account's TOTAL monthly revenue and already includes whatever
+        // is in `expansion_mrr` — the latter is a component of it, broken out so
+        // expansion can be reported and credited on its own. Never add the two:
+        // total monthly = c.mrr, and c.mrr * 12 is ARR.
         mrr:parseFloat(r.properties.mrr)||0,
         expansion_mrr:parseFloat(r.properties.expansion_mrr)||0,
         // Did HubSpot actually send a number? parseFloat()||0 flattens null, '' and
@@ -2101,7 +2105,7 @@ function recompute() {
   const portNRR=allMRR?(allMRR+allExpansion-allChurned)/allMRR*100:0;
   const portRetention=cos.length?active.length/cos.length*100:0;
   const portChurn=100-portRetention;
-  const activeMRR=active.reduce((s,c)=>s+c.mrr+c.expansion_mrr,0);
+  const activeMRR=active.reduce((s,c)=>s+c.mrr,0);   // mrr already includes expansion
   const activeARR=activeMRR*12;
   const ttvDays=cos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>calcTTV(c.kickoff_date,c.first_post_date)).filter(d=>d!==null&&d>=0);
   const avgTTV=ttvDays.length?Math.round(ttvDays.reduce((a,b)=>a+b,0)/ttvDays.length):null;
@@ -2150,7 +2154,7 @@ function recompute() {
   bindCard('mc-port-grr',()=>({title:'Portfolio GRR',rows:[{name:'Total MRR',val:fmt$(allMRR)},{name:'Churned MRR',val:fmt$(allChurned)},'---',{name:'GRR',val:portGRR.toFixed(1)+'%'}]}));
   bindCard('mc-port-nrr',()=>({title:'Portfolio NRR',rows:[{name:'Total MRR',val:fmt$(allMRR)},{name:'Expansion',val:fmt$(allExpansion)},{name:'Churned',val:fmt$(allChurned)},'---',{name:'NRR',val:portNRR.toFixed(1)+'%'}]}));
   bindCard('mc-port-active',()=>({title:'Active customers',rows:active.map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
-  bindCard('mc-port-mrr',()=>({title:'Active MRR',rows:[...active].sort((a,b)=>(b.mrr+b.expansion_mrr)-(a.mrr+a.expansion_mrr)).map(c=>({name:c.name,val:fmt$(c.mrr+c.expansion_mrr)}))}));
+  bindCard('mc-port-mrr',()=>({title:'Active MRR',rows:[...active].sort((a,b)=>b.mrr-a.mrr).map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
   bindCard('mc-port-ttv',()=>{
     const rows=cos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>({name:c.name,val:calcTTV(c.kickoff_date,c.first_post_date)+'d'})).sort((a,b)=>parseInt(a.val)-parseInt(b.val));
     return {title:'TTV by customer',rows};
@@ -3420,14 +3424,14 @@ function renderTeamTab(cos) {
   renderGroupedBar('postAMBar',allAMs,[
     {label:'Active converted',data:allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).length),color:'#1D9E75',names:allAMs.map(am=>converted.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)})))},
     {label:'Churned post-conversion',data:allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).length),color:'#D85A30',names:allAMs.map(am=>churnedPost.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'})))}]);
-  const amMRRData=allAMs.map(am=>{ const ac=active.filter(c=>displayAM(c.csm)===am); return {total:ac.reduce((s,c)=>s+c.mrr+c.expansion_mrr,0),names:ac.map(c=>({name:c.name,val:fmt$(c.mrr+c.expansion_mrr)}))}; });
+  const amMRRData=allAMs.map(am=>{ const ac=active.filter(c=>displayAM(c.csm)===am); return {total:ac.reduce((s,c)=>s+c.mrr,0),names:ac.map(c=>({name:c.name,val:fmt$(c.mrr)}))}; });
   if(charts['amMRRBar']) charts['amMRRBar'].destroy();
   charts['amMRRBar']=new Chart(document.getElementById('amMRRBar').getContext('2d'),{
     type:'bar',data:{labels:allAMs,datasets:[{data:amMRRData.map(d=>d.total),backgroundColor:'#7F77DD',borderRadius:4,names:amMRRData.map(d=>d.names)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[' '+fmtBig$(ctx.raw),...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
   });
   // Active ARR by AM (MRR × 12)
-  const amARRData=allAMs.map(am=>{ const ac=active.filter(c=>displayAM(c.csm)===am); return {total:ac.reduce((s,c)=>s+(c.mrr+c.expansion_mrr)*12,0),names:ac.map(c=>({name:c.name,val:fmt$((c.mrr+c.expansion_mrr)*12)}))}; });
+  const amARRData=allAMs.map(am=>{ const ac=active.filter(c=>displayAM(c.csm)===am); return {total:ac.reduce((s,c)=>s+c.mrr*12,0),names:ac.map(c=>({name:c.name,val:fmt$(c.mrr*12)}))}; });
   if(charts['amARRBar']) charts['amARRBar'].destroy();
   const amARREl=document.getElementById('amARRBar');
   if(amARREl) charts['amARRBar']=new Chart(amARREl.getContext('2d'),{
@@ -3617,7 +3621,7 @@ function prtFmtDate(d) {
 function prtAccountIndex() {
   const idx = {};
   allCompanies.forEach(c => {
-    const arr = (c.mrr + c.expansion_mrr) * 12;
+    const arr = c.mrr * 12;                                // mrr is the total already
     const arrKnown = c.has_mrr;                            // false → show "not set", never "$0"
     const pm = prtState.productMap[c.id];
     const product = (pm && pm.product) || 'Unspecified';
