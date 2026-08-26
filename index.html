@@ -2027,6 +2027,10 @@ async function loadData() {
         stage:r.properties.stage||'Unknown',
         mrr:parseFloat(r.properties.mrr)||0,
         expansion_mrr:parseFloat(r.properties.expansion_mrr)||0,
+        // Did HubSpot actually send a number? parseFloat()||0 flattens null, '' and
+        // a missing property to 0, which then renders as a confident "$0". Keep the
+        // distinction so callers can say "not set" instead of inventing a zero.
+        has_mrr:(()=>{ const v=r.properties.mrr; return v!==null&&v!==undefined&&v!==''&&!isNaN(parseFloat(v)); })(),
         churned_mrr:parseFloat(r.properties.churned_mrr_value)||0,
         churn_reason:r.properties.churn_reason||null,
         churn_date:r.properties.churn_date||null,
@@ -3544,6 +3548,18 @@ async function prtSignAskImages(asks) {
   } catch (e) { /* leave thumbnails empty if signing fails */ }
 }
 
+// Money for a single account: never print "$0" for an account whose MRR HubSpot
+// never sent — that reads as a confident zero and hides a data gap.
+function prtAccountArr(acc) {
+  return acc.arrKnown ? `${prtMoney(acc.arr)} ARR` : 'ARR not set';
+}
+// Money for a roll-up: `missing` accounts contributed nothing, so mark the total
+// as a floor rather than presenting it as complete.
+function prtTotalArr(total, missing) {
+  if (!missing) return prtMoney(total);
+  return total > 0 ? `${prtMoney(total)}+` : 'ARR not set';
+}
+
 function prtMoney(n) {
   n = Math.round(n || 0);
   if (n >= 1000000) return '$' + (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
@@ -3602,6 +3618,7 @@ function prtAccountIndex() {
   const idx = {};
   allCompanies.forEach(c => {
     const arr = (c.mrr + c.expansion_mrr) * 12;
+    const arrKnown = c.has_mrr;                            // false → show "not set", never "$0"
     const pm = prtState.productMap[c.id];
     const product = (pm && pm.product) || 'Unspecified';
     const churned = c.pilot_status === 'Exited During Pilot' || c.pilot_status === 'Churned Post Conversion';
@@ -3609,7 +3626,7 @@ function prtAccountIndex() {
     // The closed-won deal date is only a fallback for accounts missing a kickoff.
     const kickoff = prtUtcDate(c.kickoff_date) || prtUtcDate(pm && pm.closeDate);
     const pilotEnd = prtAddDays(kickoff, PRT_CFG.pilotDays);
-    idx[c.id] = { id: c.id, name: c.name, arr, product, churned, kickoff, pilotEnd, nextDate: prtNextDecisionDate(kickoff, c.pilot_status), pilot_status: c.pilot_status };
+    idx[c.id] = { id: c.id, name: c.name, arr, arrKnown, product, churned, kickoff, pilotEnd, nextDate: prtNextDecisionDate(kickoff, c.pilot_status), pilot_status: c.pilot_status };
   });
   return idx;
 }
@@ -3643,7 +3660,7 @@ function prtTier(days) {
 function prtScore(req, idx) {
   const pf = prtState.product;
   const seen = {};
-  let raw = 0, score = 0, soonest = null, nRenewal = 0, nPilot = 0;
+  let raw = 0, score = 0, soonest = null, nRenewal = 0, nPilot = 0, nNoArr = 0;
   const accounts = [];
   const dayList = [];
   prtState.asks.filter(a => a.request_id === req.id).forEach(a => {
@@ -3653,6 +3670,7 @@ function prtScore(req, idx) {
     accounts.push({ acc, ask: a });
     if (!seen[acc.id]) {
       seen[acc.id] = true; raw += acc.arr; score += acc.arr * prtUrgency(acc.nextDate);
+      if (!acc.arrKnown) nNoArr++;                         // counted, but contributes nothing to raw/score
       if (acc.nextDate) {
         dayList.push(Math.round((acc.nextDate - new Date()) / 86400000));
         if (acc.pilot_status === 'Converted') nRenewal++; else nPilot++;   // renewal vs. pilot end
@@ -3666,7 +3684,7 @@ function prtScore(req, idx) {
   const medianDays = n ? (n % 2 ? dayList[(n - 1) / 2] : Math.round((dayList[n / 2 - 1] + dayList[n / 2]) / 2)) : null;
   // What the card's countdown is actually measuring, given the accounts behind it.
   const dateKind = (nRenewal && nPilot) ? 'next decision' : nRenewal ? 'renewal' : 'pilot end';
-  return { accounts, raw, score, soonest, medianDays, dateKind, count: Object.keys(seen).length };
+  return { accounts, raw, score, soonest, medianDays, dateKind, nNoArr, count: Object.keys(seen).length };
 }
 
 function prtRender() {
@@ -3704,7 +3722,9 @@ function prtRender() {
   function colMeta(arr) {
     if (!arr.length) return '0 requests';
     const totalRaw = arr.reduce((s, x) => s + x.s.raw, 0);
-    return `${arr.length} · ${prtMoney(totalRaw)} ARR`;
+    const totalMissing = arr.reduce((s, x) => s + x.s.nNoArr, 0);
+    const money = prtTotalArr(totalRaw, totalMissing);
+    return `${arr.length} · ${money === 'ARR not set' ? money : money + ' ARR'}`;
   }
 }
 
@@ -3758,7 +3778,7 @@ function prtCard(req, s, rank, kind) {
       : 'No kickoff date on file';
     return `<div class="prt-ask">
       <div class="prt-ask-co">${escapeHtml(acc.name)}
-        <div class="prt-ask-meta">${escapeHtml(acc.product)} · ${prtMoney(acc.arr)} ARR${countdown}</div>
+        <div class="prt-ask-meta">${escapeHtml(acc.product)} · ${prtAccountArr(acc)}${countdown}</div>
         <div class="prt-ask-meta">${pilotLine}</div>
       </div>
       <div class="prt-ask-detail">${escapeHtml(ask.detail || '—')}${(ask._imageUrls && ask._imageUrls.length) ? `<div class="prt-ask-imgs">${ask._imageUrls.map(u => `<img src="${escapeHtml(u)}" alt="screenshot" onclick="window.open('${escapeHtml(u)}','_blank')">`).join('')}</div>` : ''}</div>
@@ -3777,7 +3797,7 @@ function prtCard(req, s, rank, kind) {
       <div class="prt-row-main">
         <div class="prt-row-title">${escapeHtml(req.title)}</div>
         <div class="prt-row-sub">
-          <span class="prt-chip arr">${s.count} ${s.count === 1 ? 'account' : 'accounts'} · ${prtMoney(s.raw)}</span>
+          <span class="prt-chip arr"${s.nNoArr ? ` title="${s.nNoArr} of these account${s.nNoArr === 1 ? ' has' : 's have'} no MRR in HubSpot, so the total is a floor"` : ''}>${s.count} ${s.count === 1 ? 'account' : 'accounts'} · ${prtTotalArr(s.raw, s.nNoArr)}</span>
           ${urgChip}${sev}
         </div>
       </div>
