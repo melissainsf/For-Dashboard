@@ -181,44 +181,49 @@ eq('new-logo: ending total includes new logo', eNewLogo.endingTotalManagedMRR, 5
 // ── Snapshot-aware quarterly aggregation ────────────────────────
 // Emily: Acme existing (start-of-Q baseline 200k+10k exp; now 200k+40k exp),
 // Beacon existing (baseline 80k+10k; now 80k+22k, churn 5k), NewCo new (100k).
+// `mrr` is each account's TOTAL, expansion_mrr the part of it that is expansion.
+// Acme: base 190k throughout — total 200k (10k exp) -> 230k (40k exp).
+// Beacon: base 70k — total 80k (10k exp) -> 92k (22k exp), with 5k churned.
 const AGG_ACCTS = [
-  { id:'acme',  mrr:200000, expansion_mrr:40000, churned_mrr:0,    isNew:false },
-  { id:'beacon',mrr:80000,  expansion_mrr:22000, churned_mrr:5000, isNew:false },
+  { id:'acme',  mrr:230000, expansion_mrr:40000, churned_mrr:0,    isNew:false },
+  { id:'beacon',mrr:92000,  expansion_mrr:22000, churned_mrr:5000, isNew:false },
   { id:'newco', mrr:100000, expansion_mrr:0,     churned_mrr:0,    isNew:true  }
 ];
 const AGG_BASELINE = {   // start of current quarter
   acme:  { mrr:200000, expansion_mrr:10000, churned_mrr:0 },
   beacon:{ mrr:80000,  expansion_mrr:10000, churned_mrr:0 }
 };
-const AGG_PRIOR = {      // start of previous quarter
-  acme:  { mrr:200000, expansion_mrr:0, churned_mrr:0 },
-  beacon:{ mrr:80000,  expansion_mrr:0, churned_mrr:0 }
+const AGG_PRIOR = {      // start of previous quarter — both accounts still pure base
+  acme:  { mrr:190000, expansion_mrr:0, churned_mrr:0 },
+  beacon:{ mrr:70000,  expansion_mrr:0, churned_mrr:0 }
 };
 const agg = BC.computeQuarterAggregate({ accounts:AGG_ACCTS, baseline:AGG_BASELINE, priorBaseline:AGG_PRIOR });
-// begin = baseline totals: (200k+10k) + (80k+10k) = 300k
-eq('agg begin = 300k (baseline totals)', agg.begin, 300000);
+// begin = baseline totals (mrr already includes expansion): 200k + 80k = 280k
+eq('agg begin = 280k (baseline totals)', agg.begin, 280000);
 // this-quarter expansion = (40k-10k) + (22k-10k) = 42k
 eq('agg in-quarter expansion = 42k', agg.exp, 42000);
 // this-quarter churn = (0-0) + (5k-0) = 5k
 eq('agg in-quarter churn = 5k', agg.churn, 5000);
-// ending = current totals: (200k+40k) + (80k+22k-5k) = 337k
-eq('agg ending = 337k', agg.ending, 337000);
+// ending = current totals less churn: 230k + (92k-5k) = 317k
+eq('agg ending = 317k', agg.ending, 317000);
+// and the movement reconciles: 280k + 42k expansion - 5k churn = 317k
+eq('agg begin + exp - churn = ending', agg.begin + agg.exp - agg.churn, agg.ending);
 eq('agg newMRR = 100k', agg.newMRR, 100000);
-eq('agg managed book = 437k', agg.avgManaged, 437000);
+eq('agg managed book = 417k', agg.avgManaged, 417000);
 eq('agg basis = snapshot', agg.basis, 'snapshot');
-// previous-quarter NRR = end-of-prev (300k) / start-of-prev (280k) = ~107.1%
-eq('agg previous NRR = 300k/280k', agg.previousNRR, 300000/280000);
+// previous-quarter NRR = end-of-prev (280k) / start-of-prev (260k) = ~107.7%
+eq('agg previous NRR = 280k/260k', agg.previousNRR, 280000/260000);
 
 // No snapshot: existing accounts are NEUTRAL — anchored at current value, with NO
 // attributed expansion or churn (crediting lifetime expansion_mrr would reward an
 // inherited book as growth). Only genuine new logos still count as newMRR.
 const aggFb = BC.computeQuarterAggregate({ accounts:AGG_ACCTS, baseline:null, priorBaseline:null });
-eq('no-baseline begin = current totals 337k', aggFb.begin, 337000);
+eq('no-baseline begin = current totals 317k', aggFb.begin, 317000);
 eq('no-baseline expansion = 0 (not attributed without a baseline)', aggFb.exp, 0);
 eq('no-baseline churn = 0 (not attributed without a baseline)', aggFb.churn, 0);
 eq('no-baseline basis = fallback', aggFb.basis, 'fallback');
 eq('no-baseline previous NRR = null', aggFb.previousNRR, null);
-eq('no-baseline still excludes new logo from cohort', aggFb.ending, 337000);
+eq('no-baseline still excludes new logo from cohort', aggFb.ending, 317000);
 eq('no-baseline newMRR = genuine new logo only 100k', aggFb.newMRR, 100000);
 
 // Reassignment: an existing customer (beacon) whose owner has a baseline for their
@@ -226,7 +231,7 @@ eq('no-baseline newMRR = genuine new logo only 100k', aggFb.newMRR, 100000);
 // must be neutral: it adds NO expansion and is NOT counted as a new customer.
 const aggPart = BC.computeQuarterAggregate({ accounts:AGG_ACCTS, baseline:{ acme:AGG_BASELINE.acme }, priorBaseline:null });
 eq('reassignment basis flagged partial', aggPart.basis, 'partial');
-eq('reassignment begin = acme baseline 210k + beacon current 97k = 307k', aggPart.begin, 307000);
+eq('reassignment begin = acme baseline 200k + beacon current 87k = 287k', aggPart.begin, 287000);
 eq('reassignment expansion = acme only 30k (beacon adds 0)', aggPart.exp, 30000);
 eq('reassignment newMRR = genuine new logo only 100k (beacon not "new")', aggPart.newMRR, 100000);
 
@@ -234,7 +239,7 @@ eq('reassignment newMRR = genuine new logo only 100k (beacon not "new")', aggPar
 const aggR = BC.compute({ mode:'detailed', m1:agg.avgManaged, m2:agg.avgManaged, m3:agg.avgManaged,
   beginningMRR:agg.begin, expansion:agg.exp, contraction:0, churned:agg.churn,
   newCustomerMRR:agg.newMRR, previousNRR:null, smoothingOn:false });
-eq('agg->compute current NRR = 337/300', aggR.currentNRR, 337000/300000);
+eq('agg->compute current NRR = 317/280', aggR.currentNRR, 317000/280000);
 eq('agg->compute book tier 300k', aggR.bookTier.mrr, 300000);
 
 // ── Fairness ceiling: bonus ≤ 6% of annualized expansion ────────

@@ -286,7 +286,13 @@
   //   accounts:      [{ id, mrr, expansion_mrr, churned_mrr, isNew }]  isNew = new logo this Q
   //   baseline:      { [id]: {mrr, expansion_mrr, churned_mrr} }  start-of-current-Q, or null
   //   priorBaseline: { [id]: {mrr, expansion_mrr, churned_mrr} }  start-of-previous-Q, or null
-  function accountTotal(a) { return num(a.mrr) + num(a.expansion_mrr) - num(a.churned_mrr); }
+  // NOTE ON SEMANTICS: HubSpot's `mrr` is an account's TOTAL monthly revenue and
+  // already includes whatever is in `expansion_mrr` — the latter is a component
+  // broken out of it so expansion can be credited on its own. Totals therefore
+  // use mrr alone; adding expansion on top double-counts it. The expansion and
+  // churn figures below stay as DELTAS against the baseline, which is still the
+  // right measure of what moved inside the quarter.
+  function accountTotal(a) { return num(a.mrr) - num(a.churned_mrr); }
   function computeQuarterAggregate(opts) {
     const accounts = opts.accounts || [];
     const baseline = opts.baseline || null;
@@ -299,7 +305,7 @@
       if (a.isNew) { newMRR += cur; return; }              // genuinely new logo → new business, never expansion
       const b = baseline && baseline[a.id];
       if (b) {
-        begin  += num(b.mrr) + num(b.expansion_mrr) - num(b.churned_mrr);
+        begin  += num(b.mrr) - num(b.churned_mrr);
         exp    += num(a.expansion_mrr) - num(b.expansion_mrr);
         churn  += num(a.churned_mrr)   - num(b.churned_mrr);
         ending += cur;
@@ -324,9 +330,9 @@
       let pBegin = 0, pEnd = 0;
       Object.keys(priorBaseline).forEach(id => {
         const p = priorBaseline[id];
-        pBegin += num(p.mrr) + num(p.expansion_mrr) - num(p.churned_mrr);
+        pBegin += num(p.mrr) - num(p.churned_mrr);
         const e = baseline[id];
-        if (e) pEnd += num(e.mrr) + num(e.expansion_mrr) - num(e.churned_mrr);
+        if (e) pEnd += num(e.mrr) - num(e.churned_mrr);
       });
       if (pBegin > 0) previousNRR = pEnd / pBegin;
     }
