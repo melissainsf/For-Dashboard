@@ -456,6 +456,10 @@ textarea.fc-field{resize:vertical;min-height:64px;line-height:1.5}
 .fc-ed-hmeta{color:var(--ink3);margin-left:6px}
 .fc-ed-hnote{color:var(--ink2);margin-top:2px}
 .fc-ap-derived{font-size:11px;color:var(--ink2);background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:10px}
+.fc-ap-group{border:1px solid var(--border);border-radius:8px;padding:12px 12px 2px;margin-bottom:12px}
+.fc-ap-group-head{font-size:11px;font-weight:600;color:var(--ink2);letter-spacing:.03em;text-transform:uppercase;margin-bottom:10px}
+.fc-ap-group-note{display:block;font-size:11px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink2);margin-top:3px}
+.fc-ap-group.off{opacity:.55}
 .prt-ask{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
 .prt-ask:last-of-type{border-bottom:none}
 .prt-ask-co{font-size:12px;font-weight:500;color:var(--ink);min-width:196px}
@@ -1521,12 +1525,16 @@ textarea.prt-input{resize:vertical}
         <button class="prt-modal-x" onclick="fcCloseAccountPanel()">&times;</button></div>
       <div style="padding:18px 22px">
         <div class="fc-muted" id="fc-ap-sub" style="margin-bottom:14px"></div>
-        <div class="fc-ed-grid">
-          <label>ACV<input type="number" min="0" step="500" id="fc-ap-acv" class="fc-field"></label>
-          <label>Est. hours / week<input type="number" min="0" step="0.5" id="fc-ap-hours" class="fc-field"></label>
+        <div class="fc-ap-group" id="fc-ap-rev-group">
+          <div class="fc-ap-group-head">Rev share &amp; outbound
+            <span class="fc-ap-group-note" id="fc-ap-rev-note"></span></div>
+          <label class="fc-ed-note-label">ACV — average deal size the client closes
+            <input type="number" min="0" step="500" id="fc-ap-acv" class="fc-field"></label>
+          <label class="fc-ed-note-label">Client&rsquo;s own close rate (%) — what they closed <em>before</em> Virio drove pipeline, not Virio&rsquo;s close rate since
+            <input type="number" min="0" max="100" step="1" id="fc-ap-close" class="fc-field"></label>
         </div>
-        <label class="fc-ed-note-label">Client&rsquo;s own close rate (%) — what they closed <em>before</em> Virio drove pipeline, not Virio&rsquo;s close rate since
-          <input type="number" min="0" max="100" step="1" id="fc-ap-close" class="fc-field"></label>
+        <label class="fc-ed-note-label">Est. hours / week
+          <input type="number" min="0" step="0.5" id="fc-ap-hours" class="fc-field"></label>
         <label class="fc-ed-note-label">Notes — how the expansion plan gets hit, or why this account may churn
           <textarea id="fc-ap-notes" rows="4" class="fc-field"></textarea></label>
         <div class="fc-ap-derived" id="fc-ap-derived"></div>
@@ -1894,7 +1902,7 @@ let lastGoodRefresh = null;   // set only when a HubSpot pull fully succeeds
 // store client-side: { [hubspotCompanyId]: "red"|"yellow"|"green"|"blue" }.
 let healthById = {};
 
-// Manually-tracked deal numbers for ICP clients (Forecasting tab), from the
+// Manually-tracked deal numbers for rev-share / outbound clients (Forecasting tab), from the
 // dashboard's own Netlify Blobs store, keyed by HubSpot company id:
 // { [id]: { cc: closedCount, cv: closed$, pc: pipelineCount, pv: pipeline$ } }.
 let dealsById = {};
@@ -2226,7 +2234,7 @@ async function loadData() {
     try {
       if(ahRes&&ahRes.ok){ const ah=await ahRes.json(); Object.assign(healthById, ah.map||{}); }
     } catch(e){ console.warn('account-health load failed', e); }
-    // Manually-tracked deal numbers for ICP clients (Forecasting tab).
+    // Manually-tracked deal numbers for rev-share / outbound clients (Forecasting tab).
     dealsById={};
     try {
       if(dealsRes&&dealsRes.ok){ const dl=await dealsRes.json(); Object.assign(dealsById, dl.map||{}); }
@@ -2862,26 +2870,46 @@ function onPortfolioAmFilterChange(sel) {
   renderPortfolioTable(window.__portfolioCos || []);
 }
 // ── FORECASTING TAB ────────────────────────────────────────────
-// Likelihood = transparent, calibratable heuristic (not ML). The HEALTH COLOR
-// ANCHORS the baseline: blue = the customer is actively expanding/referring — a
-// lock — so blue = 100. Expansion and deal momentum add on top (+10 each); a slow
-// TTV dings pilots (−10). This keeps the color decisive — a blue account is never
-// below "Likely" — while the other signals nudge. All knobs live in FC.
+// Likelihood = transparent, calibratable heuristic (not ML).
+//
+// DESIGN INTENT: the AM's judgment is the dominant term and everything else only
+// nudges. AMs manage small books and sit close to their accounts, so their read
+// carries insight no field on this dashboard captures. That read is the health
+// COLOR, which anchors the baseline: blue = actively expanding/referring, a lock,
+// so blue = 100. Expansion and delivery add on top (+10 each); a slow TTV dings
+// pilots (−10); overdue invoices ding a little (−5 max). The spread between health
+// colors is 85 points and the whole set of automated signals moves ±20, so no
+// combination of them can overturn the AM. All knobs live in FC.
 const FC = {
   // Health color → baseline likelihood (0–100). Blue is a guaranteed renewal.
   healthBase:{ blue:100, green:75, yellow:50, red:15 }, healthUnknownBase:45,
   expBonusMax:10,                  // full expansion adds up to +10
-  deliveryBonusMax:10,             // full delivery (ICP deals / brand cadence) +10
+  deliveryBonusMax:10,             // full delivery (rev-share deals / content cadence) +10
   expFullPct:0.25,                 // expansion ≥25% of MRR → full expansion bonus
-  closedTargetCount:3, closedTargetValue:50000,   // ICP: full delivery marks
+  closedTargetCount:3, closedTargetValue:50000,   // rev share: full delivery marks
   postsTarget:12,                  // brand: posts/mo for full delivery marks
   ttvThreshold:30, ttvPenalty:10,
   likelyMin:70, watchMin:45,
-  ICP_VALUE:'Meetings booked with ICP'
+  // Payment behaviour is a DELIBERATELY SMALL term. Slow payment usually means a
+  // slow finance team, not an unhappy customer, so it can nudge a score but must
+  // never demote a healthy account on its own: a Green account (75) minus the
+  // full 5-point penalty still lands at 70 = likelyMin.
+  payPenaltyMax:5,
+  payTiers:[{days:90,pts:5},{days:60,pts:3},{days:30,pts:2},{days:1,pts:1}],
+  // Meetings/ACV/close-rate signals only apply to accounts that BOUGHT outbound
+  // or rev share. Matched against HubSpot `product` + `upsold_products` (both
+  // semicolon-joined multi-selects). "outbound" is matched defensively — no such
+  // token exists in the portal today, but it is the obvious future name.
+  REV_TOKENS:['rev share','revshare','outbound']
 };
 const FC_BAND_LABEL={ likely:'Likely', watch:'Watch', risk:'At risk' };
 function fcClamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
-function fcIsICP(c){ return (c.success_criteria||'')===FC.ICP_VALUE; }
+// Rev-share / outbound accounts: the only ones for whom meetings booked, ACV and
+// client close rate are meaningful. Everyone else is scored on content delivery.
+function fcIsRevShare(c){
+  const hay=((c.product||'')+';'+(c.upsold_products||'')).toLowerCase();
+  return FC.REV_TOKENS.some(t=>hay.includes(t));
+}
 function fcDeals(c){ return dealsById[c.id]||{cc:0,cv:0,pc:0,pv:0}; }
 function fcHealthBase(c){ const h=normalizeHealth(c.account_health); return h?FC.healthBase[h]:FC.healthUnknownBase; }
 function fcExpFrac(c){
@@ -2889,7 +2917,7 @@ function fcExpFrac(c){
   return c.mrr>0 ? fcClamp((c.expansion_mrr/c.mrr)/FC.expFullPct,0,1) : 1;
 }
 function fcDeliveryFrac(c){
-  if(fcIsICP(c)){
+  if(fcIsRevShare(c)){
     const d=fcDeals(c);
     const closed=0.7*fcClamp(d.cv/FC.closedTargetValue,0,1)+0.3*fcClamp(d.cc/FC.closedTargetCount,0,1);
     const pipe=0.15*fcClamp(0.5*(d.pv/FC.closedTargetValue)+0.5*(d.pc/FC.closedTargetCount),0,1);
@@ -2897,18 +2925,36 @@ function fcDeliveryFrac(c){
   }
   return fcClamp(parsePostsPerMonth(c.posts_per_month)/FC.postsTarget,0,1);
 }
-function fcBase(c){ return fcHealthBase(c) + FC.expBonusMax*fcExpFrac(c) + FC.deliveryBonusMax*fcDeliveryFrac(c); }
+// Payment penalty, in points. Tiered on how many days an invoice has been
+// overdue in Measure. Capped at FC.payPenaltyMax so AM judgment stays dominant.
+function fcPayPenalty(c){
+  const b=fcBilling(c); if(!b || !b.overdue_since) return 0;
+  const late=fcDaysLate(b.overdue_since); if(late===null) return 0;
+  const tier=FC.payTiers.find(t=>late>=t.days);
+  return tier?Math.min(tier.pts,FC.payPenaltyMax):0;
+}
+function fcBase(c){
+  return fcHealthBase(c)
+       + FC.expBonusMax*fcExpFrac(c)
+       + FC.deliveryBonusMax*fcDeliveryFrac(c)
+       - fcPayPenalty(c);
+}
 function fcReasons(c, mode, ttv){
   const r=[]; const h=normalizeHealth(c.account_health);
   r.push(h?('Health '+HEALTH_LABEL[h]+' — base '+FC.healthBase[h]):('Health not set — base '+FC.healthUnknownBase));
   if(c.expansion_mrr>0) r.push('Expanded +'+fmt$(c.expansion_mrr));
-  if(fcIsICP(c)){
+  if(fcIsRevShare(c)){
     const d=fcDeals(c);
     r.push((d.cc||d.cv)?(d.cc+' closed / '+fmt$(d.cv)):'No closed deals logged');
     if(d.pc||d.pv) r.push(d.pc+' in pipeline / '+fmt$(d.pv));
   } else {
     const ppm=parsePostsPerMonth(c.posts_per_month);
     r.push(ppm?(ppm+' posts/mo'):'No post cadence');
+  }
+  const pay=fcPayPenalty(c);
+  if(pay>0){
+    const b=fcBilling(c); const late=fcDaysLate(b&&b.overdue_since);
+    r.push('Invoice '+late+'d overdue −'+pay+' (payment pace only — small by design)');
   }
   if(mode==='conv' && ttv!==null && ttv>FC.ttvThreshold) r.push('Slow TTV ('+ttv+'d) −'+FC.ttvPenalty);
   return r;
@@ -2934,7 +2980,7 @@ function fcBandHover(e, el){
     showTip(e, d.band+' · score '+d.score, (d.reasons&&d.reasons.length)?d.reasons:['—']);
   } catch(_){}
 }
-function fcTypeChip(c){ return fcIsICP(c)?'<span class="fc-type icp">ICP</span>':'<span class="fc-type">Brand</span>'; }
+function fcTypeChip(c){ return fcIsRevShare(c)?'<span class="fc-type icp" title="Buys rev share / outbound — scored on meetings and closed deals">Rev share</span>':'<span class="fc-type" title="Content account — scored on post cadence">Brand</span>'; }
 function fcPilotDay(c){ if(!c.kickoff_date) return null; const d=Math.floor((Date.now()-new Date(c.kickoff_date).getTime())/86400000); return d>=0?d:null; }
 function fcRenewalDate(c){ if(!c.kickoff_date) return null; const dt=new Date(c.kickoff_date); dt.setFullYear(dt.getFullYear()+1); return dt; }
 // ── Billing (Measure) helpers for the renewal board ──────────────
@@ -2963,7 +3009,7 @@ function fcInvoiceAmtCell(c){
   return fmt$(b.amount);
 }
 function fcNumInput(c, field){
-  if(!fcIsICP(c)) return '<span class="fc-muted">—</span>';
+  if(!fcIsRevShare(c)) return '<span class="fc-muted" title="Not a rev share / outbound account — meetings and deals are not scored here">—</span>';
   const v=fcDeals(c)[field]||'';
   const money=(field==='cv'||field==='pv');
   return `<input type="number" min="0"${money?' step="100"':''} class="fc-num" data-cid="${escapeHtml(c.id)}" data-field="${field}" value="${v===''?'':v}" onchange="saveDeal(this)">`;
@@ -3028,11 +3074,12 @@ const FC_INFO = {
     +"<div class='r'>It becomes expansion for you <b>only</b> when the HubSpot <b>expansion_mrr</b> field grows above your start-of-quarter baseline (i.e. you log expanded products / higher expansion MRR under your ownership). Unchanged field = zero expansion.</div>" },
   convFc:{ title:'How pilot-conversion likelihood is scored', html:
     "<div class='r'>Forecasts which <b>active pilots</b> (status “In progress”) convert after the 90-day proof of concept.</div>"
-    +"<div class='h'>Score = health baseline + expansion + deals − TTV ding</div>"
+    +"<div class='h'>Score = health baseline + expansion + delivery − TTV ding − payment pace</div>"
     +"<div class='r'>• <b>Health color = baseline</b>: blue <b>100</b> (a lock — actively expanding/referring) · green 75 · yellow 50 · red 15. Unset = 45.</div>"
     +"<div class='r'>• <b>Expansion</b>: up to +10 (expansion MRR as a share of MRR; ≥25% = full).</div>"
-    +"<div class='r'>• <b>Deals / cadence</b>: up to +10 — ICP clients → closed deals (count &amp; $); brand clients → posts/mo vs 12.</div>"
+    +"<div class='r'>• <b>Delivery</b>: up to +10 — <b>rev share / outbound</b> accounts → closed deals (count &amp; $); everyone else → posts/mo vs 12. Whether an account is rev share comes from HubSpot <i>Product</i> or <i>Upsold products</i>.</div>"
     +"<div class='r'>• <b>TTV ding</b>: −10 if time-to-value (kickoff→first post) &gt; 30 days.</div>"
+    +"<div class='r'>• <b>Payment pace</b>: −1 to −5 for an overdue invoice in Measure (1d −1 · 30d −2 · 60d −3 · 90d+ −5). Kept deliberately small: a slow finance team is not the same as an unhappy customer, so it can never demote a green account below Likely on its own.</div>"
     +"<div class='h'>Bands</div>"
     +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. So blue is always Likely; green is Likely on its own; expansion/deals push toward the top. Tiles count the Likely cohort.</div>" },
   convBoard:{ title:'Reading the Pilot Conversion Readiness board', html:
@@ -3040,17 +3087,18 @@ const FC_INFO = {
     +"<div class='r'>• <b>Pilot day</b>: days since kickoff, out of the 90-day POC.</div>"
     +"<div class='r'>• <b>TTV</b>: kickoff → first post; amber if &gt; 30 days.</div>"
     +"<div class='r'>• <b>Health</b>: click the chip to set the color — it sets the baseline likelihood (blue is a lock).</div>"
-    +"<div class='r'>• <b>Meetings booked #/$</b>: editable for <b>ICP</b> clients only; both volume and $ feed the delivery signal. Brand clients show “—”.</div>"
+    +"<div class='r'>• <b>Meetings booked #/$</b>: editable for <b>rev share / outbound</b> accounts only — the clients actually paying for meetings; both volume and $ feed the delivery signal. Everyone else shows “—”.</div>"
     +"<div class='r'>• <b>Est. hrs/wk</b>: your weekly time estimate — not tracked. A ⚑ flags low MRR against high hours with no MRR adds projected next month.</div>"
     +"<div class='r'>• The three <b>month columns</b> are real calendar months (this one and the next two). Two lines per account — <b>MRR adds</b> and <b>Rev share</b> — each holding a projection, the actual, and a plan note. Saving keeps the prior version with its author, so a commitment is never silently overwritten; a negative projection must say why.</div>"
     +"<div class='r'>• <b>Likelihood</b>: the banded score — hover it for the per-account reasons.</div>" },
   renewFc:{ title:'How 12-month renewal likelihood is scored', html:
     "<div class='r'>Forecasts which <b>converted customers</b> renew at the 12-month mark.</div>"
     +"<div class='r'><b>Renewal date = kickoff + 12 months</b> (90-day POC + 9 months).</div>"
-    +"<div class='h'>Score = health baseline + expansion + deals</div>"
+    +"<div class='h'>Score = health baseline + expansion + delivery − payment pace</div>"
     +"<div class='r'>• <b>Health color = baseline</b>: blue <b>100</b> (a lock — actively expanding/referring) · green 75 · yellow 50 · red 15. Unset = 45.</div>"
     +"<div class='r'>• <b>Expansion</b>: up to +10 (expansion MRR as a share of MRR; ≥25% = full).</div>"
-    +"<div class='r'>• <b>Deals / cadence</b>: up to +10 — ICP clients → closed deals (count &amp; $); brand clients → posts/mo.</div>"
+    +"<div class='r'>• <b>Delivery</b>: up to +10 — <b>rev share / outbound</b> accounts → closed deals (count &amp; $); everyone else → posts/mo. Whether an account is rev share comes from HubSpot <i>Product</i> or <i>Upsold products</i>.</div>"
+    +"<div class='r'>• <b>Payment pace</b>: −1 to −5 for an overdue invoice in Measure (1d −1 · 30d −2 · 60d −3 · 90d+ −5). Small by design — slow payment often just means slow finance.</div>"
     +"<div class='r'>No TTV ding here — that applies only during the pilot.</div>"
     +"<div class='h'>Bands</div>"
     +"<div class='r'>Likely ≥ 70 · Watch 45–69 · At-risk &lt; 45. So blue is always Likely; green is Likely on its own. “Secure” tiles = the Likely cohort.</div>" },
@@ -3058,12 +3106,12 @@ const FC_INFO = {
     "<div class='r'>One row per converted customer, <b>grouped by account manager</b> so you can scan to your name. Within each AM, <b>overdue accounts sort first</b> (most days late), then by soonest next invoice. Use the <b>Account Manager</b> filter at the top of the tab to see just your accounts.</div>"
     +"<div class='r'>• <b>Next invoice sent</b>: when Measure next bills the account. An <b>Overdue · Nd late</b> badge and a red row mean an unpaid invoice; the day count is live.</div>"
     +"<div class='r'>• <b>Invoice amt</b>: the recurring invoice amount from Measure; “($X due)” shows the unpaid total when overdue.</div>"
-    +"<div class='r'>• <b>Health</b>: click to set the baseline likelihood. <b>Meetings booked #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal.</div>"
+    +"<div class='r'>• <b>Health</b>: click to set the baseline likelihood — the AM's read is the single biggest term in the score. <b>Meetings booked #/$</b>: editable for <b>rev share / outbound</b> accounts only; feed the delivery signal.</div>"
     +"<div class='r'>• <b>Est. hrs/wk</b>: your estimate of time on this account each week — not tracked or timed. A ⚑ means MRR per weekly hour is under the threshold in Forecast settings <i>and</i> no MRR adds are projected next month: the commercial-restructure conversation.</div>"
     +"<div class='h'>The three month columns</div>"
     +"<div class='r'>Real calendar months — this month and the next two — not a rolling 30/60/90 window, so a commitment stays attached to the month it was made for. Each account has two lines: <b>MRR adds</b> (net new MRR from upsells such as an added FOC) and <b>Rev share</b> (projected rev share $ from revenue driven).</div>"
     +"<div class='r'>Click any cell to set the projection, record the actual, and write the plan note — <i>what must be true</i> to hit that number. Saving keeps the previous value with its author and timestamp rather than overwriting it, so August's commitment is still there in September. A <b>negative</b> projection needs a note explaining the expected contraction or churn.</div>"
-    +"<div class='r'>• <b>Likelihood</b>: banded score — hover for reasons. <b>Inputs</b> (☰ above the table) holds ACV, the client's own pre-Virio close rate, and account notes.</div>" },
+    +"<div class='r'>• <b>Likelihood</b>: banded score — hover for reasons. <b>Inputs</b> (☰ above the table) holds ACV, the client's own pre-Virio close rate, and account notes. ACV and close rate only score rev share / outbound accounts; on other accounts they are reference only.</div>" },
   goals:{ title:'Company goals — churn & expansion', html:
     "<div class='r'>Company-wide targets. These <b>ignore the AM and product filters</b> above.</div>"
     +"<div class='h'>Monthly churn — goal ≤ 0.5%/mo by Apr 2027</div>"
@@ -3633,12 +3681,23 @@ function fcOpenAccountPanel(cid) {
   document.getElementById('fc-ap-hours').value = i.hours_per_week ?? '';
   document.getElementById('fc-ap-notes').value = i.notes ?? '';
   set('fc-ap-err', '');
+  // ACV and close rate only mean anything for accounts that bought rev share or
+  // outbound; for everyone else the fields stay editable but are marked as N/A so
+  // nobody reads a stale number as a live signal.
+  const rev = fcIsRevShare(c);
+  const grp = document.getElementById('fc-ap-rev-group');
+  grp.classList.toggle('off', !rev);
+  set('fc-ap-rev-note', rev
+    ? 'This account buys rev share / outbound — these feed its delivery score.'
+    : 'Not a rev share / outbound account. These are recorded for reference only and do not affect its score.');
   // What the captured inputs imply, so the numbers are not just stored and idle.
   const acv = Number(i.acv) || 0, rate = Number(i.close_rate) || 0;
   const booked = fcDeals(c).pc || 0;
-  set('fc-ap-derived', (acv && rate && booked)
-    ? `At ${booked} meetings booked, the client's own ${rate}% close rate on ${fmt$(acv)} ACV implies ${fmt$(booked * (rate / 100) * acv)} of revenue driven.`
-    : 'Enter ACV, the client close rate and meetings booked to see implied revenue driven.');
+  set('fc-ap-derived', !rev
+    ? 'Revenue driven is only computed for rev share / outbound accounts.'
+    : (acv && rate && booked)
+      ? `At ${booked} meetings booked, the client's own ${rate}% close rate on ${fmt$(acv)} ACV implies ${fmt$(booked * (rate / 100) * acv)} of revenue driven.`
+      : 'Enter ACV, the client close rate and meetings booked to see implied revenue driven.');
   document.getElementById('fc-ap-modal').style.display = 'flex';
 }
 function fcCloseAccountPanel() {
