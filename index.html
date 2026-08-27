@@ -645,8 +645,8 @@ textarea.prt-input{resize:vertical}
           </div>
         </div>
         <div class="chart-card">
-          <div class="chart-card-title">Pilot churn reasons</div>
-          <div class="chart-card-sub">All churned companies</div>
+          <div class="chart-card-title">Churn reasons by MRR lost</div>
+          <div class="chart-card-sub">Weighted by revenue, not headcount — the most common reason is rarely the most expensive</div>
           <div class="chart-wrap-sm"><canvas id="churnReasonPie"></canvas></div>
           <div class="legend" id="legend-churn-reason"></div>
         </div>
@@ -709,6 +709,28 @@ textarea.prt-input{resize:vertical}
       <div class="mcard" id="mc-port-mrr"><div class="mcard-label">Total Active MRR</div><div class="mcard-value teal" id="m-port-mrr">—</div><div class="mcard-sub">Incl. expansion</div></div>
       <div class="mcard" id="mc-port-arr"><div class="mcard-label">Total Active ARR</div><div class="mcard-value teal" id="m-port-arr">—</div></div>
       <div class="mcard" id="mc-port-ttv"><div class="mcard-label">Avg Time to Value</div><div class="mcard-value ink" id="m-port-ttv">—</div><div class="mcard-sub" id="m-port-ttv-sub">Kickoff to first post</div></div>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Revenue at risk</span>
+      <span class="section-note">The active book priced by account health — Red + Yellow is the exposure</span>
+    </div>
+    <div class="metric-grid-4" style="margin-bottom:20px">
+      <div class="mcard" id="mc-risk-mrr"><div class="mcard-label">MRR at Risk</div><div class="mcard-value coral" id="m-risk-mrr">—</div><div class="mcard-sub" id="m-risk-mrr-sub">Red + Yellow</div></div>
+      <div class="mcard" id="mc-risk-arr"><div class="mcard-label">ARR at Risk</div><div class="mcard-value coral" id="m-risk-arr">—</div><div class="mcard-sub" id="m-risk-arr-sub">MRR at risk × 12</div></div>
+      <div class="mcard" id="mc-risk-red"><div class="mcard-label">Red Book</div><div class="mcard-value coral" id="m-risk-red">—</div><div class="mcard-sub" id="m-risk-red-sub"></div></div>
+      <div class="mcard" id="mc-risk-unscored"><div class="mcard-label">Unscored Book</div><div class="mcard-value ink" id="m-risk-unscored">—</div><div class="mcard-sub" id="m-risk-unscored-sub">No health set — unknown, not safe</div></div>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-card-title">Where the MRR went</div>
+      <div class="chart-card-sub" id="mrr-bridge-sub">Beginning → new → expansion → churn → ending</div>
+      <div class="chart-wrap-lg"><canvas id="mrrBridgeBar"></canvas></div>
+      <div class="legend" id="legend-mrr-bridge"></div>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-card-title">Active MRR by account health</div>
+      <div class="chart-card-sub">Dollar-weighted — each band is the money behind that colour, not the number of logos</div>
+      <div class="chart-wrap-md"><canvas id="healthMRRBar"></canvas></div>
+      <div class="legend" id="legend-health-mrr"></div>
     </div>
     <div class="chart-row-3">
       <div class="chart-card" style="margin-bottom:0">
@@ -839,6 +861,13 @@ textarea.prt-input{resize:vertical}
       </div>
     </div>
     <div style="margin-bottom:12px"></div>
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-card-title">What time to value is worth</div>
+      <div class="chart-card-sub">Pilot conversion rate by how fast the customer got live — hover for the MRR each band converted or lost</div>
+      <div class="chart-wrap-md"><canvas id="ttvValueBar"></canvas></div>
+      <div class="legend" id="legend-ttv-value"></div>
+    </div>
+    <div style="margin-bottom:12px"></div>
     <div class="chart-row">
       <div class="chart-card" style="margin-bottom:0">
         <div class="chart-card-title">Pilot conversion rate by stage</div>
@@ -928,8 +957,8 @@ textarea.prt-input{resize:vertical}
     </div>
 
     <div class="section-header">
-      <span class="section-title">Upsell products by AM</span>
-      <span class="section-note">Products upsold after the original sale across active accounts (excludes products bundled in the original deal)</span>
+      <span class="section-title">Upsell revenue by AM</span>
+      <span class="section-note">Expansion MRR carried by post-sale upsells across active accounts — hover for the upsell count behind each bar (excludes products bundled in the original deal)</span>
     </div>
     <div class="chart-card" style="margin-bottom:20px">
       <div class="chart-card-title">Upsell products per Account Manager</div>
@@ -1330,11 +1359,12 @@ textarea.prt-input{resize:vertical}
       <span class="section-title">Response time by customer</span>
       <span class="section-note">Median time from a customer message to the first Virio reply · Slack · raw 24/7</span>
     </div>
+    <div class="rt-note" id="rt-exposure" style="margin-top:0;margin-bottom:10px"></div>
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Customer</th><th>Account Manager</th><th>Product</th><th>Median response</th><th>Samples</th></tr></thead>
-          <tbody id="rt-customer-body"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
+          <thead><tr><th>Customer</th><th>Account Manager</th><th>Product</th><th>MRR</th><th>Median response</th><th>Samples</th></tr></thead>
+          <tbody id="rt-customer-body"><tr><td colspan="6" class="rt-empty">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1595,7 +1625,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
 // ── CONSTANTS ──────────────────────────────────────────────────
 const STAGE_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#888780','#5DCAA5'];
 const OUTCOME_COLORS = ['#378ADD','#1D9E75','#D85A30'];
-const REASON_COLORS  = ['#D85A30','#BA7517','#7F77DD','#378ADD','#1D9E75','#D4537E','#888780','#5DCAA5'];
+const REASON_COLORS  = ['#378ADD','#D85A30','#1D9E75','#7F77DD','#BA7517','#D4537E'];   // validated: see dataviz palette checks
 const JOURNEY_ORDER  = ['Kickoff Call Scheduled','Kickoff Call Completed','Content Interview Completed','Awaiting Customer QA','Live','Renewal'];
 const PILOT_STATUSES = ['In progress','Converted','Exited During Pilot','Churned Post Conversion'];
 // Anyone off the AM roster, scrubbed at ingestion so they drop out of every
@@ -1899,6 +1929,28 @@ function amDisplayList(cos) {
 function calcTTV(k,f) { if(!k||!f) return null; const d=Math.round((new Date(f)-new Date(k))/86400000); return d>=0?d:null; }
 function fmtTTV(k,f) { const d=calcTTV(k,f); return d!==null?d+' days':'—'; }
 function parsePostsPerMonth(val) { if(!val) return 0; const m=val.match(/\d+/); return m?parseInt(m[0]):0; }
+// ── REVENUE TRANSLATION ────────────────────────────────────────
+// Operational signals (health, churn reasons, time-to-value, response times)
+// only move a budget conversation once they carry a dollar figure. These
+// helpers do that conversion in one place so every tab prices it the same way.
+// `mrr` is an account's TOTAL monthly revenue (it already includes expansion),
+// so ARR is simply mrr * 12 — never add expansion_mrr on top.
+const RISK_HEALTH = ['red','yellow'];                    // what counts as exposed
+function sumMRR(list){ return list.reduce((s,c)=>s+(c.mrr||0),0); }
+function sumARR(list){ return sumMRR(list)*12; }
+function pctOf(part, whole){ return whole>0 ? Math.round(part/whole*100) : 0; }
+// Split a book by health, in dollars. Unscored accounts are kept in their own
+// bucket and never folded into "safe" — no health set means unknown, not green.
+function healthSplit(list){
+  const out={red:[],yellow:[],green:[],blue:[],unscored:[]};
+  list.forEach(c=>{ out[normalizeHealth(c.account_health)||'unscored'].push(c); });
+  return out;
+}
+// Rows for a hover card: accounts sorted by the money behind them.
+function moneyRows(list){
+  return [...list].sort((a,b)=>(b.mrr||0)-(a.mrr||0)).map(c=>({name:c.name,val:fmt$(c.mrr||0)+'/mo'}));
+}
+
 const HEALTH_VALUES=['red','yellow','green','blue'];
 const HEALTH_COLORS={red:'#E24B4A',yellow:'#BA7517',green:'#1D9E75',blue:'#378ADD'};
 const HEALTH_LABEL={red:'Red',yellow:'Yellow',green:'Green',blue:'Blue'};
@@ -2140,6 +2192,9 @@ function recompute() {
   set('m-port-ttv',avgTTV!==null?avgTTV+' days':'—');
   set('m-port-ttv-sub',avgTTV!==null?`Based on ${ttvDays.length} customers`:'Kickoff to first post');
 
+  renderRevenueAtRisk(active, activeMRR);
+  renderMRRBridge(cos, activeMRR);
+
   bindCard('mc-pilot-retention',()=>({title:'Converted (incl. post-conv churned)',rows:pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
   bindCard('mc-pilot-churn',()=>({title:'Exited during pilot',rows:exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))}));
   bindCard('mc-active',()=>({title:'Active pilots',rows:[...inProgress].sort((a,b)=>b.mrr-a.mrr).map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
@@ -2166,18 +2221,40 @@ function recompute() {
   const allStages=[...new Set(cos.map(c=>c.stage).filter(Boolean))].sort();
   const allAMs=amDisplayList(cos);
 
+  const outcomeLists=[inProgress,pilotConv,exited];
   renderPie('pilotOutcomePie',[inProgress.length,pilotConv.length,exited.length],['In progress','Converted','Exited'],OUTCOME_COLORS,'legend-pilot-outcome',
-    [inProgress.map(c=>({name:c.name,val:fmt$(c.mrr)})),pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)})),exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))]);
+    [inProgress.map(c=>({name:c.name,val:fmt$(c.mrr)})),pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)})),exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))],
+    outcomeLists.map(l=>`${l.length} · ${fmtBig$(l.reduce((s,c)=>s+(c.pilot_status==='Exited During Pilot'?(c.churned_mrr||0):(c.mrr||0)),0))}/mo`));
   renderBar('pilotStageBar',allStages,allStages.map(st=>inProgress.filter(c=>c.stage===st).length),'#378ADD',allStages.map(st=>inProgress.filter(c=>c.stage===st).map(c=>({name:c.name,val:fmt$(c.mrr)}))));
   renderBar('exitedStageBar',allStages,allStages.map(st=>exited.filter(c=>c.stage===st).length),'#D85A30',allStages.map(st=>exited.filter(c=>c.stage===st).map(c=>({name:c.name,val:c.churn_reason||'—'}))));
   renderGroupedBar('pilotAMBar',allAMs,[
     {label:'Active pilots',data:allAMs.map(am=>inProgress.filter(c=>displayAM(c.csm)===am).length),color:'#378ADD',names:allAMs.map(am=>inProgress.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:fmt$(c.mrr)})))},
     {label:'Exited',data:allAMs.map(am=>exited.filter(c=>displayAM(c.csm)===am).length),color:'#D85A30',names:allAMs.map(am=>exited.filter(c=>displayAM(c.csm)===am).map(c=>({name:c.name,val:c.churn_reason||'—'})))}]);
 
-  const reasonMap={};
-  [...exited,...churnedPost].filter(c=>c.churn_reason).forEach(c=>{ if(!reasonMap[c.churn_reason]) reasonMap[c.churn_reason]=[]; reasonMap[c.churn_reason].push({name:c.name,val:fmt$(c.churned_mrr)}); });
-  const rLabels=Object.keys(reasonMap);
-  renderPie('churnReasonPie',rLabels.map(r=>reasonMap[r].length),rLabels,REASON_COLORS.slice(0,rLabels.length),'legend-churn-reason',rLabels.map(r=>reasonMap[r]));
+  // Churn reasons weighted by the MRR they cost, not by how often they occur —
+  // the most frequent reason is often not the expensive one. Slices are dollars;
+  // the account count rides along in the legend and tooltip so both are visible.
+  const reasonMap={}, reasonMRR={};
+  [...exited,...churnedPost].filter(c=>c.churn_reason).forEach(c=>{
+    if(!reasonMap[c.churn_reason]){ reasonMap[c.churn_reason]=[]; reasonMRR[c.churn_reason]=0; }
+    reasonMap[c.churn_reason].push({name:c.name,val:fmt$(c.churned_mrr)});
+    reasonMRR[c.churn_reason]+=(c.churned_mrr||0);
+  });
+  // Beyond the validated palette, the tail folds into "Other" rather than
+  // inventing a hue. Ordered by cost so the expensive reason leads.
+  const rAll=Object.keys(reasonMap).sort((a,b)=>reasonMRR[b]-reasonMRR[a]);
+  let rLabels=rAll, rData, rLists;
+  if(rAll.length>REASON_COLORS.length){
+    const keep=rAll.slice(0,REASON_COLORS.length-1), rest=rAll.slice(REASON_COLORS.length-1);
+    rLabels=[...keep,'Other'];
+    rData=[...keep.map(r=>reasonMRR[r]), rest.reduce((s,r)=>s+reasonMRR[r],0)];
+    rLists=[...keep.map(r=>reasonMap[r]), rest.flatMap(r=>reasonMap[r])];
+  } else {
+    rData=rAll.map(r=>reasonMRR[r]);
+    rLists=rAll.map(r=>reasonMap[r]);
+  }
+  renderPie('churnReasonPie',rData,rLabels,REASON_COLORS.slice(0,rLabels.length),'legend-churn-reason',rLists,
+    rData.map((v,i)=>`${fmtBig$(v)}/mo lost · ${rLists[i].length} account${rLists[i].length===1?'':'s'}`));
 
   const stageMRRMap={},stageMRRNames={};
   everConv.forEach(c=>{ stageMRRMap[c.stage]=(stageMRRMap[c.stage]||0)+c.mrr; if(!stageMRRNames[c.stage]) stageMRRNames[c.stage]=[]; stageMRRNames[c.stage].push({name:c.name,val:fmt$(c.mrr)}); });
@@ -2189,11 +2266,15 @@ function recompute() {
   const vertMap={},vertNames={};
   active.forEach(c=>{ const v=c.vertical||'Unknown'; vertMap[v]=(vertMap[v]||0)+1; if(!vertNames[v]) vertNames[v]=[]; vertNames[v].push({name:c.name,val:fmt$(c.mrr)}); });
   const vLabels=Object.keys(vertMap).sort((a,b)=>vertMap[b]-vertMap[a]);
-  renderPie('verticalPie',vLabels.map(v=>vertMap[v]),vLabels,STAGE_COLORS.slice(0,vLabels.length),'legend-vertical',vLabels.map(v=>vertNames[v]));
+  const vertMRR={}; active.forEach(c=>{ const v=c.vertical||'Unknown'; vertMRR[v]=(vertMRR[v]||0)+(c.mrr||0); });
+  renderPie('verticalPie',vLabels.map(v=>vertMap[v]),vLabels,STAGE_COLORS.slice(0,vLabels.length),'legend-vertical',vLabels.map(v=>vertNames[v]),
+    vLabels.map(v=>`${vertMap[v]} · ${fmtBig$(vertMRR[v])}/mo`));
   const stMap={},stNames={};
   active.forEach(c=>{ stMap[c.stage]=(stMap[c.stage]||0)+1; if(!stNames[c.stage]) stNames[c.stage]=[]; stNames[c.stage].push({name:c.name,val:fmt$(c.mrr)}); });
   const stLabels=Object.keys(stMap).sort((a,b)=>stMap[b]-stMap[a]);
-  renderPie('stagePie',stLabels.map(s=>stMap[s]),stLabels,STAGE_COLORS.slice(0,stLabels.length),'legend-stage',stLabels.map(s=>stNames[s]));
+  const stMRR={}; active.forEach(c=>{ stMRR[c.stage]=(stMRR[c.stage]||0)+(c.mrr||0); });
+  renderPie('stagePie',stLabels.map(s=>stMap[s]),stLabels,STAGE_COLORS.slice(0,stLabels.length),'legend-stage',stLabels.map(s=>stNames[s]),
+    stLabels.map(s=>`${stMap[s]} · ${fmtBig$(stMRR[s])}/mo`));
   const journeyMap={};
   active.forEach(c=>{ const j=c.customer_journey||'Unknown'; if(!journeyMap[j]) journeyMap[j]=[]; journeyMap[j].push({name:c.name,val:fmt$(c.mrr)}); });
   const jLabels=[...JOURNEY_ORDER.filter(j=>journeyMap[j]),...Object.keys(journeyMap).filter(j=>!JOURNEY_ORDER.includes(j))];
@@ -2224,6 +2305,180 @@ function renderHealthWidget(rowsId, summaryId, companies) {
 }
 
 // ── CHART RENDERERS ────────────────────────────────────────────
+// The MRR bridge: beginning → new → expansion → churn → ending. This is the one
+// chart that answers "what happened to the money" in a single read, and it is the
+// shape a CFO already knows. The beginning figure is a real captured baseline (the
+// quarterly bonus snapshot), never a back-computed guess — with no snapshot the
+// chart says so rather than inventing a starting point.
+function renderMRRBridge(cos, activeMRR) {
+  const el = document.getElementById('mrrBridgeBar');
+  if (!el) return;
+  const sub = document.getElementById('mrr-bridge-sub');
+  const leg = document.getElementById('legend-mrr-bridge');
+  const snaps = (typeof bonusSnapshots === 'object' && bonusSnapshots) || {};
+  const qKey = bonusQLabel(new Date());
+  const snap = snaps[qKey] && snaps[qKey].accounts;
+
+  if (charts['mrrBridgeBar']) charts['mrrBridgeBar'].destroy();
+  if (!snap) {
+    if (sub) sub.textContent = `No ${qKey} baseline captured yet — capture one on the Bonus Calculator tab and this fills in.`;
+    if (leg) leg.innerHTML = '';
+    const ctx = el.getContext('2d');
+    ctx.clearRect(0, 0, el.width, el.height);
+    return;
+  }
+
+  // Classify against the baseline: an account absent from it started this quarter.
+  let begin = 0, newMRR = 0, expansion = 0, churn = 0, ending = 0;
+  const newList = [], expList = [], churnList = [];
+  Object.keys(snap).forEach(id => { begin += (snap[id].mrr || 0); });
+  cos.forEach(c => {
+    const b = snap[c.id];
+    const live = c.pilot_status !== 'Exited During Pilot' && c.pilot_status !== 'Churned Post Conversion';
+    if (live) ending += (c.mrr || 0);
+    if (!b) {
+      if (live && (c.mrr || 0) > 0) { newMRR += c.mrr; newList.push({ name: c.name, val: fmt$(c.mrr) + '/mo' }); }
+      return;
+    }
+    if (!live) { const lost = c.churned_mrr || b.mrr || 0; churn += lost; churnList.push({ name: c.name, val: fmt$(lost) + '/mo' }); return; }
+    const d = (c.mrr || 0) - (b.mrr || 0);
+    if (d > 0) { expansion += d; expList.push({ name: c.name, val: '+' + fmt$(d) + '/mo' }); }
+    else if (d < 0) { churn += -d; churnList.push({ name: c.name, val: fmt$(d) + '/mo' }); }
+  });
+
+  // Floating bars give a true waterfall on one axis — each step spans [from, to].
+  const steps = [
+    { label: 'Beginning', from: 0, to: begin, colour: '#888780', rows: null },
+    { label: 'New', from: begin, to: begin + newMRR, colour: '#1D9E75', rows: newList },
+    { label: 'Expansion', from: begin + newMRR, to: begin + newMRR + expansion, colour: '#5DCAA5', rows: expList },
+    { label: 'Churn', from: begin + newMRR + expansion, to: begin + newMRR + expansion - churn, colour: '#E24B4A', rows: churnList },
+    { label: 'Ending', from: 0, to: ending, colour: '#378ADD', rows: null }
+  ];
+  charts['mrrBridgeBar'] = new Chart(el.getContext('2d'), {
+    type: 'bar',
+    data: { labels: steps.map(s2 => s2.label), datasets: [{
+      data: steps.map(s2 => [s2.from, s2.to]),
+      backgroundColor: steps.map(s2 => s2.colour),
+      borderRadius: 4, borderWidth: 2, borderColor: '#fff', meta: steps }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => {
+        const st = ctx.dataset.meta[ctx.dataIndex], delta = st.to - st.from;
+        const head = (st.label === 'Beginning' || st.label === 'Ending')
+          ? ` ${st.label}: ${fmtBig$(st.to)}/mo · ${fmtBig$(st.to * 12)} ARR`
+          : ` ${st.label}: ${delta >= 0 ? '+' : ''}${fmtBig$(delta)}/mo · ${delta >= 0 ? '+' : ''}${fmtBig$(delta * 12)} ARR`;
+        return [head, ...buildLines(st.rows || [])];
+      } } } },
+      scales: { x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { font: { size: 10 }, callback: v => fmtBig$(v) }, grid: { color: 'rgba(26,25,22,0.06)' } } } }
+  });
+
+  const net = ending - begin;
+  if (sub) sub.textContent = `Since the ${qKey} baseline${snaps[qKey].captured_at ? ' captured ' + new Date(snaps[qKey].captured_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''} · net ${net >= 0 ? '+' : ''}${fmtBig$(net)}/mo (${net >= 0 ? '+' : ''}${fmtBig$(net * 12)} ARR)`;
+  if (leg) leg.innerHTML = [
+    ['Beginning', begin, '#888780'], ['New', newMRR, '#1D9E75'],
+    ['Expansion', expansion, '#5DCAA5'], ['Churn', -churn, '#E24B4A'], ['Ending', ending, '#378ADD']
+  ].map(([l, v, c]) => `<span class="legend-item"><span class="legend-dot" style="background:${c}"></span>${l}: ${v < 0 ? '−' : ''}${fmtBig$(Math.abs(v))}/mo</span>`).join('');
+}
+
+// Health, priced. Counts say "six accounts are Red"; this says how much money
+// that is and what share of the book — the version a budget conversation can use.
+function renderRevenueAtRisk(active, activeMRR) {
+  if (!document.getElementById('m-risk-mrr')) return;
+  const h = healthSplit(active);
+  const atRisk = RISK_HEALTH.flatMap(k => h[k]);
+  const riskMRR = sumMRR(atRisk), redMRR = sumMRR(h.red), unscoredMRR = sumMRR(h.unscored);
+
+  set('m-risk-mrr', fmtBig$(riskMRR));
+  set('m-risk-mrr-sub', `Red + Yellow · ${pctOf(riskMRR, activeMRR)}% of book · ${atRisk.length} account${atRisk.length===1?'':'s'}`);
+  set('m-risk-arr', fmtBig$(riskMRR * 12));
+  set('m-risk-arr-sub', 'Annualised exposure');
+  set('m-risk-red', fmtBig$(redMRR));
+  set('m-risk-red-sub', `${pctOf(redMRR, activeMRR)}% of book · ${h.red.length} account${h.red.length===1?'':'s'} · ${fmtBig$(redMRR*12)} ARR`);
+  set('m-risk-unscored', fmtBig$(unscoredMRR));
+  set('m-risk-unscored-sub', h.unscored.length
+    ? `${h.unscored.length} account${h.unscored.length===1?'':'s'} with no health set — unknown, not safe`
+    : 'Every active account is scored');
+
+  bindCard('mc-risk-mrr', ()=>({title:'At risk — Red + Yellow', rows:moneyRows(atRisk)}));
+  bindCard('mc-risk-arr', ()=>({title:'At risk — Red + Yellow (ARR)', rows:[...atRisk].sort((a,b)=>(b.mrr||0)-(a.mrr||0)).map(c=>({name:c.name,val:fmt$((c.mrr||0)*12)}))}));
+  bindCard('mc-risk-red', ()=>({title:'Red accounts', rows:moneyRows(h.red)}));
+  bindCard('mc-risk-unscored', ()=>({title:'No account health set', rows:moneyRows(h.unscored)}));
+
+  // One stacked bar: the whole active book, split by health, measured in money.
+  // Health colours are a reserved status palette — never reused as series colours.
+  const order = ['blue','green','yellow','red','unscored'];
+  const label = k => k==='unscored' ? 'No health set' : HEALTH_LABEL[k];
+  const colour = k => k==='unscored' ? '#C9C6BE' : HEALTH_COLORS[k];
+  const el = document.getElementById('healthMRRBar');
+  if (el) {
+    if (charts['healthMRRBar']) charts['healthMRRBar'].destroy();
+    charts['healthMRRBar'] = new Chart(el.getContext('2d'), {
+      type:'bar',
+      data:{ labels:['Active MRR'], datasets: order.map(k=>({
+        label: label(k), data:[sumMRR(h[k])], backgroundColor: colour(k),
+        borderRadius:4, borderWidth:2, borderColor:'#fff', names:[moneyRows(h[k])]
+      })) },
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>[
+          ` ${ctx.dataset.label}: ${fmtBig$(ctx.raw)}/mo · ${fmtBig$(ctx.raw*12)} ARR · ${pctOf(ctx.raw, activeMRR)}% of book`,
+          ...buildLines(ctx.dataset.names[ctx.dataIndex])
+        ]}}},
+        scales:{ x:{stacked:true, ticks:{font:{size:10},callback:v=>fmtBig$(v)}, grid:{color:'rgba(26,25,22,0.06)'}},
+                 y:{stacked:true, ticks:{font:{size:10}}, grid:{display:false}} } }
+    });
+  }
+  const leg = document.getElementById('legend-health-mrr');
+  if (leg) leg.innerHTML = order.filter(k=>h[k].length).map(k=>
+    `<span class="legend-item"><span class="legend-dot" style="background:${colour(k)}"></span>${label(k)}: ${fmtBig$(sumMRR(h[k]))}/mo · ${h[k].length}</span>`).join('');
+}
+
+// Time to value, priced. Days-to-first-post is an ops number until it is put
+// next to what each band converted: that is the argument for onboarding capacity.
+// Conversion rate is the single plotted measure (one axis, never two); the money
+// rides in the tooltip and legend.
+const TTV_BANDS = [
+  { label:'≤ 14 days', test:d=>d!==null&&d<=14 },
+  { label:'15–30 days', test:d=>d!==null&&d>14&&d<=30 },
+  { label:'31–60 days', test:d=>d!==null&&d>30&&d<=60 },
+  { label:'60+ days',   test:d=>d!==null&&d>60 },
+  { label:'No first post yet', test:d=>d===null }
+];
+function renderTTVValue(cos) {
+  const el = document.getElementById('ttvValueBar');
+  if (!el) return;
+  // Only pilots that have actually reached a verdict can carry a conversion rate.
+  const decided = cos.filter(c => c.pilot_status==='Converted' || c.pilot_status==='Churned Post Conversion' || c.pilot_status==='Exited During Pilot');
+  const bands = TTV_BANDS.map(b => {
+    const list = decided.filter(c => b.test(calcTTV(c.kickoff_date, c.first_post_date)));
+    const won  = list.filter(c => c.pilot_status !== 'Exited During Pilot');
+    const lost = list.filter(c => c.pilot_status === 'Exited During Pilot');
+    return { label:b.label, n:list.length,
+             rate: list.length ? Math.round(won.length/list.length*100) : null,
+             wonMRR: sumMRR(won), lostMRR: lost.reduce((s,c)=>s+(c.churned_mrr||0),0),
+             names: [...list].sort((a,b2)=>(b2.mrr||0)-(a.mrr||0)).map(c=>({
+               name:c.name, val:`${c.pilot_status==='Exited During Pilot'?'exited':'converted'} · ${fmt$(c.mrr||c.churned_mrr||0)}/mo` })) };
+  });
+  if (charts['ttvValueBar']) charts['ttvValueBar'].destroy();
+  charts['ttvValueBar'] = new Chart(el.getContext('2d'), {
+    type:'bar',
+    data:{ labels:bands.map(b=>b.label), datasets:[{
+      data:bands.map(b=>b.rate), backgroundColor:'#1D9E75', borderRadius:4, meta:bands }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>{
+        const b=ctx.dataset.meta[ctx.dataIndex];
+        return [` ${b.rate===null?'no decided pilots':b.rate+'% converted'} · ${b.n} pilot${b.n===1?'':'s'}`,
+                ` ${fmtBig$(b.wonMRR)}/mo converted · ${fmtBig$(b.lostMRR)}/mo lost`,
+                ...buildLines(b.names)];
+      }}}},
+      scales:{ x:{ticks:{font:{size:10}},grid:{display:false}},
+               y:{beginAtZero:true,max:100,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(26,25,22,0.06)'}} } }
+  });
+  const leg = document.getElementById('legend-ttv-value');
+  if (leg) leg.innerHTML = bands.filter(b=>b.n).map(b =>
+    `<span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>${b.label}: ${b.rate}% · ${fmtBig$(b.wonMRR)}/mo kept, ${fmtBig$(b.lostMRR)}/mo lost</span>`).join('')
+    || '<span class="legend-item">No decided pilots with a kickoff date yet.</span>';
+}
+
 function renderPie(id, data, labels, colors, legendId, companyLists, valLabels) {
   if(charts[id]) charts[id].destroy();
   charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
@@ -2235,7 +2490,7 @@ function renderPie(id, data, labels, colors, legendId, companyLists, valLabels) 
     }}}}}
   });
   const el=document.getElementById(legendId);
-  if(el) el.innerHTML=labels.map((l,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${l}: ${data[i]}${valLabels?'  ('+valLabels[i]+')':''}</span>`).join('');
+  if(el) el.innerHTML=labels.map((l,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${l}: ${valLabels?valLabels[i]:data[i]}</span>`).join('');
 }
 function renderBar(id, labels, data, color, companyLists) {
   if(charts[id]) charts[id].destroy();
@@ -3100,6 +3355,8 @@ function renderCohortsTab(cos) {
   // TTV bar
   const ttvByStage=allStages.map(stage=>{ const vals=cos.filter(c=>c.stage===stage&&c.kickoff_date&&c.first_post_date).map(c=>calcTTV(c.kickoff_date,c.first_post_date)).filter(d=>d!==null&&d>=0); return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null; });
   const ttvNamesByStage=allStages.map(stage=>cos.filter(c=>c.stage===stage&&c.kickoff_date&&c.first_post_date).map(c=>({name:c.name,val:calcTTV(c.kickoff_date,c.first_post_date)+'d'})));
+  renderTTVValue(cos);
+
   if(charts['ttvStageBar']) charts['ttvStageBar'].destroy();
   charts['ttvStageBar']=new Chart(document.getElementById('ttvStageBar').getContext('2d'),{
     type:'bar',data:{labels:allStages,datasets:[{data:ttvByStage.map(v=>v||0),backgroundColor:ttvByStage.map(v=>v===null?'#D3D1C7':v<=21?'#1D9E75':v<=30?'#378ADD':'#BA7517'),borderRadius:4,names:ttvNamesByStage}]},
@@ -3483,16 +3740,20 @@ function renderTeamTab(cos) {
   const countUpsells=c=>(c.upsold_products||'').split(';').map(s=>s.trim()).filter(Boolean).length;
   const upsellData=allAMs.map(am=>{
     const ac=active.filter(c=>displayAM(c.csm)===am);
-    const total=ac.reduce((s,c)=>s+countUpsells(c),0);
-    const names=ac.filter(c=>countUpsells(c)>0).sort((a,b)=>countUpsells(b)-countUpsells(a))
-      .map(c=>({name:c.name,val:countUpsells(c)+(countUpsells(c)===1?' upsell':' upsells')}));
-    return {total,names};
+    const total=ac.reduce((s,c)=>s+(c.expansion_mrr||0),0);      // dollars, not events
+    const count=ac.reduce((s,c)=>s+countUpsells(c),0);
+    const names=ac.filter(c=>countUpsells(c)>0||c.expansion_mrr>0)
+      .sort((a,b)=>(b.expansion_mrr||0)-(a.expansion_mrr||0))
+      .map(c=>({name:c.name,val:`${fmt$(c.expansion_mrr||0)}/mo · ${countUpsells(c)} upsell${countUpsells(c)===1?'':'s'}`}));
+    return {total,count,names};
   });
   if(charts['upsellAMBar']) charts['upsellAMBar'].destroy();
   const upsellEl=document.getElementById('upsellAMBar');
   if(upsellEl) charts['upsellAMBar']=new Chart(upsellEl.getContext('2d'),{
-    type:'bar',data:{labels:allAMs,datasets:[{data:upsellData.map(d=>d.total),backgroundColor:'#7F77DD',borderRadius:4,names:upsellData.map(d=>d.names)}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[' '+ctx.raw+(ctx.raw===1?' upsell':' upsells'),...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{size:10},stepSize:1,precision:0},grid:{color:'rgba(26,25,22,0.06)'}}}}
+    type:'bar',data:{labels:allAMs,datasets:[{data:upsellData.map(d=>d.total),backgroundColor:'#7F77DD',borderRadius:4,names:upsellData.map(d=>d.names),counts:upsellData.map(d=>d.count)}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>[
+      ` ${fmtBig$(ctx.raw)}/mo · ${fmtBig$(ctx.raw*12)} ARR · ${ctx.dataset.counts[ctx.dataIndex]} upsell${ctx.dataset.counts[ctx.dataIndex]===1?'':'s'}`,
+      ...buildLines(ctx.dataset.names[ctx.dataIndex])]}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{size:10},callback:v=>fmtBig$(v)},grid:{color:'rgba(26,25,22,0.06)'}}}}
   });
 
   // ROI calculator — closed-deal targets per active customer at 1× MRR, grouped by AM
@@ -4080,14 +4341,36 @@ function rtRender(){
   if(!rtData) return;
   const accts=(rtData.accounts||[]).filter(a=> rtProduct==='all' || a.product===rtProduct);
   // Widget 1 — by customer (fastest first, pending/no-data last)
+  // Price each row. A slow reply to a $15k account is not the same event as a slow
+  // reply to a $3k one, and the table cannot say so until the money is on it.
+  const mrrByName={};
+  (typeof allCompanies!=='undefined'?allCompanies:[]).forEach(c=>{ if(c.name) mrrByName[c.name.trim().toLowerCase()]=c.mrr||0; });
+  const acctMRR=a=>mrrByName[(a.company||'').trim().toLowerCase()];
   const rows=[...accts].sort((a,b)=> rtRank(a.median_seconds)-rtRank(b.median_seconds));
-  document.getElementById('rt-customer-body').innerHTML = rows.length ? rows.map(a=>`<tr>
+  document.getElementById('rt-customer-body').innerHTML = rows.length ? rows.map(a=>{
+    const m=acctMRR(a);
+    return `<tr>
     <td>${rtEsc(a.company)}</td>
     <td>${rtEsc(a.am||'Unassigned')}</td>
     <td>${rtProdChip(a.product)}</td>
+    <td>${m===undefined?'<span class="rt-dim">—</span>':fmt$(m)}</td>
     ${rtMedCell(a.median_seconds,a.sample)}
-    <td class="rt-dim">${a.sample||0}</td></tr>`).join('')
-    : `<tr><td colspan="5" class="rt-empty">No accounts for this filter.</td></tr>`;
+    <td class="rt-dim">${a.sample||0}</td></tr>`; }).join('')
+    : `<tr><td colspan="6" class="rt-empty">No accounts for this filter.</td></tr>`;
+
+  // Headline: how much revenue is waiting longest. RT_SLOW_HOURS is the line
+  // above which a median reply counts as slow.
+  const RT_SLOW_HOURS=24;
+  const priced=rows.filter(a=>acctMRR(a)!==undefined);
+  const slow=priced.filter(a=>typeof a.median_seconds==='number' && a.median_seconds > RT_SLOW_HOURS*3600);
+  const slowMRR=slow.reduce((s,a)=>s+acctMRR(a),0);
+  const pricedMRR=priced.reduce((s,a)=>s+acctMRR(a),0);
+  const expEl=document.getElementById('rt-exposure');
+  if(expEl) expEl.innerHTML = !priced.length
+    ? 'No MRR matched to these accounts yet — load the portfolio tabs first.'
+    : slow.length
+      ? `<b>${fmtBig$(slowMRR)}/mo · ${fmtBig$(slowMRR*12)} ARR</b> sits with accounts whose median reply is over ${RT_SLOW_HOURS}h — ${pctOf(slowMRR,pricedMRR)}% of the matched book, across ${slow.length} account${slow.length===1?'':'s'}: ${slow.sort((a,b)=>acctMRR(b)-acctMRR(a)).slice(0,5).map(a=>rtEsc(a.company)).join(', ')}${slow.length>5?'…':''}`
+      : `Every matched account (${fmtBig$(pricedMRR)}/mo) replies inside ${RT_SLOW_HOURS}h.`;
   // Widget 2 — by AM. Pooled server stats; by_product keeps filtered views pooled
   // too (not median-of-medians), so the number matches across All / EGC / Full Service.
   let ams;
@@ -4400,6 +4683,15 @@ async function bonusRefreshSnapshots(){
     const ft=document.getElementById('tab-forecasting');
     if(ft && ft.classList.contains('active') && typeof renderForecastTab==='function') renderForecastTab(window.__forecastCos||[]);
   } catch(e){ /* forecasting refresh is best-effort */ }
+  // The MRR bridge needs a baseline, which only exists once this resolves. Redraw
+  // that one chart — calling recompute() would recurse, since it kicks this off.
+  try {
+    if(typeof managedSet==='function' && (allCompanies||[]).length){
+      const cos=managedSet();
+      const live=cos.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
+      renderMRRBridge(cos, sumMRR(live));
+    }
+  } catch(e){ /* bridge refresh is best-effort */ }
 }
 function bonusRenderSnapStatus(){
   const el=document.getElementById('bonus-snap-status'); if(!el) return;
