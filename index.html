@@ -3023,7 +3023,9 @@ const FC_INFO = {
     +"<div class='r'>• <b>Pilot day</b>: days since kickoff, out of the 90-day POC.</div>"
     +"<div class='r'>• <b>TTV</b>: kickoff → first post; amber if &gt; 30 days.</div>"
     +"<div class='r'>• <b>Health</b>: click the chip to set the color — it sets the baseline likelihood (blue is a lock).</div>"
-    +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; both volume and $ feed the delivery signal. Brand clients show “—”.</div>"
+    +"<div class='r'>• <b>Meetings booked #/$</b>: editable for <b>ICP</b> clients only; both volume and $ feed the delivery signal. Brand clients show “—”.</div>"
+    +"<div class='r'>• <b>Est. hrs/wk</b>: your weekly time estimate — not tracked. A ⚑ flags low MRR against high hours with no MRR adds projected next month.</div>"
+    +"<div class='r'>• The three <b>month columns</b> are real calendar months (this one and the next two). Two lines per account — <b>MRR adds</b> and <b>Rev share</b> — each holding a projection, the actual, and a plan note. Saving keeps the prior version with its author, so a commitment is never silently overwritten; a negative projection must say why.</div>"
     +"<div class='r'>• <b>Likelihood</b>: the banded score — hover it for the per-account reasons.</div>" },
   renewFc:{ title:'How 12-month renewal likelihood is scored', html:
     "<div class='r'>Forecasts which <b>converted customers</b> renew at the 12-month mark.</div>"
@@ -3039,9 +3041,12 @@ const FC_INFO = {
     "<div class='r'>One row per converted customer, <b>grouped by account manager</b> so you can scan to your name. Within each AM, <b>overdue accounts sort first</b> (most days late), then by soonest next invoice. Use the <b>Account Manager</b> filter at the top of the tab to see just your accounts.</div>"
     +"<div class='r'>• <b>Next invoice sent</b>: when Measure next bills the account. An <b>Overdue · Nd late</b> badge and a red row mean an unpaid invoice; the day count is live.</div>"
     +"<div class='r'>• <b>Invoice amt</b>: the recurring invoice amount from Measure; “($X due)” shows the unpaid total when overdue.</div>"
-    +"<div class='r'>• <b>Target expansion close</b>: the date <b>you</b> expect to close this account's expansion — type it in; it saves for everyone. Only editable when <b>Health = Blue</b> (actively expanding); other accounts show “—”.</div>"
-    +"<div class='r'>• <b>Health</b>: click to set the baseline likelihood. <b>Expansion</b>: current expansion MRR.</div>"
-    +"<div class='r'>• <b>Closed / Pipeline #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal. <b>Likelihood</b>: banded score — hover for reasons.</div>" },
+    +"<div class='r'>• <b>Health</b>: click to set the baseline likelihood. <b>Meetings booked #/$</b>: editable for <b>ICP</b> clients only; feed the delivery signal.</div>"
+    +"<div class='r'>• <b>Est. hrs/wk</b>: your estimate of time on this account each week — not tracked or timed. A ⚑ means MRR per weekly hour is under the threshold in Forecast settings <i>and</i> no MRR adds are projected next month: the commercial-restructure conversation.</div>"
+    +"<div class='h'>The three month columns</div>"
+    +"<div class='r'>Real calendar months — this month and the next two — not a rolling 30/60/90 window, so a commitment stays attached to the month it was made for. Each account has two lines: <b>MRR adds</b> (net new MRR from upsells such as an added FOC) and <b>Rev share</b> (projected rev share $ from revenue driven).</div>"
+    +"<div class='r'>Click any cell to set the projection, record the actual, and write the plan note — <i>what must be true</i> to hit that number. Saving keeps the previous value with its author and timestamp rather than overwriting it, so August's commitment is still there in September. A <b>negative</b> projection needs a note explaining the expected contraction or churn.</div>"
+    +"<div class='r'>• <b>Likelihood</b>: banded score — hover for reasons. <b>Inputs</b> (☰ above the table) holds ACV, the client's own pre-Virio close rate, and account notes.</div>" },
   goals:{ title:'Company goals — churn & expansion', html:
     "<div class='r'>Company-wide targets. These <b>ignore the AM and product filters</b> above.</div>"
     +"<div class='h'>Monthly churn — goal ≤ 0.5%/mo by Apr 2027</div>"
