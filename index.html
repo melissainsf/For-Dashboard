@@ -1084,6 +1084,12 @@ textarea.prt-input{resize:vertical}
         <input type="number" min="0" step="500" id="fc-set-target" class="fc-num"
                onchange="fcSetNumber(this,'am_mrr_target')" title="Per-AM MRR target the book is measured against">
       </label>
+      <label class="fc-set-field">History
+        <select id="fc-set-trailing" class="fc-select" onchange="fcSetTrailing(this)">
+          <option value="3">Last 3 months</option>
+          <option value="6">Last 6 months</option>
+        </select>
+      </label>
       <label class="fc-set-field">Update cadence
         <select id="fc-set-cadence" class="fc-select" onchange="fcSetCadence()">
           <option value="dates">1st and 15th</option>
@@ -1105,8 +1111,8 @@ textarea.prt-input{resize:vertical}
       </table></div>
     </div>
     <div class="section-header">
-      <span class="section-title">Last three months</span>
-      <span class="section-note">Projected against actual, so a quarter reads as three points rather than one</span>
+      <span class="section-title" id="fc-trailing-title">Last three months</span>
+      <span class="section-note">Projected against actual, so a quarter reads as several points rather than one</span>
     </div>
     <div class="table-card" style="margin-bottom:18px">
       <div class="table-wrap"><table>
@@ -3345,12 +3351,14 @@ function fcRenderChurnLists(cos, amFilter){
 const FC_DEFAULTS = {
   hours_flag_ratio: 650,       // flag when MRR ÷ hours-per-week falls below this
   view_mode: 'monthly',        // 'monthly' | 'quarterly'
+  trailing_months: 3,          // history window: 3 (as specified on the call) or 6
   am_mrr_target: 62500,        // midpoint of the $60–65k per-book target
   cadence: { mode: 'dates', dates: [1, 15], weekday: 1 }   // or mode:'biweekly'
 };
 const FC_METRICS = [
   { key: 'mrr_delta', label: 'MRR adds',  hint: 'Net new MRR from upsells (an added FOC, more seats) minus expected contraction' },
-  { key: 'rev_share', label: 'Rev share', hint: 'Projected rev share $ Virio earns from revenue driven for this client' }
+  { key: 'rev_share', label: 'Rev share', hint: 'Projected rev share $ Virio earns from revenue driven for this client' },
+  { key: 'rev_driven', label: 'Rev driven', hint: "Revenue Virio drives FOR the client — meetings booked x the client's own close rate x their ACV. Rev share is Virio's cut of this." }
 ];
 const FC_WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
@@ -3368,7 +3376,11 @@ function fcMonthShort(d) { return d.toLocaleDateString('en-US', { month: 'short'
 // Current month + the next two. Rolls forward by month; the labels are real months.
 function fcPeriods() { const m = fcMonthStart(new Date()); return [0, 1, 2].map(i => fcAddMonths(m, i)); }
 // The three months just gone, so a quarter reads as three points, not one.
-function fcTrailing() { const m = fcMonthStart(new Date()); return [3, 2, 1].map(i => fcAddMonths(m, -i)); }
+function fcTrailing() {
+  const n = Number(fcSettings.trailing_months) || FC_DEFAULTS.trailing_months;
+  const m = fcMonthStart(new Date());
+  return Array.from({ length: n }, (_, i) => fcAddMonths(m, -(n - i)));
+}
 function fcQuarterOf(d) { return Math.floor(d.getUTCMonth() / 3); }
 function fcQuarterMonths(d) {
   const q = fcQuarterOf(d), y = d.getUTCFullYear();
@@ -3720,8 +3732,9 @@ function fcRenderRollup(cos, amFilter) {
 function fcRenderTrailing(cos, amFilter) {
   const el = document.getElementById('fc-trailing-body'); if (!el) return;
   const months = fcTrailing();
+  set('fc-trailing-title', `Last ${months.length} months`);
   document.getElementById('fc-trailing-head').innerHTML =
-    '<tr><th>Month</th><th>Committed MRR adds</th><th>Actual MRR adds</th><th>Committed rev share</th><th>Actual rev share</th><th>Hit rate</th></tr>';
+    '<tr><th>Month</th><th>Committed MRR adds</th><th>Actual MRR adds</th><th>Committed rev share</th><th>Actual rev share</th><th>Committed rev driven</th><th>Actual rev driven</th><th>Hit rate</th></tr>';
   let live = cos.filter(c => c.pilot_status === 'In progress' || c.pilot_status === 'Converted');
   if (amFilter !== 'all') live = live.filter(c => (c.csm || '__none__') === amFilter);
   el.innerHTML = months.map(m => {
@@ -3730,11 +3743,14 @@ function fcRenderTrailing(cos, amFilter) {
     const aAdds = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'mrr_delta', 'actual') || 0), 0);
     const pRev = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'rev_share', 'projected') || 0), 0);
     const aRev = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'rev_share', 'actual') || 0), 0);
+    const pDrv = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'rev_driven', 'projected') || 0), 0);
+    const aDrv = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'rev_driven', 'actual') || 0), 0);
     const hit = pAdds > 0 ? Math.round(aAdds / pAdds * 100) + '%' : '—';
-    const any = pAdds || aAdds || pRev || aRev;
+    const any = pAdds || aAdds || pRev || aRev || pDrv || aDrv;
     return `<tr><td>${fcMonthLabel(m)}</td>
       <td>${pAdds ? fmt$(pAdds) : '—'}</td><td>${aAdds ? fmt$(aAdds) : '—'}</td>
       <td>${pRev ? fmt$(pRev) : '—'}</td><td>${aRev ? fmt$(aRev) : '—'}</td>
+      <td>${pDrv ? fmt$(pDrv) : '—'}</td><td>${aDrv ? fmt$(aDrv) : '—'}</td>
       <td>${any ? hit : '<span class="fc-muted">no commitments recorded</span>'}</td></tr>`;
   }).join('');
 }
@@ -3746,6 +3762,7 @@ function fcRenderSettings() {
   const mode = fcSettings.view_mode || 'monthly';
   document.querySelectorAll('#fc-view-toggle .prt-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   const cad = fcSettings.cadence || FC_DEFAULTS.cadence;
+  const tr = document.getElementById('fc-set-trailing'); if (tr) tr.value = String(fcSettings.trailing_months ?? FC_DEFAULTS.trailing_months);
   const cm = document.getElementById('fc-set-cadence'); if (cm) cm.value = cad.mode === 'weekly2' ? 'weekly2' : 'dates';
   const wd = document.getElementById('fc-set-weekday');
   if (wd) { wd.value = String(cad.weekday ?? 1); wd.style.display = cad.mode === 'weekly2' ? '' : 'none'; }
@@ -3765,6 +3782,11 @@ async function fcSetNumber(input, key) {
   try { await fcSaveSetting(key, n); refreshActiveTab(); }
   catch (e) { alert('Could not save setting: ' + (e.message || e)); }
   finally { input.disabled = false; }
+}
+async function fcSetTrailing(sel) {
+  const n = Number(sel.value) || FC_DEFAULTS.trailing_months;
+  try { await fcSaveSetting('trailing_months', n); refreshActiveTab(); }
+  catch (e) { alert('Could not save history window: ' + (e.message || e)); }
 }
 async function fcSetCadence() {
   const mode = document.getElementById('fc-set-cadence').value;
@@ -3836,7 +3858,7 @@ function fcRenderBoard(bodyId, scored, mode) {
     const c = s.c;
     const flag = fcHoursFlag(c);
     const rowCls = [mode === 'renew' && fcIsOverdue(c) ? 'fc-overdue-row' : '', flag ? 'fc-hours-flag-row' : ''].filter(Boolean).join(' ');
-    const span = ' rowspan="2"';
+    const span = ` rowspan="${FC_METRICS.length}"`;
     const mid = mode === 'conv'
       ? (() => {
           const day = fcPilotDay(c); const dayCell = day === null ? '<span class="fc-muted">—</span>' : (day + ' / 90');
@@ -3862,7 +3884,7 @@ function fcRenderBoard(bodyId, scored, mode) {
         <td class="fc-metric-cell" title="${escapeHtml(m.hint)}">${m.label}</td>
         ${periods.map(p => fcProjCell(c, p, m.key)).join('')}
         ${first ? tail : ''}</tr>`;
-    return line(FC_METRICS[0], true) + line(FC_METRICS[1], false);
+    return FC_METRICS.map((m, i) => line(m, i === 0)).join('');
   }).join('');
   body.innerHTML = html || `<tr><td colspan="${cols}" class="empty-hint">No ${mode === 'conv' ? 'active pilots' : 'converted customers'}.</td></tr>`;
   // Month headers are real month names and move forward a month at a time.
