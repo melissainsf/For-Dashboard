@@ -721,7 +721,7 @@ textarea.prt-input{resize:vertical}
       <div class="mcard" id="mc-risk-unscored"><div class="mcard-label">Unscored Book</div><div class="mcard-value ink" id="m-risk-unscored">—</div><div class="mcard-sub" id="m-risk-unscored-sub">No health set — unknown, not safe</div></div>
     </div>
     <div class="chart-card" style="margin-bottom:20px">
-      <div class="chart-card-title">How the book changed over the last 12 months</div>
+      <div class="chart-card-title">How the book changed this fiscal year</div>
       <div class="chart-card-sub" id="mrr-bridge-sub">Loading…</div>
       <div class="chart-wrap-lg"><canvas id="mrrBridgeBar"></canvas></div>
       <div class="legend" id="legend-mrr-bridge"></div>
@@ -1895,8 +1895,9 @@ function clearStale() {
   const lu = document.getElementById('last-updated');
   if (lu) lu.classList.remove('stale');
 }
-function fmt$(n) { return n>=1000?'$'+(n/1000).toFixed(1).replace(/\.0$/,'')+'k':'$'+Math.round(n); }
+function fmt$(n) { if(n<0) return '−'+fmt$(-n); return n>=1000?'$'+(n/1000).toFixed(1).replace(/\.0$/,'')+'k':'$'+Math.round(n); }
 function fmtBig$(n) {
+  if(n<0) return '−'+fmtBig$(-n);          // negatives kept readable, not "$-173503"
   if(n>=1000000) return '$'+(n/1000000).toFixed(2)+'M';
   if(n>=1000) return '$'+(n/1000).toFixed(1).replace(/\.0$/,'')+'k';
   return '$'+Math.round(n);
@@ -2305,7 +2306,7 @@ function renderHealthWidget(rowsId, summaryId, companies) {
 }
 
 // ── CHART RENDERERS ────────────────────────────────────────────
-// Where the MRR went, over a trailing window. Built from account-level dates —
+// Where the MRR went, fiscal year to date. Built from account-level dates —
 // kickoff_date for new business, churn_date + churned_mrr_value for losses — so
 // it works from the live HubSpot feed with no captured baseline required.
 //
@@ -2314,7 +2315,9 @@ function renderHealthWidget(rowsId, summaryId, companies) {
 // expansion cannot be separated out; solving for Beginning therefore yields
 // Beginning-plus-expansion. The bar is labelled and footnoted as such rather
 // than quietly presented as a clean starting number.
-const MRR_BRIDGE_MONTHS = 12;
+// Virio's fiscal year starts in January, so this is calendar year-to-date and
+// rolls over on its own each 1 Jan. Change the month index if that ever moves.
+const FY_START_MONTH = 0;   // 0 = January
 function renderMRRBridge(cos, activeMRR) {
   const el = document.getElementById('mrrBridgeBar');
   if (!el) return;
@@ -2323,7 +2326,10 @@ function renderMRRBridge(cos, activeMRR) {
   const wrap = el.parentElement;
 
   const today = new Date();
-  const winStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - MRR_BRIDGE_MONTHS, today.getUTCDate()));
+  // Start of the fiscal year we are currently in — last year's start if the FY
+  // begins later in the calendar than today's month.
+  const fyYear = today.getUTCMonth() >= FY_START_MONTH ? today.getUTCFullYear() : today.getUTCFullYear() - 1;
+  const winStart = new Date(Date.UTC(fyYear, FY_START_MONTH, 1));
   const inWindow = v => { const d = prtUtcDate(v); return !!d && d >= winStart; };
   const isLive = c => c.pilot_status === 'In progress' || c.pilot_status === 'Converted';
 
@@ -2350,11 +2356,21 @@ function renderMRRBridge(cos, activeMRR) {
     .map(c => ({ name: c.name, val: fmt$(c.mrr || c.churned_mrr || 0) + '/mo' }));
 
   // Floating bars: each step spans [from, to] on one shared axis.
+  // A long tooltip is unreadable — show the biggest accounts and count the rest.
+  const TIP_MAX = 12;
+  const capped = list => {
+    const rows = money(list);
+    return rows.length > TIP_MAX
+      ? [...rows.slice(0, TIP_MAX), { name: `…and ${rows.length - TIP_MAX} more`, val: '' }]
+      : rows;
+  };
   const steps = [
-    { label: 'Starting book', from: 0, to: begin, colour: '#888780', rows: null, abs: true },
-    { label: 'New business',  from: begin, to: begin + newMRR, colour: '#1D9E75', rows: money(newList) },
-    { label: 'Churn',         from: begin + newMRR, to: begin + newMRR - churn, colour: '#E24B4A', rows: money(churnList) },
-    { label: 'Today',         from: 0, to: ending, colour: '#378ADD', rows: null, abs: true }
+    // Derived, so there is no account list behind it — say why instead of listing nothing.
+    { label: 'Starting book', from: 0, to: begin, colour: '#888780', abs: true, n: null,
+      note: 'Worked back from today: today − new business + churn' },
+    { label: 'New business',  from: begin, to: begin + newMRR, colour: '#1D9E75', rows: capped(newList), n: newList.length },
+    { label: 'Churn',         from: begin + newMRR, to: begin + newMRR - churn, colour: '#E24B4A', rows: capped(churnList), n: churnList.length },
+    { label: 'Today',         from: 0, to: ending, colour: '#378ADD', abs: true, rows: capped(liveList), n: liveList.length }
   ];
   charts['mrrBridgeBar'] = new Chart(el.getContext('2d'), {
     type: 'bar',
@@ -2365,18 +2381,23 @@ function renderMRRBridge(cos, activeMRR) {
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => {
         const st = ctx.dataset.meta[ctx.dataIndex], d = st.to - st.from;
+        const count = st.n === null ? '' : ` · ${st.n} account${st.n === 1 ? '' : 's'}`;
+        const sign = d >= 0 ? '+' : '';                 // fmtBig$ already carries a minus
         const head = st.abs
-          ? ` ${st.label}: ${fmtBig$(st.to)}/mo · ${fmtBig$(st.to * 12)} ARR`
-          : ` ${st.label}: ${d >= 0 ? '+' : ''}${fmtBig$(d)}/mo · ${d >= 0 ? '+' : ''}${fmtBig$(d * 12)} ARR · ${st.rows.length} account${st.rows.length === 1 ? '' : 's'}`;
-        return [head, ...buildLines(st.rows || [])];
+          ? ` ${st.label}: ${fmtBig$(st.to)}/mo · ${fmtBig$(st.to * 12)} ARR${count}`
+          : ` ${st.label}: ${sign}${fmtBig$(d)}/mo · ${sign}${fmtBig$(d * 12)} ARR${count}`;
+        // buildLines() renders "No data" for an empty list, which is wrong for a
+        // step that legitimately has no account list — use its note instead.
+        const tail = (st.rows && st.rows.length) ? buildLines(st.rows) : (st.note ? ['  · ' + st.note] : []);
+        return [head, ...tail];
       } } } },
       scales: { x: { ticks: { font: { size: 10 } }, grid: { display: false } },
                 y: { beginAtZero: true, ticks: { font: { size: 10 }, callback: v => fmtBig$(v) }, grid: { color: 'rgba(26,25,22,0.06)' } } } }
   });
 
   const net = ending - begin;
-  const fmtDay = d => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
-  if (sub) sub.textContent = `${fmtDay(winStart)} → today · won ${fmtBig$(newMRR)}/mo, lost ${fmtBig$(churn)}/mo, net ${net >= 0 ? '+' : '−'}${fmtBig$(Math.abs(net))}/mo (${net >= 0 ? '+' : '−'}${fmtBig$(Math.abs(net) * 12)} ARR)`;
+  const fmtDay = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  if (sub) sub.textContent = `${fmtDay(winStart)} → today · won ${fmtBig$(newMRR)}/mo, lost ${fmtBig$(churn)}/mo, net ${net >= 0 ? '+' : ''}${fmtBig$(net)}/mo (${net >= 0 ? '+' : ''}${fmtBig$(net * 12)} ARR)`;
   if (leg) {
     const note = undated.length
       ? ` · ${undated.length} churned account${undated.length === 1 ? '' : 's'} excluded for having no churn date`
@@ -2384,7 +2405,7 @@ function renderMRRBridge(cos, activeMRR) {
     leg.innerHTML = [
       ['Starting book', begin, '#888780'], ['New business', newMRR, '#1D9E75'],
       ['Churn', -churn, '#E24B4A'], ['Today', ending, '#378ADD']
-    ].map(([l, v, c]) => `<span class="legend-item"><span class="legend-dot" style="background:${c}"></span>${l}: ${v < 0 ? '−' : ''}${fmtBig$(Math.abs(v))}/mo</span>`).join('')
+    ].map(([l, v, c]) => `<span class="legend-item"><span class="legend-dot" style="background:${c}"></span>${l}: ${fmtBig$(v)}/mo</span>`).join('')
       + `<span class="legend-item" style="color:var(--ink3)">Starting book is worked back from today, so it also carries any expansion since — HubSpot does not date expansion${note}.</span>`;
   }
 }
