@@ -408,6 +408,48 @@ tbody td:first-child{font-weight:500}
 .prt-group.later .prt-group-dot{background:var(--ink3)}
 .prt-detail{border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2);display:none}
 .prt-card.open .prt-detail{display:block}
+/* Forecasting: projections, inputs panel, flags */
+.fc-settings{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-bottom:18px}
+.fc-set-field{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink2)}
+.fc-set-field .fc-num{width:92px}
+.fc-inputs-bar{display:flex;align-items:center;gap:10px;margin:2px 0 8px}
+.fc-burger{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer}
+.fc-burger:hover{background:var(--surface2)}
+.fc-inputs-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;max-height:320px;overflow-y:auto}
+.fc-inputs-head{font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:8px}
+.fc-inputs-list{display:flex;flex-direction:column;gap:2px}
+.fc-inp-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;background:none;border:none;border-radius:6px;padding:6px 8px;cursor:pointer;text-align:left;width:100%}
+.fc-inp-row:hover{background:var(--surface2)}
+.fc-inp-name{font-size:12px;font-weight:500;color:var(--ink)}
+.fc-inp-meta{font-size:10px;color:var(--ink3)}
+.fc-month-th{text-align:right;white-space:nowrap}
+.fc-metric-cell{font-size:10px;color:var(--ink3);white-space:nowrap}
+.fc-proj-cell{cursor:pointer;text-align:right;white-space:nowrap;position:relative}
+.fc-proj-cell:hover{background:var(--surface2)}
+.fc-proj-cell.empty .fc-proj-val{color:var(--ink3)}
+.fc-proj-cell.neg .fc-proj-val{color:var(--red)}
+.fc-proj-val{font-size:12px;font-weight:500}
+.fc-proj-act{display:block;font-size:10px;color:var(--ink3)}
+.fc-proj-mark{font-size:8px;color:var(--ink3);margin-left:3px;vertical-align:top}
+.fc-acct-top>td{border-top:1px solid var(--border)}
+.fc-name-cell{font-weight:500}
+.fc-hours-cell{white-space:nowrap}
+.fc-hours{width:56px}
+.fc-hours-flag-row .fc-hours-cell{background:rgba(226,75,74,0.08)}
+.fc-flag-chip{display:inline-block;margin-left:4px;color:var(--red);font-size:11px;cursor:help}
+.fc-gap-ok{color:var(--teal)}
+.fc-gap-short{color:var(--coral)}
+.fc-ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.fc-ed-grid label,.fc-ed-note-label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--ink2)}
+.fc-ed-note-label{margin-bottom:12px}
+.fc-ed-err{color:var(--red);font-size:11px;min-height:14px;margin-bottom:8px}
+.fc-ed-hhead{font-size:11px;font-weight:600;color:var(--ink2);border-top:1px solid var(--border);padding-top:10px;margin-bottom:6px}
+.fc-ed-history{display:flex;flex-direction:column;gap:8px;max-height:190px;overflow-y:auto}
+.fc-ed-hrow{font-size:11px;border-left:2px solid var(--border);padding-left:8px}
+.fc-ed-hamt{font-weight:600;color:var(--ink)}
+.fc-ed-hmeta{color:var(--ink3);margin-left:6px}
+.fc-ed-hnote{color:var(--ink2);margin-top:2px}
+.fc-ap-derived{font-size:11px;color:var(--ink2);background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:10px}
 .prt-ask{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
 .prt-ask:last-of-type{border-bottom:none}
 .prt-ask-co{font-size:12px;font-weight:500;color:var(--ink);min-width:196px}
@@ -1018,6 +1060,55 @@ textarea.prt-input{resize:vertical}
     </div>
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
+      <span class="section-title">Forecast settings</span>
+      <span class="section-note" id="fc-cadence-note"></span>
+    </div>
+    <div class="fc-settings">
+      <div class="prt-seg" id="fc-view-toggle">
+        <button class="prt-seg-btn active" data-mode="monthly" onclick="fcSetView(this)">Monthly</button>
+        <button class="prt-seg-btn" data-mode="quarterly" onclick="fcSetView(this)">Quarterly</button>
+      </div>
+      <label class="fc-set-field">Flag below
+        <input type="number" min="0" step="50" id="fc-set-threshold" class="fc-num"
+               onchange="fcSetNumber(this,'hours_flag_ratio')"
+               title="Flag a row when MRR divided by estimated hours per week falls below this">
+        <span class="fc-muted">MRR per weekly hour</span>
+      </label>
+      <label class="fc-set-field">Book target
+        <input type="number" min="0" step="500" id="fc-set-target" class="fc-num"
+               onchange="fcSetNumber(this,'am_mrr_target')" title="Per-AM MRR target the book is measured against">
+      </label>
+      <label class="fc-set-field">Update cadence
+        <select id="fc-set-cadence" class="fc-num" onchange="fcSetCadence()">
+          <option value="dates">1st and 15th</option>
+          <option value="weekly2">Every two weeks on…</option>
+        </select>
+        <select id="fc-set-weekday" class="fc-num" onchange="fcSetCadence()" style="display:none">
+          <option value="1">Monday</option><option value="5">Friday</option>
+        </select>
+      </label>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Book vs. commitment by AM</span>
+      <span class="section-note"><span id="fc-rollup-horizon"></span> · <span id="fc-rollup-target"></span></span>
+    </div>
+    <div class="table-card" style="margin-bottom:18px">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Account Manager</th><th>Accounts</th><th>Book now</th><th>Committed adds</th><th>Committed book</th><th>Rev share</th><th>Gap to target</th><th>Hours/wk</th><th>Flags</th></tr></thead>
+        <tbody id="fc-rollup-body"></tbody>
+      </table></div>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Last three months</span>
+      <span class="section-note">Projected against actual, so a quarter reads as three points rather than one</span>
+    </div>
+    <div class="table-card" style="margin-bottom:18px">
+      <div class="table-wrap"><table>
+        <thead id="fc-trailing-head"></thead>
+        <tbody id="fc-trailing-body"></tbody>
+      </table></div>
+    </div>
+    <div class="section-header">
       <span class="section-title">ROI calculator</span>
       <span class="section-note">Closed-deal targets per customer at break-even (1× MRR)</span>
     </div>
@@ -1106,10 +1197,18 @@ textarea.prt-input{resize:vertical}
       <span class="info-icon" onmouseenter="showInfo(event,'convBoard')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
       <span class="section-note" id="fc-conv-note"></span>
     </div>
-    <div class="table-card">
+        <div class="fc-inputs-bar">
+      <button type="button" class="fc-burger" onclick="fcToggleInputs('conv')" title="Per-account inputs: ACV, the client's own close rate, notes">☰ Inputs</button>
+      <span class="fc-muted">ACV, the client's own close rate and account notes — captured here, not as table columns</span>
+    </div>
+    <div class="fc-inputs-panel" id="fc-inputs-conv" style="display:none">
+      <div class="fc-inputs-head">Active pilots — pick an account</div>
+      <div class="fc-inputs-list" id="fc-inputs-list-conv"></div>
+    </div>
+<div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Pilot day</th><th>TTV</th><th>Health</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
+          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Pilot day</th><th>TTV</th><th>Health</th><th>Meetings booked (#)</th><th>Meetings booked ($)</th><th>Est. hrs/wk</th><th>MRR</th><th></th><th class="fc-month-th" id="fc-conv-m0">—</th><th class="fc-month-th" id="fc-conv-m1">—</th><th class="fc-month-th" id="fc-conv-m2">—</th><th>Likelihood</th></tr></thead>
           <tbody id="fc-conv-body"></tbody>
         </table>
       </div>
@@ -1181,10 +1280,18 @@ textarea.prt-input{resize:vertical}
       <span class="info-icon" onmouseenter="showInfo(event,'renewBoard')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
       <span class="section-note" id="fc-renew-note"></span>
     </div>
-    <div class="table-card">
+        <div class="fc-inputs-bar">
+      <button type="button" class="fc-burger" onclick="fcToggleInputs('renew')" title="Per-account inputs: ACV, the client's own close rate, notes">☰ Inputs</button>
+      <span class="fc-muted">ACV, the client's own close rate and account notes — captured here, not as table columns</span>
+    </div>
+    <div class="fc-inputs-panel" id="fc-inputs-renew" style="display:none">
+      <div class="fc-inputs-head">Converted customers — pick an account</div>
+      <div class="fc-inputs-list" id="fc-inputs-list-renew"></div>
+    </div>
+<div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Next invoice sent</th><th>Invoice amt</th><th>Target expansion close</th><th>Health</th><th>Expansion</th><th>Closed #</th><th>Closed $</th><th>Pipeline #</th><th>Pipeline $</th><th>MRR</th><th>Likelihood</th></tr></thead>
+          <thead><tr><th>Company</th><th>AM</th><th>Type</th><th>Next invoice sent</th><th>Invoice amt</th><th>Health</th><th>Meetings booked (#)</th><th>Meetings booked ($)</th><th>Est. hrs/wk</th><th>MRR</th><th></th><th class="fc-month-th" id="fc-renew-m0">—</th><th class="fc-month-th" id="fc-renew-m1">—</th><th class="fc-month-th" id="fc-renew-m2">—</th><th>Likelihood</th></tr></thead>
           <tbody id="fc-renew-body"></tbody>
         </table>
       </div>
@@ -1369,6 +1476,55 @@ textarea.prt-input{resize:vertical}
       </div>
     </div>
     <div class="rt-note" id="rt-note"></div>
+  </div>
+
+  <!-- Forecasting: projection editor (versioned) -->
+  <div class="prt-modal-overlay" id="fc-ed-modal" style="display:none" onclick="if(event.target===this)fcCloseProjEditor()">
+    <div class="prt-modal">
+      <div class="prt-modal-head"><span id="fc-ed-title">Projection</span>
+        <button class="prt-modal-x" onclick="fcCloseProjEditor()">&times;</button></div>
+      <div style="padding:18px 22px">
+        <div class="fc-muted" id="fc-ed-hint" style="margin-bottom:12px"></div>
+        <div class="fc-ed-grid">
+          <label>Projected<input type="number" step="100" id="fc-ed-proj" class="fc-num"></label>
+          <label>Actual<input type="number" step="100" id="fc-ed-act" class="fc-num"></label>
+        </div>
+        <label class="fc-ed-note-label">Plan note — what must be true to hit this
+          <textarea id="fc-ed-note" rows="3" class="fc-num" placeholder="Required if the projection is negative"></textarea></label>
+        <div id="fc-ed-err" class="fc-ed-err"></div>
+        <div class="fc-ed-hhead">Version history</div>
+        <div id="fc-ed-history" class="fc-ed-history"></div>
+      </div>
+      <div class="prt-modal-foot">
+        <button class="prt-btn" onclick="fcCloseProjEditor()">Cancel</button>
+        <button class="prt-btn primary" id="fc-ed-save" onclick="fcSaveProjEditor()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forecasting: per-account inputs -->
+  <div class="prt-modal-overlay" id="fc-ap-modal" style="display:none" onclick="if(event.target===this)fcCloseAccountPanel()">
+    <div class="prt-modal">
+      <div class="prt-modal-head"><span id="fc-ap-title">Account</span>
+        <button class="prt-modal-x" onclick="fcCloseAccountPanel()">&times;</button></div>
+      <div style="padding:18px 22px">
+        <div class="fc-muted" id="fc-ap-sub" style="margin-bottom:14px"></div>
+        <div class="fc-ed-grid">
+          <label>ACV<input type="number" min="0" step="500" id="fc-ap-acv" class="fc-num"></label>
+          <label>Est. hours / week<input type="number" min="0" step="0.5" id="fc-ap-hours" class="fc-num"></label>
+        </div>
+        <label class="fc-ed-note-label">Client&rsquo;s own close rate (%) — what they closed <em>before</em> Virio drove pipeline, not Virio&rsquo;s close rate since
+          <input type="number" min="0" max="100" step="1" id="fc-ap-close" class="fc-num"></label>
+        <label class="fc-ed-note-label">Notes — how the expansion plan gets hit, or why this account may churn
+          <textarea id="fc-ap-notes" rows="4" class="fc-num"></textarea></label>
+        <div class="fc-ap-derived" id="fc-ap-derived"></div>
+        <div id="fc-ap-err" class="fc-ed-err"></div>
+      </div>
+      <div class="prt-modal-foot">
+        <button class="prt-btn" onclick="fcCloseAccountPanel()">Cancel</button>
+        <button class="prt-btn primary" id="fc-ap-save" onclick="fcSaveAccountPanel()">Save</button>
+      </div>
+    </div>
   </div>
 
   <!-- TAB 8: BONUS CALCULATOR -->
@@ -2027,7 +2183,7 @@ function switchTab(e, name) {
   if(name==='cohorts')   renderCohortsTab(managedSet());
   if(name==='portfolio') renderPortfolioTable(workingSet());
   if(name==='team')      renderTeamTab(managedSet());
-  if(name==='forecasting') renderForecastTab(workingSet());
+  if(name==='forecasting') fcLoadForecastData().then(()=>renderForecastTab(workingSet()));
   if(name==='requests')  prtEnsureLoaded().then(prtRender);
 }
 
@@ -2114,6 +2270,10 @@ async function loadData() {
     recompute();
     // Keep the bonus calculator's snapshot store fresh too (self-contained).
     if(typeof bonusRefreshSnapshots==='function') bonusRefreshSnapshots();
+    if(typeof fcLoadForecastData==='function') fcLoadForecastData(true).then(()=>{
+      const ft=document.getElementById('tab-forecasting');
+      if(ft&&ft.classList.contains('active')) renderForecastTab(workingSet());
+    }).catch(()=>{});
     // Refresh the Product Request Tracker against the latest account data.
     prtState.loaded=false;
     prtEnsureLoaded().then(()=>{ if(document.getElementById('tab-requests').classList.contains('active')) prtRender(); });
@@ -2632,7 +2792,7 @@ function refreshActiveTab() {
   if(active.id==='tab-cohorts') renderCohortsTab(managedSet());
   else if(active.id==='tab-team') renderTeamTab(managedSet());
   else if(active.id==='tab-portfolio') renderPortfolioTable(workingSet());
-  else if(active.id==='tab-forecasting') renderForecastTab(workingSet());
+  else if(active.id==='tab-forecasting') fcLoadForecastData().then(()=>renderForecastTab(workingSet()));
 }
 async function updateHubspotField(sel) {
   const id=sel.dataset.cid, prop=sel.dataset.prop, prev=sel.dataset.prev, next=sel.value;
@@ -2784,35 +2944,6 @@ function fcInvoiceAmtCell(c){
   if(!b || !(b.amount>0)) return '<span class="fc-muted">—</span>';
   if(b.overdue_amount>0) return `${fmt$(b.amount)} <span class="fc-muted" title="Unpaid across overdue invoices">(${fmt$(b.overdue_amount)} due)</span>`;
   return fmt$(b.amount);
-}
-function fcExpDateInput(c){
-  const v=expansionById[c.id]||'';
-  // Only accounts whose Health is Blue (actively expanding) get an editable
-  // target-close date. Non-blue rows show a muted placeholder — or the saved
-  // date read-only if one was set while the account was Blue, so data isn't lost.
-  if(normalizeHealth(c.account_health)!=='blue'){
-    if(v){
-      const d=new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-      return `<span class="fc-muted" title="Set while this account was Blue. Set Health to Blue to edit.">${escapeHtml(d)}</span>`;
-    }
-    return `<span class="fc-muted" title="Appears when Health is set to Blue (expanding)">—</span>`;
-  }
-  return `<input type="date" class="fc-date" data-cid="${escapeHtml(c.id)}" value="${escapeHtml(v)}" onchange="saveExpansionDate(this)">`;
-}
-async function saveExpansionDate(input){
-  const id=input.dataset.cid; const date=input.value||'';
-  const prev=expansionById[id]||'';
-  if(date) expansionById[id]=date; else delete expansionById[id];
-  input.disabled=true;
-  try {
-    const res=await fetch('/api/forecast-expansion-write',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ id, date })});
-    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||('forecast-expansion-write '+res.status)); }
-  } catch(e){
-    if(prev) expansionById[id]=prev; else delete expansionById[id];
-    input.value=prev;
-    alert('Could not save target expansion close date: '+(e.message||e));
-  } finally { input.disabled=false; }
 }
 function fcNumInput(c, field){
   if(!fcIsICP(c)) return '<span class="fc-muted">—</span>';
@@ -3189,9 +3320,527 @@ function fcRenderChurnLists(cos, amFilter){
   fill('Exited During Pilot', 'fc-churn-epilot', 'Exited during pilot');
   fill('Churned Post Conversion', 'fc-churn-conv', 'Churned post-conversion');
 }
+// ── FORECASTING: PROJECTIONS, INPUTS, SETTINGS ─────────────────
+// Named calendar months, not rolling windows: a rolling 30/60/90 target keeps
+// moving and destroys the record of what was committed. Every projection is a
+// new row in fc_projections — the current value is the newest row, and the
+// prior ones remain as the commitment history.
+
+const FC_DEFAULTS = {
+  hours_flag_ratio: 650,       // flag when MRR ÷ hours-per-week falls below this
+  view_mode: 'monthly',        // 'monthly' | 'quarterly'
+  am_mrr_target: 62500,        // midpoint of the $60–65k per-book target
+  cadence: { mode: 'dates', dates: [1, 15], weekday: 1 }   // or mode:'biweekly'
+};
+const FC_METRICS = [
+  { key: 'mrr_delta', label: 'MRR adds',  hint: 'Net new MRR from upsells (an added FOC, more seats) minus expected contraction' },
+  { key: 'rev_share', label: 'Rev share', hint: 'Projected rev share $ Virio earns from revenue driven for this client' }
+];
+const FC_WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+let fcProjections = [];   // every version, newest first
+let fcInputs = {};        // hs_company_id -> { acv, close_rate, hours_per_week, notes }
+let fcSettings = { ...FC_DEFAULTS };
+let fcDataLoaded = false;
+
+// ── month helpers (UTC throughout, so month boundaries never drift) ──
+function fcMonthStart(d) { return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)); }
+function fcAddMonths(d, n) { return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1)); }
+function fcIso(d) { return d.toISOString().slice(0, 10); }
+function fcMonthLabel(d) { return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }); }
+function fcMonthShort(d) { return d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }); }
+// Current month + the next two. Rolls forward by month; the labels are real months.
+function fcPeriods() { const m = fcMonthStart(new Date()); return [0, 1, 2].map(i => fcAddMonths(m, i)); }
+// The three months just gone, so a quarter reads as three points, not one.
+function fcTrailing() { const m = fcMonthStart(new Date()); return [3, 2, 1].map(i => fcAddMonths(m, -i)); }
+function fcQuarterOf(d) { return Math.floor(d.getUTCMonth() / 3); }
+function fcQuarterMonths(d) {
+  const q = fcQuarterOf(d), y = d.getUTCFullYear();
+  return [0, 1, 2].map(i => new Date(Date.UTC(y, q * 3 + i, 1)));
+}
+function fcQuarterLabel(d) { return d.getUTCFullYear() + '-Q' + (fcQuarterOf(d) + 1); }
+
+// ── projection lookups (fcProjections is newest-first, so find() is latest) ──
+function fcLatest(cid, iso, metric, kind) {
+  return fcProjections.find(p => p.hs_company_id === cid && p.period === iso
+    && p.metric === metric && p.kind === (kind || 'projected')) || null;
+}
+function fcHistory(cid, iso, metric) {
+  return fcProjections.filter(p => p.hs_company_id === cid && p.period === iso && p.metric === metric);
+}
+function fcAmount(cid, iso, metric, kind) { const r = fcLatest(cid, iso, metric, kind); return r ? Number(r.amount) : null; }
+function fcInputsFor(cid) { return fcInputs[cid] || {}; }
+function fcHours(c) { const v = fcInputsFor(c.id).hours_per_week; return Number.isFinite(Number(v)) ? Number(v) : null; }
+
+// Committed total for one account across a set of periods, for one metric.
+function fcCommitted(cid, periods, metric, kind) {
+  return periods.reduce((s, p) => s + (fcAmount(cid, fcIso(p), metric, kind || 'projected') || 0), 0);
+}
+
+// ── §4 flag: high hours relative to MRR ──
+// Low MRR carrying a lot of AM time is the commercial-restructure conversation.
+// A positive MRR-adds projection next month is the stated exception — the time
+// is buying something — so those rows do not flag.
+function fcHoursFlag(c) {
+  const hrs = fcHours(c);
+  if (!hrs || hrs <= 0) return null;
+  const ratio = (c.mrr || 0) / hrs;
+  const limit = Number(fcSettings.hours_flag_ratio) || FC_DEFAULTS.hours_flag_ratio;
+  if (ratio >= limit) return null;
+  const next = fcPeriods()[1];
+  if ((fcAmount(c.id, fcIso(next), 'mrr_delta', 'projected') || 0) > 0) return null;
+  return { ratio: Math.round(ratio), limit, hrs };
+}
+
+// ── loading & saving ──────────────────────────────────────────
+async function fcLoadForecastData(force) {
+  if (fcDataLoaded && !force) return;
+  try {
+    const [pRes, iRes, sRes] = await Promise.all([
+      sb.from('fc_projections').select('*').order('created_at', { ascending: false }),
+      sb.from('fc_account_inputs').select('*'),
+      sb.from('fc_settings').select('*')
+    ]);
+    fcProjections = pRes.data || [];
+    fcInputs = {};
+    (iRes.data || []).forEach(r => { fcInputs[r.hs_company_id] = r; });
+    const s = { ...FC_DEFAULTS };
+    (sRes.data || []).forEach(r => { if (r && r.key) s[r.key] = r.value; });
+    fcSettings = s;
+    fcDataLoaded = true;
+  } catch (e) {
+    console.warn('forecast data load failed', e);
+  }
+}
+
+async function fcCurrentEmail() {
+  try { const { data } = await sb.auth.getUser(); return data?.user?.email || null; } catch { return null; }
+}
+
+// A revision is an INSERT, never an update — that is what preserves the record
+// of what was committed, by whom, and when.
+async function fcSaveProjection(cid, iso, metric, kind, amount, note) {
+  const email = await fcCurrentEmail();
+  const row = { hs_company_id: cid, period: iso, metric, kind, amount, note: note || null, created_by: email };
+  const { data, error } = await sb.from('fc_projections').insert(row).select().single();
+  if (error) throw error;
+  fcProjections.unshift(data);           // newest-first, so lookups see it immediately
+  return data;
+}
+
+async function fcSaveInputs(cid, patch) {
+  const email = await fcCurrentEmail();
+  const row = { hs_company_id: cid, ...patch, updated_by: email, updated_at: new Date().toISOString() };
+  const { data, error } = await sb.from('fc_account_inputs').upsert(row, { onConflict: 'hs_company_id' }).select().single();
+  if (error) throw error;
+  fcInputs[cid] = data;
+  return data;
+}
+
+async function fcSaveSetting(key, value) {
+  const email = await fcCurrentEmail();
+  const { error } = await sb.from('fc_settings')
+    .upsert({ key, value, updated_by: email, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  if (error) throw error;
+  fcSettings[key] = value;
+}
+
+// ── §8 cadence ────────────────────────────────────────────────
+// Left unresolved on the call (1st & 15th vs a fixed weekday every two weeks,
+// Monday or Friday). Configurable so it can be set once decided.
+function fcNextDue() {
+  const cad = fcSettings.cadence || FC_DEFAULTS.cadence;
+  const now = new Date();
+  if (cad.mode === 'weekly2') {
+    const want = Number(cad.weekday);
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    for (let i = 1; i <= 14; i++) {
+      const t = new Date(d.getTime() + i * 86400000);
+      if (t.getUTCDay() === want) return t;
+    }
+    return null;
+  }
+  const dates = (cad.dates && cad.dates.length ? cad.dates : [1, 15]).slice().sort((a, b) => a - b);
+  for (const day of dates) {
+    const t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day));
+    if (t > now) return t;
+  }
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, dates[0]));
+}
+function fcCadenceLabel() {
+  const cad = fcSettings.cadence || FC_DEFAULTS.cadence;
+  if (cad.mode === 'weekly2') return `Every two weeks on ${FC_WEEKDAYS[Number(cad.weekday)] || 'Monday'}`;
+  const d = (cad.dates && cad.dates.length ? cad.dates : [1, 15]);
+  return `The ${d.map(n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th')).join(' and ')} of each month`;
+}
+
+// ── §2 projection cells ───────────────────────────────────────
+// One cell per (account, month, metric). Shows the committed number and the
+// actual once it exists; click to revise, which writes a new version and keeps
+// the old one. A negative projection is tinted and its note is mandatory.
+function fcProjCell(c, period, metric) {
+  const iso = fcIso(period);
+  const p = fcLatest(c.id, iso, metric, 'projected');
+  const a = fcLatest(c.id, iso, metric, 'actual');
+  const hist = fcHistory(c.id, iso, metric).length;
+  const pv = p ? Number(p.amount) : null;
+  const av = a ? Number(a.amount) : null;
+  const cls = ['fc-proj-cell'];
+  if (pv !== null && pv < 0) cls.push('neg');
+  if (pv === null) cls.push('empty');
+  const projTxt = pv === null ? '—' : (pv > 0 ? '+' : '') + fmt$(pv);
+  const actTxt = av === null ? '' : `<span class="fc-proj-act">act ${(av > 0 ? '+' : '')}${fmt$(av)}</span>`;
+  const marks = (p && p.note ? '<span class="fc-proj-mark" title="Has a plan note">●</span>' : '')
+              + (hist > 1 ? `<span class="fc-proj-mark hist" title="${hist} versions">⟲</span>` : '');
+  const title = p && p.note ? escapeHtml(p.note) : 'No plan note yet';
+  return `<td class="${cls.join(' ')}" title="${title}"
+    onclick="fcOpenProjEditor('${escapeHtml(c.id)}','${iso}','${metric}')">
+    <span class="fc-proj-val">${projTxt}</span>${actTxt}${marks}</td>`;
+}
+
+let fcEditor = null;
+function fcOpenProjEditor(cid, iso, metric) {
+  const c = allCompanies.find(x => x.id === cid); if (!c) return;
+  fcEditor = { cid, iso, metric };
+  const m = FC_METRICS.find(x => x.key === metric) || FC_METRICS[0];
+  const period = new Date(iso + 'T00:00:00Z');
+  const p = fcLatest(cid, iso, metric, 'projected');
+  const a = fcLatest(cid, iso, metric, 'actual');
+  set('fc-ed-title', `${c.name} · ${m.label} · ${fcMonthLabel(period)}`);
+  set('fc-ed-hint', m.hint);
+  document.getElementById('fc-ed-proj').value = p ? p.amount : '';
+  document.getElementById('fc-ed-act').value = a ? a.amount : '';
+  document.getElementById('fc-ed-note').value = p ? (p.note || '') : '';
+  set('fc-ed-err', '');
+  const hist = fcHistory(cid, iso, metric);
+  document.getElementById('fc-ed-history').innerHTML = hist.length
+    ? hist.map(h => `<div class="fc-ed-hrow">
+        <span class="fc-ed-hamt">${h.kind === 'actual' ? 'actual ' : ''}${Number(h.amount) > 0 ? '+' : ''}${fmt$(Number(h.amount))}</span>
+        <span class="fc-ed-hmeta">${escapeHtml(h.created_by || 'unknown')} · ${new Date(h.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+        ${h.note ? `<div class="fc-ed-hnote">${escapeHtml(h.note)}</div>` : ''}
+      </div>`).join('')
+    : '<div class="fc-muted">No versions yet — this will be the first commitment for this month.</div>';
+  document.getElementById('fc-ed-modal').style.display = 'flex';
+}
+function fcCloseProjEditor() {
+  document.getElementById('fc-ed-modal').style.display = 'none';
+  fcEditor = null;
+}
+async function fcSaveProjEditor() {
+  if (!fcEditor) return;
+  const { cid, iso, metric } = fcEditor;
+  const err = document.getElementById('fc-ed-err');
+  const btn = document.getElementById('fc-ed-save');
+  const projRaw = document.getElementById('fc-ed-proj').value.trim();
+  const actRaw = document.getElementById('fc-ed-act').value.trim();
+  const note = document.getElementById('fc-ed-note').value.trim();
+  const proj = projRaw === '' ? null : Number(projRaw);
+  const act = actRaw === '' ? null : Number(actRaw);
+  if (projRaw !== '' && !Number.isFinite(proj)) { err.textContent = 'Projection must be a number.'; return; }
+  if (actRaw !== '' && !Number.isFinite(act)) { err.textContent = 'Actual must be a number.'; return; }
+  // A contraction call has to say why — enforced here and again by the database.
+  if (proj !== null && proj < 0 && !note) { err.textContent = 'A negative projection needs a note explaining the expected contraction or churn.'; return; }
+  const prev = fcLatest(cid, iso, metric, 'projected');
+  const prevAct = fcLatest(cid, iso, metric, 'actual');
+  btn.disabled = true;
+  try {
+    const changedProj = proj !== null && (!prev || Number(prev.amount) !== proj || (prev.note || '') !== note);
+    const changedAct = act !== null && (!prevAct || Number(prevAct.amount) !== act);
+    if (changedProj) await fcSaveProjection(cid, iso, metric, 'projected', proj, note);
+    if (changedAct) await fcSaveProjection(cid, iso, metric, 'actual', act, null);
+    fcCloseProjEditor();
+    refreshActiveTab();
+  } catch (e) {
+    err.textContent = (e && e.message) || 'Could not save.';
+  } finally { btn.disabled = false; }
+}
+
+// ── §3 Inputs panel ───────────────────────────────────────────
+// A collapsible list of the accounts in one board; picking one opens a detail
+// panel modelled on a HubSpot company card. ACV and close rate live here, never
+// as columns on the main table.
+let fcInputsBoard = null;
+function fcToggleInputs(board) {
+  const el = document.getElementById('fc-inputs-' + board);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (!open) fcRenderInputsList(board);
+}
+function fcBoardAccounts(board) {
+  const cos = window.__forecastCos || [];
+  const amFilter = window.__forecastAm || 'all';
+  const tier = window.__forecastTier || 'Full Service';
+  let list = amFilter === 'all' ? cos : cos.filter(c => (c.csm || '__none__') === amFilter);
+  if (tier !== 'Both') list = list.filter(c => tierOf(c) === tier);
+  return list.filter(c => c.pilot_status === (board === 'conv' ? 'In progress' : 'Converted'))
+             .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+}
+function fcRenderInputsList(board) {
+  const el = document.getElementById('fc-inputs-list-' + board);
+  if (!el) return;
+  const rows = fcBoardAccounts(board);
+  el.innerHTML = rows.length ? rows.map(c => {
+    const i = fcInputsFor(c.id);
+    const bits = [];
+    if (i.acv) bits.push('ACV ' + fmt$(Number(i.acv)));
+    if (i.close_rate) bits.push('close ' + Number(i.close_rate) + '%');
+    if (i.hours_per_week) bits.push(Number(i.hours_per_week) + ' hrs/wk');
+    return `<button type="button" class="fc-inp-row" onclick="fcOpenAccountPanel('${escapeHtml(c.id)}')">
+      <span class="fc-inp-name">${escapeHtml(c.name)}</span>
+      <span class="fc-inp-meta">${bits.length ? bits.join(' · ') : 'Nothing captured yet'}</span>
+    </button>`;
+  }).join('') : '<div class="fc-muted" style="padding:8px 2px">No accounts in this view.</div>';
+}
+
+let fcPanelId = null;
+function fcOpenAccountPanel(cid) {
+  const c = allCompanies.find(x => x.id === cid); if (!c) return;
+  fcPanelId = cid;
+  const i = fcInputsFor(cid);
+  set('fc-ap-title', c.name);
+  set('fc-ap-sub', `${displayAM(c.csm)} · ${tierOf(c)} · ${c.mrr ? fmt$(c.mrr) + '/mo' : 'no MRR on file'}`);
+  document.getElementById('fc-ap-acv').value = i.acv ?? '';
+  document.getElementById('fc-ap-close').value = i.close_rate ?? '';
+  document.getElementById('fc-ap-hours').value = i.hours_per_week ?? '';
+  document.getElementById('fc-ap-notes').value = i.notes ?? '';
+  set('fc-ap-err', '');
+  // What the captured inputs imply, so the numbers are not just stored and idle.
+  const acv = Number(i.acv) || 0, rate = Number(i.close_rate) || 0;
+  const booked = fcDeals(c).pc || 0;
+  set('fc-ap-derived', (acv && rate && booked)
+    ? `At ${booked} meetings booked, the client's own ${rate}% close rate on ${fmt$(acv)} ACV implies ${fmt$(booked * (rate / 100) * acv)} of revenue driven.`
+    : 'Enter ACV, the client close rate and meetings booked to see implied revenue driven.');
+  document.getElementById('fc-ap-modal').style.display = 'flex';
+}
+function fcCloseAccountPanel() {
+  document.getElementById('fc-ap-modal').style.display = 'none';
+  fcPanelId = null;
+}
+async function fcSaveAccountPanel() {
+  if (!fcPanelId) return;
+  const err = document.getElementById('fc-ap-err');
+  const btn = document.getElementById('fc-ap-save');
+  const numOrNull = id => { const v = document.getElementById(id).value.trim(); if (v === '') return null;
+    const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : NaN; };
+  const acv = numOrNull('fc-ap-acv'), close_rate = numOrNull('fc-ap-close'), hours_per_week = numOrNull('fc-ap-hours');
+  if ([acv, close_rate, hours_per_week].some(v => Number.isNaN(v))) { err.textContent = 'ACV, close rate and hours must be positive numbers.'; return; }
+  if (close_rate !== null && close_rate > 100) { err.textContent = 'Close rate is a percentage — it cannot exceed 100.'; return; }
+  btn.disabled = true;
+  try {
+    await fcSaveInputs(fcPanelId, { acv, close_rate, hours_per_week, notes: document.getElementById('fc-ap-notes').value.trim() || null });
+    fcCloseAccountPanel();
+    refreshActiveTab();
+  } catch (e) {
+    err.textContent = (e && e.message) || 'Could not save.';
+  } finally { btn.disabled = false; }
+}
+
+// Hovering an account name anywhere in the boards surfaces its captured notes.
+function fcNameCell(c) {
+  const i = fcInputsFor(c.id);
+  const rows = [];
+  if (i.acv) rows.push({ name: 'ACV', val: fmt$(Number(i.acv)) });
+  if (i.close_rate) rows.push({ name: "Client's own close rate", val: Number(i.close_rate) + '%' });
+  if (i.hours_per_week) rows.push({ name: 'Est. hours / week', val: Number(i.hours_per_week) });
+  if (i.notes) { if (rows.length) rows.push('---'); rows.push(i.notes); }
+  const has = rows.length > 0;
+  return `<td class="fc-name-cell${has ? ' has-notes' : ''}" data-cid="${escapeHtml(c.id)}"
+    onmouseenter="fcNameHover(event,this)" onmousemove="posTip(event)" onmouseleave="hideTip()"
+    >${escapeHtml(c.name)}</td>`;
+}
+function fcNameHover(e, el) {
+  const c = allCompanies.find(x => x.id === el.dataset.cid); if (!c) return;
+  const i = fcInputsFor(c.id);
+  const rows = [];
+  if (i.acv) rows.push({ name: 'ACV', val: fmt$(Number(i.acv)) });
+  if (i.close_rate) rows.push({ name: "Client's own close rate", val: Number(i.close_rate) + '%' });
+  if (i.hours_per_week) rows.push({ name: 'Est. hours / week', val: Number(i.hours_per_week) });
+  if (i.notes) { if (rows.length) rows.push('---'); rows.push(i.notes); }
+  showTip(e, c.name, rows.length ? rows : ['Nothing captured in Inputs yet.']);
+}
+
+// ── §6 book rollup + §5 views ─────────────────────────────────
+// One answer per AM: where the book is, what it has committed to, and the gap
+// against the per-book MRR target.
+function fcRenderRollup(cos, amFilter) {
+  const el = document.getElementById('fc-rollup-body'); if (!el) return;
+  const quarterly = (fcSettings.view_mode || 'monthly') === 'quarterly';
+  const periods = quarterly ? fcQuarterMonths(new Date()) : [fcPeriods()[0]];
+  const horizon = quarterly ? fcQuarterLabel(new Date()) : fcMonthLabel(fcPeriods()[0]);
+  set('fc-rollup-horizon', `Committed through ${horizon}`);
+  const target = Number(fcSettings.am_mrr_target) || FC_DEFAULTS.am_mrr_target;
+  set('fc-rollup-target', `Target ${fmt$(target)} per book`);
+
+  const live = cos.filter(c => c.pilot_status === 'In progress' || c.pilot_status === 'Converted');
+  const ams = amFilter === 'all' ? amDisplayList(live) : [displayAM(amFilter === '__none__' ? null : amFilter)];
+  const rows = ams.map(am => {
+    const book = live.filter(c => displayAM(c.csm) === am);
+    const now = book.reduce((s, c) => s + (c.mrr || 0), 0);
+    const adds = book.reduce((s, c) => s + fcCommitted(c.id, periods, 'mrr_delta'), 0);
+    const rev = book.reduce((s, c) => s + fcCommitted(c.id, periods, 'rev_share'), 0);
+    const flags = book.filter(c => fcHoursFlag(c)).length;
+    const hours = book.reduce((s, c) => s + (fcHours(c) || 0), 0);
+    return { am, n: book.length, now, adds, committed: now + adds, rev, gap: (now + adds) - target, flags, hours };
+  }).sort((a, b) => b.committed - a.committed);
+
+  el.innerHTML = rows.length ? rows.map(r => {
+    const gapCls = r.gap >= 0 ? 'fc-gap-ok' : 'fc-gap-short';
+    return `<tr>
+      <td>${escapeHtml(r.am)}</td>
+      <td>${r.n}</td>
+      <td>${fmt$(r.now)}</td>
+      <td>${r.adds ? (r.adds > 0 ? '+' : '') + fmt$(r.adds) : '—'}</td>
+      <td><b>${fmt$(r.committed)}</b></td>
+      <td>${r.rev ? fmt$(r.rev) : '—'}</td>
+      <td class="${gapCls}">${r.gap >= 0 ? '+' : ''}${fmt$(r.gap)}</td>
+      <td>${r.hours ? r.hours + ' hrs/wk' : '—'}</td>
+      <td>${r.flags ? `<span class="fc-flag-chip">${r.flags}</span>` : '—'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="9" class="empty-hint">No accounts in this view.</td></tr>';
+}
+
+// Trailing three months, so a quarter reads as three points rather than one.
+function fcRenderTrailing(cos, amFilter) {
+  const el = document.getElementById('fc-trailing-body'); if (!el) return;
+  const months = fcTrailing();
+  document.getElementById('fc-trailing-head').innerHTML =
+    '<tr><th>Month</th><th>Committed MRR adds</th><th>Actual MRR adds</th><th>Committed rev share</th><th>Actual rev share</th><th>Hit rate</th></tr>';
+  let live = cos.filter(c => c.pilot_status === 'In progress' || c.pilot_status === 'Converted');
+  if (amFilter !== 'all') live = live.filter(c => (c.csm || '__none__') === amFilter);
+  el.innerHTML = months.map(m => {
+    const iso = fcIso(m);
+    const pAdds = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'mrr_delta', 'projected') || 0), 0);
+    const aAdds = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'mrr_delta', 'actual') || 0), 0);
+    const pRev = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'rev_share', 'projected') || 0), 0);
+    const aRev = live.reduce((s, c) => s + (fcAmount(c.id, iso, 'rev_share', 'actual') || 0), 0);
+    const hit = pAdds > 0 ? Math.round(aAdds / pAdds * 100) + '%' : '—';
+    const any = pAdds || aAdds || pRev || aRev;
+    return `<tr><td>${fcMonthLabel(m)}</td>
+      <td>${pAdds ? fmt$(pAdds) : '—'}</td><td>${aAdds ? fmt$(aAdds) : '—'}</td>
+      <td>${pRev ? fmt$(pRev) : '—'}</td><td>${aRev ? fmt$(aRev) : '—'}</td>
+      <td>${any ? hit : '<span class="fc-muted">no commitments recorded</span>'}</td></tr>`;
+  }).join('');
+}
+
+// ── settings strip ────────────────────────────────────────────
+function fcRenderSettings() {
+  const t = document.getElementById('fc-set-threshold'); if (t) t.value = fcSettings.hours_flag_ratio ?? FC_DEFAULTS.hours_flag_ratio;
+  const g = document.getElementById('fc-set-target'); if (g) g.value = fcSettings.am_mrr_target ?? FC_DEFAULTS.am_mrr_target;
+  const mode = fcSettings.view_mode || 'monthly';
+  document.querySelectorAll('#fc-view-toggle .prt-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  const cad = fcSettings.cadence || FC_DEFAULTS.cadence;
+  const cm = document.getElementById('fc-set-cadence'); if (cm) cm.value = cad.mode === 'weekly2' ? 'weekly2' : 'dates';
+  const wd = document.getElementById('fc-set-weekday');
+  if (wd) { wd.value = String(cad.weekday ?? 1); wd.style.display = cad.mode === 'weekly2' ? '' : 'none'; }
+  const due = fcNextDue();
+  set('fc-cadence-note', `${fcCadenceLabel()} · next update due ${due ? due.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '—'}`);
+}
+async function fcSetView(btn) {
+  document.querySelectorAll('#fc-view-toggle .prt-seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  try { await fcSaveSetting('view_mode', btn.dataset.mode); } catch (e) { console.warn(e); }
+  refreshActiveTab();
+}
+async function fcSetNumber(input, key) {
+  const n = Number(input.value);
+  if (!Number.isFinite(n) || n < 0) { input.value = fcSettings[key] ?? FC_DEFAULTS[key]; return; }
+  input.disabled = true;
+  try { await fcSaveSetting(key, n); refreshActiveTab(); }
+  catch (e) { alert('Could not save setting: ' + (e.message || e)); }
+  finally { input.disabled = false; }
+}
+async function fcSetCadence() {
+  const mode = document.getElementById('fc-set-cadence').value;
+  const weekday = Number(document.getElementById('fc-set-weekday').value);
+  const next = mode === 'weekly2' ? { mode: 'weekly2', weekday } : { mode: 'dates', dates: [1, 15] };
+  try { await fcSaveSetting('cadence', next); fcRenderSettings(); }
+  catch (e) { alert('Could not save cadence: ' + (e.message || e)); }
+}
+
+// AM-entered hours estimate — per week, not per month, and not tracked/timed.
+function fcHoursInput(c) {
+  const v = fcInputsFor(c.id).hours_per_week;
+  return `<input type="number" min="0" step="0.5" class="fc-num fc-hours" data-cid="${escapeHtml(c.id)}"
+    value="${v === null || v === undefined ? '' : v}" onchange="fcSaveHours(this)" title="AM estimate of hours spent on this account per week">`;
+}
+async function fcSaveHours(input) {
+  const cid = input.dataset.cid;
+  const raw = input.value.trim();
+  const n = raw === '' ? null : Number(raw);
+  if (raw !== '' && (!Number.isFinite(n) || n < 0)) { input.value = fcInputsFor(cid).hours_per_week ?? ''; return; }
+  input.disabled = true;
+  try { await fcSaveInputs(cid, { hours_per_week: n }); refreshActiveTab(); }
+  catch (e) { alert('Could not save hours: ' + (e.message || e)); }
+  finally { input.disabled = false; }
+}
+
+// ── the boards ────────────────────────────────────────────────
+// Two rows per account: MRR adds and rev share, across the same three named
+// months. Identity columns span both rows so the table still reads per account.
+function fcRenderBoard(bodyId, scored, mode) {
+  const body = document.getElementById(bodyId); if (!body) return;
+  const rows = [...scored];
+  const amName = s => displayAM(s.c.csm);
+  rows.sort((a, b) => {
+    const an = amName(a), bn = amName(b);
+    const au = an === 'Unassigned', bu = bn === 'Unassigned';
+    if (au !== bu) return au ? 1 : -1;
+    const am = an.toLowerCase().localeCompare(bn.toLowerCase()); if (am) return am;
+    if (mode === 'renew') {
+      const la = fcDaysLate((fcBilling(a.c) || {}).overdue_since), lb = fcDaysLate((fcBilling(b.c) || {}).overdue_since);
+      if ((la !== null) !== (lb !== null)) return la !== null ? -1 : 1;
+      if (la !== null && lb !== null && la !== lb) return lb - la;
+      const na = (fcBilling(a.c) || {}).next_invoice_date, nb = (fcBilling(b.c) || {}).next_invoice_date;
+      if (!na && !nb) return 0; if (!na) return 1; if (!nb) return -1;
+      return new Date(na) - new Date(nb);
+    }
+    return b.score - a.score;
+  });
+  const periods = fcPeriods();
+  const cols = 15;
+  const html = rows.map(s => {
+    const c = s.c;
+    const flag = fcHoursFlag(c);
+    const rowCls = [mode === 'renew' && fcIsOverdue(c) ? 'fc-overdue-row' : '', flag ? 'fc-hours-flag-row' : ''].filter(Boolean).join(' ');
+    const span = ' rowspan="2"';
+    const mid = mode === 'conv'
+      ? (() => {
+          const day = fcPilotDay(c); const dayCell = day === null ? '<span class="fc-muted">—</span>' : (day + ' / 90');
+          const ttvN = calcTTV(c.kickoff_date, c.first_post_date);
+          const ttv = ttvN === null ? '—' : (ttvN + 'd');
+          const ttvStyle = ttvN === null ? '' : (ttvN > FC.ttvThreshold ? 'color:var(--amber)' : 'color:var(--teal)');
+          return `<td${span}>${dayCell}</td><td${span} style="${ttvStyle}">${ttv}</td>`;
+        })()
+      : `<td${span}>${fcInvoiceDateCell(c)}</td><td${span}>${fcInvoiceAmtCell(c)}</td>`;
+    const flagMark = flag
+      ? `<span class="fc-flag-chip" title="${fmt$(c.mrr || 0)} MRR against ${flag.hrs} hrs/wk is ${fmt$(flag.ratio)} per weekly hour, below the ${fmt$(flag.limit)} threshold — and no MRR adds are projected next month">⚑</span>`
+      : '';
+    const head = `<td${span} class="fc-name-cell" data-cid="${escapeHtml(c.id)}"
+        onmouseenter="fcNameHover(event,this)" onmousemove="posTip(event)" onmouseleave="hideTip()">${escapeHtml(c.name)}</td>
+      <td${span}>${displayAM(c.csm)}</td><td${span}>${fcTypeChip(c)}</td>${mid}
+      <td${span}>${healthChip(c.account_health, { cid: c.id })}</td>
+      <td${span}>${fcNumInput(c, 'pc')}</td><td${span}>${fcNumInput(c, 'pv')}</td>
+      <td${span} class="fc-hours-cell">${fcHoursInput(c)}${flagMark}</td>
+      <td${span}>${c.mrr ? fmt$(c.mrr) : '—'}</td>`;
+    const tail = `<td${span}>${fcBandChip(s.score, s.reasons)}</td>`;
+    const line = (m, first) =>
+      `<tr class="${rowCls}${first ? ' fc-acct-top' : ''}">${first ? head : ''}
+        <td class="fc-metric-cell" title="${escapeHtml(m.hint)}">${m.label}</td>
+        ${periods.map(p => fcProjCell(c, p, m.key)).join('')}
+        ${first ? tail : ''}</tr>`;
+    return line(FC_METRICS[0], true) + line(FC_METRICS[1], false);
+  }).join('');
+  body.innerHTML = html || `<tr><td colspan="${cols}" class="empty-hint">No ${mode === 'conv' ? 'active pilots' : 'converted customers'}.</td></tr>`;
+  // Month headers are real month names and move forward a month at a time.
+  const pfx = bodyId === 'fc-conv-body' ? 'fc-conv-m' : 'fc-renew-m';
+  periods.forEach((p, i) => { const th = document.getElementById(pfx + i); if (th) th.textContent = fcMonthLabel(p); });
+}
+
 function renderForecastTab(cos){
   window.__forecastCos=cos;
   const amFilter=resolveForecastAmFilter(cos);
+  window.__forecastAm=amFilter;
   const tier=window.__forecastTier||'Full Service';
   const seg=document.getElementById('forecast-product-toggle');
   if(seg) seg.querySelectorAll('.prt-seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.tier===tier));
@@ -3213,6 +3862,11 @@ function renderForecastTab(cos){
   set('fc-renew-note', converted.length+(converted.length===1?' converted customer':' converted customers'));
   fcRenderBoard('fc-conv-body', convScored, 'conv');
   fcRenderBoard('fc-renew-body', renewScored, 'renew');
+  try { fcRenderSettings(); } catch(e){ console.warn('forecast settings render failed', e); }
+  try { fcRenderRollup(cos, amFilter); } catch(e){ console.warn('forecast rollup render failed', e); }
+  try { fcRenderTrailing(cos, amFilter); } catch(e){ console.warn('forecast trailing render failed', e); }
+  ['conv','renew'].forEach(b=>{ const el=document.getElementById('fc-inputs-'+b);
+    if(el && el.style.display!=='none') fcRenderInputsList(b); });
   // Charts need a visible canvas for correct sizing — only draw when the tab is active.
   const tab=document.getElementById('tab-forecasting');
   if(tab && tab.classList.contains('active')) fcRenderCharts(pilots, converted);
@@ -3239,52 +3893,6 @@ function fcRenderTiles(prefix, scored){
   fcBindCard(p+'-arr', ()=>({title:prefix==='conv'?'Likely converting ARR':'Secure renewal ARR', rows:listARR(likely).length?listARR(likely):['None yet']}));
   fcBindCard(p+'-watch', ()=>({title:'Watch', rows:listMRR(watch).length?listMRR(watch):['None']}));
   fcBindCard(p+'-risk', ()=>({title:'At risk', rows:listMRR(risk).length?listMRR(risk):['None']}));
-}
-function fcRenderBoard(bodyId, scored, mode){
-  const body=document.getElementById(bodyId); if(!body) return;
-  const rows=[...scored];
-  // Group by account manager first so an AM finds their accounts together (no
-  // hunting down the list). Within each AM keep the meaningful order — renewal:
-  // overdue first (most days late), then soonest invoice; conversion: highest
-  // likelihood first. Unassigned always sorts last. When the AM filter is set to
-  // a single AM this primary key is a no-op and the original order stands.
-  const amName=s=>displayAM(s.c.csm);
-  rows.sort((a,b)=>{
-    const an=amName(a), bn=amName(b);
-    const au=an==='Unassigned', bu=bn==='Unassigned';
-    if(au!==bu) return au?1:-1;                 // Unassigned always last
-    const am=an.toLowerCase().localeCompare(bn.toLowerCase()); if(am) return am;
-    if(mode==='renew'){
-      const la=fcDaysLate((fcBilling(a.c)||{}).overdue_since), lb=fcDaysLate((fcBilling(b.c)||{}).overdue_since);
-      if((la!==null)!==(lb!==null)) return la!==null?-1:1;
-      if(la!==null&&lb!==null&&la!==lb) return lb-la;
-      const na=(fcBilling(a.c)||{}).next_invoice_date, nb=(fcBilling(b.c)||{}).next_invoice_date;
-      if(!na&&!nb) return 0; if(!na) return 1; if(!nb) return -1;
-      return new Date(na)-new Date(nb);
-    }
-    return b.score-a.score;
-  });
-  const cols=mode==='conv'?12:14;
-  body.innerHTML = rows.map(s=>{
-    const c=s.c;
-    const health=healthChip(c.account_health,{cid:c.id});
-    const band=fcBandChip(s.score,s.reasons);
-    const mrr=c.mrr?fmt$(c.mrr):'—';
-    const cc=fcNumInput(c,'cc'), cv=fcNumInput(c,'cv'), pc=fcNumInput(c,'pc'), pv=fcNumInput(c,'pv');
-    if(mode==='conv'){
-      const day=fcPilotDay(c); const dayCell=day===null?'<span class="fc-muted">—</span>':(day+' / 90');
-      const ttvN=calcTTV(c.kickoff_date,c.first_post_date);
-      const ttv=ttvN===null?'—':(ttvN+'d');
-      const ttvStyle=ttvN===null?'':(ttvN>FC.ttvThreshold?'color:var(--amber)':'color:var(--teal)');
-      return `<tr><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${dayCell}</td><td style="${ttvStyle}">${ttv}</td><td>${health}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
-    }
-    const invCell=fcInvoiceDateCell(c);
-    const amtCell=fcInvoiceAmtCell(c);
-    const expDate=fcExpDateInput(c);
-    const exp=c.expansion_mrr>0?fmt$(c.expansion_mrr):'—';
-    const rowCls=fcIsOverdue(c)?' class="fc-overdue-row"':'';
-    return `<tr${rowCls}><td>${c.name}</td><td>${displayAM(c.csm)}</td><td>${fcTypeChip(c)}</td><td>${invCell}</td><td>${amtCell}</td><td>${expDate}</td><td>${health}</td><td>${exp}</td><td>${cc}</td><td>${cv}</td><td>${pc}</td><td>${pv}</td><td>${mrr}</td><td>${band}</td></tr>`;
-  }).join('') || `<tr><td colspan="${cols}" class="empty-hint">No ${mode==='conv'?'active pilots':'converted customers'}.</td></tr>`;
 }
 function renderPortfolioTable(cos) {
   window.__portfolioCos = cos;
