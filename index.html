@@ -721,8 +721,8 @@ textarea.prt-input{resize:vertical}
       <div class="mcard" id="mc-risk-unscored"><div class="mcard-label">Unscored Book</div><div class="mcard-value ink" id="m-risk-unscored">—</div><div class="mcard-sub" id="m-risk-unscored-sub">No health set — unknown, not safe</div></div>
     </div>
     <div class="chart-card" style="margin-bottom:20px">
-      <div class="chart-card-title">Where the MRR went</div>
-      <div class="chart-card-sub" id="mrr-bridge-sub">Beginning → new → expansion → churn → ending</div>
+      <div class="chart-card-title">How the book changed over the last 12 months</div>
+      <div class="chart-card-sub" id="mrr-bridge-sub">Loading…</div>
       <div class="chart-wrap-lg"><canvas id="mrrBridgeBar"></canvas></div>
       <div class="legend" id="legend-mrr-bridge"></div>
     </div>
@@ -2305,67 +2305,69 @@ function renderHealthWidget(rowsId, summaryId, companies) {
 }
 
 // ── CHART RENDERERS ────────────────────────────────────────────
-// The MRR bridge: beginning → new → expansion → churn → ending. This is the one
-// chart that answers "what happened to the money" in a single read, and it is the
-// shape a CFO already knows. The beginning figure is a real captured baseline (the
-// quarterly bonus snapshot), never a back-computed guess — with no snapshot the
-// chart says so rather than inventing a starting point.
+// Where the MRR went, over a trailing window. Built from account-level dates —
+// kickoff_date for new business, churn_date + churned_mrr_value for losses — so
+// it works from the live HubSpot feed with no captured baseline required.
+//
+// The identity is  Ending = Beginning + New + Expansion − Churn.  HubSpot stores
+// expansion_mrr as a lifetime cumulative figure with no date, so in-window
+// expansion cannot be separated out; solving for Beginning therefore yields
+// Beginning-plus-expansion. The bar is labelled and footnoted as such rather
+// than quietly presented as a clean starting number.
+const MRR_BRIDGE_MONTHS = 12;
 function renderMRRBridge(cos, activeMRR) {
   const el = document.getElementById('mrrBridgeBar');
   if (!el) return;
   const sub = document.getElementById('mrr-bridge-sub');
   const leg = document.getElementById('legend-mrr-bridge');
-  const snaps = (typeof bonusSnapshots === 'object' && bonusSnapshots) || {};
-  const qKey = bonusQLabel(new Date());
-  const snap = snaps[qKey] && snaps[qKey].accounts;
+  const wrap = el.parentElement;
+
+  const today = new Date();
+  const winStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - MRR_BRIDGE_MONTHS, today.getUTCDate()));
+  const inWindow = v => { const d = prtUtcDate(v); return !!d && d >= winStart; };
+  const isLive = c => c.pilot_status === 'In progress' || c.pilot_status === 'Converted';
+
+  const liveList  = cos.filter(isLive);
+  const newList   = liveList.filter(c => inWindow(c.kickoff_date));
+  const churnList = cos.filter(c => !isLive(c) && inWindow(c.churn_date));
+  const undated   = cos.filter(c => !isLive(c) && !c.churn_date && (c.churned_mrr || 0) > 0);
+
+  const ending = sumMRR(liveList);
+  const newMRR = sumMRR(newList);
+  const churn  = churnList.reduce((s, c) => s + (c.churned_mrr || 0), 0);
+  const begin  = ending - newMRR + churn;          // = true beginning + in-window expansion
 
   if (charts['mrrBridgeBar']) charts['mrrBridgeBar'].destroy();
-  if (!snap) {
-    if (sub) sub.textContent = `No ${qKey} baseline captured yet — capture one on the Bonus Calculator tab and this fills in.`;
+  if (!ending && !newMRR && !churn) {
+    if (wrap) wrap.style.display = 'none';
+    if (sub) sub.textContent = 'No active MRR, new business or churn on file for this window.';
     if (leg) leg.innerHTML = '';
-    const ctx = el.getContext('2d');
-    ctx.clearRect(0, 0, el.width, el.height);
     return;
   }
+  if (wrap) wrap.style.display = '';
 
-  // Classify against the baseline: an account absent from it started this quarter.
-  let begin = 0, newMRR = 0, expansion = 0, churn = 0, ending = 0;
-  const newList = [], expList = [], churnList = [];
-  Object.keys(snap).forEach(id => { begin += (snap[id].mrr || 0); });
-  cos.forEach(c => {
-    const b = snap[c.id];
-    const live = c.pilot_status !== 'Exited During Pilot' && c.pilot_status !== 'Churned Post Conversion';
-    if (live) ending += (c.mrr || 0);
-    if (!b) {
-      if (live && (c.mrr || 0) > 0) { newMRR += c.mrr; newList.push({ name: c.name, val: fmt$(c.mrr) + '/mo' }); }
-      return;
-    }
-    if (!live) { const lost = c.churned_mrr || b.mrr || 0; churn += lost; churnList.push({ name: c.name, val: fmt$(lost) + '/mo' }); return; }
-    const d = (c.mrr || 0) - (b.mrr || 0);
-    if (d > 0) { expansion += d; expList.push({ name: c.name, val: '+' + fmt$(d) + '/mo' }); }
-    else if (d < 0) { churn += -d; churnList.push({ name: c.name, val: fmt$(d) + '/mo' }); }
-  });
+  const money = l => [...l].sort((a, b) => (b.mrr || b.churned_mrr || 0) - (a.mrr || a.churned_mrr || 0))
+    .map(c => ({ name: c.name, val: fmt$(c.mrr || c.churned_mrr || 0) + '/mo' }));
 
-  // Floating bars give a true waterfall on one axis — each step spans [from, to].
+  // Floating bars: each step spans [from, to] on one shared axis.
   const steps = [
-    { label: 'Beginning', from: 0, to: begin, colour: '#888780', rows: null },
-    { label: 'New', from: begin, to: begin + newMRR, colour: '#1D9E75', rows: newList },
-    { label: 'Expansion', from: begin + newMRR, to: begin + newMRR + expansion, colour: '#5DCAA5', rows: expList },
-    { label: 'Churn', from: begin + newMRR + expansion, to: begin + newMRR + expansion - churn, colour: '#E24B4A', rows: churnList },
-    { label: 'Ending', from: 0, to: ending, colour: '#378ADD', rows: null }
+    { label: 'Starting book', from: 0, to: begin, colour: '#888780', rows: null, abs: true },
+    { label: 'New business',  from: begin, to: begin + newMRR, colour: '#1D9E75', rows: money(newList) },
+    { label: 'Churn',         from: begin + newMRR, to: begin + newMRR - churn, colour: '#E24B4A', rows: money(churnList) },
+    { label: 'Today',         from: 0, to: ending, colour: '#378ADD', rows: null, abs: true }
   ];
   charts['mrrBridgeBar'] = new Chart(el.getContext('2d'), {
     type: 'bar',
-    data: { labels: steps.map(s2 => s2.label), datasets: [{
-      data: steps.map(s2 => [s2.from, s2.to]),
-      backgroundColor: steps.map(s2 => s2.colour),
+    data: { labels: steps.map(x => x.label), datasets: [{
+      data: steps.map(x => [x.from, x.to]),
+      backgroundColor: steps.map(x => x.colour),
       borderRadius: 4, borderWidth: 2, borderColor: '#fff', meta: steps }] },
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => {
-        const st = ctx.dataset.meta[ctx.dataIndex], delta = st.to - st.from;
-        const head = (st.label === 'Beginning' || st.label === 'Ending')
+        const st = ctx.dataset.meta[ctx.dataIndex], d = st.to - st.from;
+        const head = st.abs
           ? ` ${st.label}: ${fmtBig$(st.to)}/mo · ${fmtBig$(st.to * 12)} ARR`
-          : ` ${st.label}: ${delta >= 0 ? '+' : ''}${fmtBig$(delta)}/mo · ${delta >= 0 ? '+' : ''}${fmtBig$(delta * 12)} ARR`;
+          : ` ${st.label}: ${d >= 0 ? '+' : ''}${fmtBig$(d)}/mo · ${d >= 0 ? '+' : ''}${fmtBig$(d * 12)} ARR · ${st.rows.length} account${st.rows.length === 1 ? '' : 's'}`;
         return [head, ...buildLines(st.rows || [])];
       } } } },
       scales: { x: { ticks: { font: { size: 10 } }, grid: { display: false } },
@@ -2373,11 +2375,18 @@ function renderMRRBridge(cos, activeMRR) {
   });
 
   const net = ending - begin;
-  if (sub) sub.textContent = `Since the ${qKey} baseline${snaps[qKey].captured_at ? ' captured ' + new Date(snaps[qKey].captured_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''} · net ${net >= 0 ? '+' : ''}${fmtBig$(net)}/mo (${net >= 0 ? '+' : ''}${fmtBig$(net * 12)} ARR)`;
-  if (leg) leg.innerHTML = [
-    ['Beginning', begin, '#888780'], ['New', newMRR, '#1D9E75'],
-    ['Expansion', expansion, '#5DCAA5'], ['Churn', -churn, '#E24B4A'], ['Ending', ending, '#378ADD']
-  ].map(([l, v, c]) => `<span class="legend-item"><span class="legend-dot" style="background:${c}"></span>${l}: ${v < 0 ? '−' : ''}${fmtBig$(Math.abs(v))}/mo</span>`).join('');
+  const fmtDay = d => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  if (sub) sub.textContent = `${fmtDay(winStart)} → today · won ${fmtBig$(newMRR)}/mo, lost ${fmtBig$(churn)}/mo, net ${net >= 0 ? '+' : '−'}${fmtBig$(Math.abs(net))}/mo (${net >= 0 ? '+' : '−'}${fmtBig$(Math.abs(net) * 12)} ARR)`;
+  if (leg) {
+    const note = undated.length
+      ? ` · ${undated.length} churned account${undated.length === 1 ? '' : 's'} excluded for having no churn date`
+      : '';
+    leg.innerHTML = [
+      ['Starting book', begin, '#888780'], ['New business', newMRR, '#1D9E75'],
+      ['Churn', -churn, '#E24B4A'], ['Today', ending, '#378ADD']
+    ].map(([l, v, c]) => `<span class="legend-item"><span class="legend-dot" style="background:${c}"></span>${l}: ${v < 0 ? '−' : ''}${fmtBig$(Math.abs(v))}/mo</span>`).join('')
+      + `<span class="legend-item" style="color:var(--ink3)">Starting book is worked back from today, so it also carries any expansion since — HubSpot does not date expansion${note}.</span>`;
+  }
 }
 
 // Health, priced. Counts say "six accounts are Red"; this says how much money
@@ -4683,15 +4692,6 @@ async function bonusRefreshSnapshots(){
     const ft=document.getElementById('tab-forecasting');
     if(ft && ft.classList.contains('active') && typeof renderForecastTab==='function') renderForecastTab(window.__forecastCos||[]);
   } catch(e){ /* forecasting refresh is best-effort */ }
-  // The MRR bridge needs a baseline, which only exists once this resolves. Redraw
-  // that one chart — calling recompute() would recurse, since it kicks this off.
-  try {
-    if(typeof managedSet==='function' && (allCompanies||[]).length){
-      const cos=managedSet();
-      const live=cos.filter(c=>c.pilot_status==='In progress'||c.pilot_status==='Converted');
-      renderMRRBridge(cos, sumMRR(live));
-    }
-  } catch(e){ /* bridge refresh is best-effort */ }
 }
 function bonusRenderSnapStatus(){
   const el=document.getElementById('bonus-snap-status'); if(!el) return;
