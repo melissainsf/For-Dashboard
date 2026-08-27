@@ -692,7 +692,7 @@ textarea.prt-input{resize:vertical}
   <div id="tab-portfolio" class="tab-content">
     <div class="section-header" style="margin-top:4px">
       <span class="section-title">Revenue health</span>
-      <span class="section-note">Whole portfolio · active + churned</span>
+      <span class="section-note">Whole portfolio · active + churned · Full Service and EGC combined</span>
     </div>
     <div class="metric-grid-4" style="margin-bottom:20px">
       <div class="mcard" id="mc-port-grr"><div class="mcard-label">Gross Revenue Retention</div><div class="mcard-value blue" id="m-port-grr">—</div></div>
@@ -702,7 +702,7 @@ textarea.prt-input{resize:vertical}
     </div>
     <div class="section-header">
       <span class="section-title">Portfolio size</span>
-      <span class="section-note">Active customers (in progress + converted)</span>
+      <span class="section-note">Active customers (in progress + converted) · Full Service and EGC combined</span>
     </div>
     <div class="metric-grid-4" style="margin-bottom:20px">
       <div class="mcard" id="mc-port-active"><div class="mcard-label">Total Active Customers</div><div class="mcard-value ink" id="m-port-active">—</div></div>
@@ -712,7 +712,7 @@ textarea.prt-input{resize:vertical}
     </div>
     <div class="section-header">
       <span class="section-title">Revenue at risk</span>
-      <span class="section-note">The active book priced by account health — Red + Yellow is the exposure</span>
+      <span class="section-note">The whole active book priced by account health — Red + Yellow is the exposure</span>
     </div>
     <div class="metric-grid-4" style="margin-bottom:20px">
       <div class="mcard" id="mc-risk-mrr"><div class="mcard-label">MRR at Risk</div><div class="mcard-value coral" id="m-risk-mrr">—</div><div class="mcard-sub" id="m-risk-mrr-sub">Red + Yellow</div></div>
@@ -721,7 +721,7 @@ textarea.prt-input{resize:vertical}
       <div class="mcard" id="mc-risk-unscored"><div class="mcard-label">Unscored Book</div><div class="mcard-value ink" id="m-risk-unscored">—</div><div class="mcard-sub" id="m-risk-unscored-sub">No health set — unknown, not safe</div></div>
     </div>
     <div class="chart-card" style="margin-bottom:20px">
-      <div class="chart-card-title">How the book changed this fiscal year</div>
+      <div class="chart-card-title">How the whole book changed this fiscal year</div>
       <div class="chart-card-sub" id="mrr-bridge-sub">Loading…</div>
       <div class="chart-wrap-lg"><canvas id="mrrBridgeBar"></canvas></div>
       <div class="legend" id="legend-mrr-bridge"></div>
@@ -2139,6 +2139,13 @@ function recompute() {
   const active=[...inProgress,...converted];
   const everConv=[...converted,...churnedPost];
 
+  // The Whole Portfolio tab speaks for the whole company, EGC included — EGC is
+  // segregated only in that tab's roster lists, which build their own sets. Every
+  // other tab keeps the Full Service view (managedSet) it was designed around, so
+  // EGC never lands in the pilot funnel, the NRR cohort or an AM's book.
+  const pcos = workingSet();
+  const pActive = pcos.filter(c => c.pilot_status==='In progress' || c.pilot_status==='Converted');
+
   const pilotRetention=concluded.length?pilotConv.length/concluded.length*100:0;
   const pilotChurn=100-pilotRetention;
   const pilotMRR=inProgress.reduce((s,c)=>s+c.mrr,0);
@@ -2151,16 +2158,16 @@ function recompute() {
   const postChurnRate=everConv.length?churnedPost.length/everConv.length*100:0;
   const postRetentionRate=100-postChurnRate;
   const convertedMRR=converted.reduce((s,c)=>s+c.mrr,0);
-  const allMRR=cos.reduce((s,c)=>s+c.mrr,0);
-  const allExpansion=cos.reduce((s,c)=>s+c.expansion_mrr,0);
-  const allChurned=cos.reduce((s,c)=>s+c.churned_mrr,0);
+  const allMRR=pcos.reduce((s,c)=>s+c.mrr,0);
+  const allExpansion=pcos.reduce((s,c)=>s+c.expansion_mrr,0);
+  const allChurned=pcos.reduce((s,c)=>s+c.churned_mrr,0);
   const portGRR=allMRR?(allMRR-allChurned)/allMRR*100:0;
   const portNRR=allMRR?(allMRR+allExpansion-allChurned)/allMRR*100:0;
-  const portRetention=cos.length?active.length/cos.length*100:0;
+  const portRetention=pcos.length?pActive.length/pcos.length*100:0;
   const portChurn=100-portRetention;
-  const activeMRR=active.reduce((s,c)=>s+c.mrr,0);   // mrr already includes expansion
+  const activeMRR=pActive.reduce((s,c)=>s+c.mrr,0);  // whole book; mrr already includes expansion
   const activeARR=activeMRR*12;
-  const ttvDays=cos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>calcTTV(c.kickoff_date,c.first_post_date)).filter(d=>d!==null&&d>=0);
+  const ttvDays=pcos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>calcTTV(c.kickoff_date,c.first_post_date)).filter(d=>d!==null&&d>=0);
   const avgTTV=ttvDays.length?Math.round(ttvDays.reduce((a,b)=>a+b,0)/ttvDays.length):null;
 
   set('m-pilot-retention',pilotRetention.toFixed(1)+'%');
@@ -2187,14 +2194,14 @@ function recompute() {
   set('m-port-nrr',portNRR.toFixed(1)+'%');
   set('m-port-retention',portRetention.toFixed(1)+'%');
   set('m-port-churn',portChurn.toFixed(1)+'%');
-  set('m-port-active',active.length);
+  set('m-port-active',pActive.length);
   set('m-port-mrr',fmtBig$(activeMRR));
   set('m-port-arr',fmtBig$(activeARR));
   set('m-port-ttv',avgTTV!==null?avgTTV+' days':'—');
   set('m-port-ttv-sub',avgTTV!==null?`Based on ${ttvDays.length} customers`:'Kickoff to first post');
 
-  renderRevenueAtRisk(active, activeMRR);
-  renderMRRBridge(cos, activeMRR);
+  renderRevenueAtRisk(pActive, activeMRR);
+  renderMRRBridge(pcos, activeMRR);
 
   bindCard('mc-pilot-retention',()=>({title:'Converted (incl. post-conv churned)',rows:pilotConv.map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
   bindCard('mc-pilot-churn',()=>({title:'Exited during pilot',rows:exited.map(c=>({name:c.name,val:c.churn_reason||'—'}))}));
@@ -2209,10 +2216,11 @@ function recompute() {
   bindCard('mc-nrr',()=>({title:'NRR inputs',rows:[{name:'Starting MRR',val:fmt$(startingMRR)},{name:'Expansion MRR',val:fmt$(expansionMRR)},{name:'Churned MRR',val:fmt$(churnedMRR)},'---',{name:'NRR',val:nrr.toFixed(1)+'%'}]}));
   bindCard('mc-port-grr',()=>({title:'Portfolio GRR',rows:[{name:'Total MRR',val:fmt$(allMRR)},{name:'Churned MRR',val:fmt$(allChurned)},'---',{name:'GRR',val:portGRR.toFixed(1)+'%'}]}));
   bindCard('mc-port-nrr',()=>({title:'Portfolio NRR',rows:[{name:'Total MRR',val:fmt$(allMRR)},{name:'Expansion',val:fmt$(allExpansion)},{name:'Churned',val:fmt$(allChurned)},'---',{name:'NRR',val:portNRR.toFixed(1)+'%'}]}));
-  bindCard('mc-port-active',()=>({title:'Active customers',rows:active.map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
-  bindCard('mc-port-mrr',()=>({title:'Active MRR',rows:[...active].sort((a,b)=>b.mrr-a.mrr).map(c=>({name:c.name,val:fmt$(c.mrr)}))}));
+  const tierTag=c=>tierOf(c)==='EGC'?' · EGC':'';
+  bindCard('mc-port-active',()=>({title:'Active customers · whole portfolio',rows:[...pActive].sort((a,b)=>b.mrr-a.mrr).map(c=>({name:c.name,val:fmt$(c.mrr)+tierTag(c)}))}));
+  bindCard('mc-port-mrr',()=>({title:'Active MRR · whole portfolio',rows:[...pActive].sort((a,b)=>b.mrr-a.mrr).map(c=>({name:c.name,val:fmt$(c.mrr)+tierTag(c)}))}));
   bindCard('mc-port-ttv',()=>{
-    const rows=cos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>({name:c.name,val:calcTTV(c.kickoff_date,c.first_post_date)+'d'})).sort((a,b)=>parseInt(a.val)-parseInt(b.val));
+    const rows=pcos.filter(c=>c.kickoff_date&&c.first_post_date).map(c=>({name:c.name,val:calcTTV(c.kickoff_date,c.first_post_date)+'d'})).sort((a,b)=>parseInt(a.val)-parseInt(b.val));
     return {title:'TTV by customer',rows};
   });
 
@@ -2265,19 +2273,19 @@ function recompute() {
 
   // Portfolio tab charts
   const vertMap={},vertNames={};
-  active.forEach(c=>{ const v=c.vertical||'Unknown'; vertMap[v]=(vertMap[v]||0)+1; if(!vertNames[v]) vertNames[v]=[]; vertNames[v].push({name:c.name,val:fmt$(c.mrr)}); });
+  pActive.forEach(c=>{ const v=c.vertical||'Unknown'; vertMap[v]=(vertMap[v]||0)+1; if(!vertNames[v]) vertNames[v]=[]; vertNames[v].push({name:c.name,val:fmt$(c.mrr)}); });
   const vLabels=Object.keys(vertMap).sort((a,b)=>vertMap[b]-vertMap[a]);
-  const vertMRR={}; active.forEach(c=>{ const v=c.vertical||'Unknown'; vertMRR[v]=(vertMRR[v]||0)+(c.mrr||0); });
+  const vertMRR={}; pActive.forEach(c=>{ const v=c.vertical||'Unknown'; vertMRR[v]=(vertMRR[v]||0)+(c.mrr||0); });
   renderPie('verticalPie',vLabels.map(v=>vertMap[v]),vLabels,STAGE_COLORS.slice(0,vLabels.length),'legend-vertical',vLabels.map(v=>vertNames[v]),
     vLabels.map(v=>`${vertMap[v]} · ${fmtBig$(vertMRR[v])}/mo`));
   const stMap={},stNames={};
-  active.forEach(c=>{ stMap[c.stage]=(stMap[c.stage]||0)+1; if(!stNames[c.stage]) stNames[c.stage]=[]; stNames[c.stage].push({name:c.name,val:fmt$(c.mrr)}); });
+  pActive.forEach(c=>{ stMap[c.stage]=(stMap[c.stage]||0)+1; if(!stNames[c.stage]) stNames[c.stage]=[]; stNames[c.stage].push({name:c.name,val:fmt$(c.mrr)}); });
   const stLabels=Object.keys(stMap).sort((a,b)=>stMap[b]-stMap[a]);
-  const stMRR={}; active.forEach(c=>{ stMRR[c.stage]=(stMRR[c.stage]||0)+(c.mrr||0); });
+  const stMRR={}; pActive.forEach(c=>{ stMRR[c.stage]=(stMRR[c.stage]||0)+(c.mrr||0); });
   renderPie('stagePie',stLabels.map(s=>stMap[s]),stLabels,STAGE_COLORS.slice(0,stLabels.length),'legend-stage',stLabels.map(s=>stNames[s]),
     stLabels.map(s=>`${stMap[s]} · ${fmtBig$(stMRR[s])}/mo`));
   const journeyMap={};
-  active.forEach(c=>{ const j=c.customer_journey||'Unknown'; if(!journeyMap[j]) journeyMap[j]=[]; journeyMap[j].push({name:c.name,val:fmt$(c.mrr)}); });
+  pActive.forEach(c=>{ const j=c.customer_journey||'Unknown'; if(!journeyMap[j]) journeyMap[j]=[]; journeyMap[j].push({name:c.name,val:fmt$(c.mrr)}); });
   const jLabels=[...JOURNEY_ORDER.filter(j=>journeyMap[j]),...Object.keys(journeyMap).filter(j=>!JOURNEY_ORDER.includes(j))];
   renderBar('journeyBar',jLabels,jLabels.map(j=>(journeyMap[j]||[]).length),'#7F77DD',jLabels.map(j=>journeyMap[j]||[]));
 
