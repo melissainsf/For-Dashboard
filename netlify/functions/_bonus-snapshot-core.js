@@ -44,8 +44,16 @@ async function fetchAccounts(token) {
   if (!res.ok) throw new Error('HubSpot search failed: ' + res.status);
   const data = await res.json();
   const out = {};
+  // The two filter groups above are OR'd, so an account matches on pilot_status
+  // alone — including a deal that reached "In progress" and then never closed,
+  // which still carries an MRR figure while sitting at lifecyclestage
+  // "opportunity". Those are not customers and must not enter an AM's baseline
+  // book. Gate on lifecyclestage here, matching isAccountStage in the dashboard.
+  const CHURNED_STAGE = '1271359806';
   (data.results || []).forEach(r => {
     const p = r.properties || {};
+    const ls = p.lifecyclestage || '';
+    if (ls !== 'customer' && ls !== CHURNED_STAGE) return;
     out[r.id] = {
       name: p.name || p.domain || r.id,
       csm: p.csm || null,
