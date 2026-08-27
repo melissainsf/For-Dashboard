@@ -1278,7 +1278,7 @@ textarea.prt-input{resize:vertical}
     <div class="section-header">
       <span class="section-title">Renewals — Ranked by Date</span>
       <span class="info-icon" onmouseenter="showInfo(event,'renewBoard')" onmousemove="posTip(event)" onmouseleave="hideTip()">i</span>
-      <span class="section-note" id="fc-renew-note"></span>
+      <span class="section-note" id="fc-renew-note"></span><span class="section-note" id="fc-billing-age"></span>
     </div>
         <div class="fc-inputs-bar">
       <button type="button" class="fc-burger" onclick="fcToggleInputs('renew')" title="Per-account inputs: ACV, the client's own close rate, notes">☰ Inputs</button>
@@ -1891,6 +1891,9 @@ let dealsById = {};
 // NAME: { [name]: { next_invoice_date, amount, overdue_since, overdue_amount } }.
 // Served by /api/billing (live blob or bundled snapshot). See _cs-billing.js.
 let billingByName = {};
+// Where the billing numbers came from and when — surfaced on the renewal board so
+// a stalled Measure sync is visible rather than silently serving old figures.
+let billingMeta = { source: null, generated_at: null };
 // AM-entered "Target Expansion Close Date", keyed by HubSpot company id:
 // { [id]: "YYYY-MM-DD" }. Served by /api/forecast-expansion.
 let expansionById = {};
@@ -1982,7 +1985,7 @@ async function signInWithGoogle() {
 async function signOut() {
   await sb.auth.signOut();
   showAuthScreen(true);
-  allCompanies = []; healthById = {}; dealsById = {}; billingByName = {}; expansionById = {};
+  allCompanies = []; healthById = {}; dealsById = {}; billingByName = {}; billingMeta = { source: null, generated_at: null }; expansionById = {};
 }
 
 // ── TOOLTIP ────────────────────────────────────────────────────
@@ -2219,7 +2222,9 @@ async function loadData() {
     // Billing signals from Measure (renewal board): next invoice, amount, overdue.
     billingByName={};
     try {
-      if(billingRes&&billingRes.ok){ const bl=await billingRes.json(); Object.assign(billingByName, bl.accounts||{}); }
+      if(billingRes&&billingRes.ok){ const bl=await billingRes.json();
+        Object.assign(billingByName, bl.accounts||{});
+        billingMeta={ source: bl.source||null, generated_at: bl.generated_at||null }; }
     } catch(e){ console.warn('billing load failed', e); }
     // AM-entered Target Expansion Close Dates (renewal board).
     expansionById={};
@@ -3763,6 +3768,23 @@ async function fcSetCadence() {
   catch (e) { alert('Could not save cadence: ' + (e.message || e)); }
 }
 
+// Next invoice date and Invoice amt come from Measure through /api/billing, which
+// serves a live sync when one has run and otherwise falls back to a snapshot
+// committed in the repo. Say which, and how old — a silently stale billing column
+// is worse than an obviously stale one.
+function fcRenderBillingAge() {
+  const el = document.getElementById('fc-billing-age'); if (!el) return;
+  const meta = (typeof billingMeta === 'object' && billingMeta) || {};
+  if (!meta.generated_at) { el.textContent = ''; return; }
+  const when = new Date(meta.generated_at);
+  const days = Math.floor((Date.now() - when.getTime()) / 86400000);
+  const stamp = when.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const live = meta.source === 'measure';
+  const stale = days >= 2;
+  el.textContent = ` · billing ${live ? 'from Measure' : 'from the committed snapshot'}, ${days <= 0 ? 'today' : days + (days === 1 ? ' day old' : ' days old')} (${stamp})${!live || stale ? ' — the hourly Measure sync is not landing' : ''}`;
+  el.style.color = (!live || stale) ? 'var(--coral)' : '';
+}
+
 // AM-entered hours estimate — per week, not per month, and not tracked/timed.
 function fcHoursInput(c) {
   const v = fcInputsFor(c.id).hours_per_week;
@@ -3865,6 +3887,7 @@ function renderForecastTab(cos){
   fcRenderTiles('renew', renewScored);
   set('fc-conv-note', pilots.length+(pilots.length===1?' active pilot':' active pilots'));
   set('fc-renew-note', converted.length+(converted.length===1?' converted customer':' converted customers'));
+  try { fcRenderBillingAge(); } catch(e){ console.warn('billing age render failed', e); }
   fcRenderBoard('fc-conv-body', convScored, 'conv');
   fcRenderBoard('fc-renew-body', renewScored, 'renew');
   try { fcRenderSettings(); } catch(e){ console.warn('forecast settings render failed', e); }

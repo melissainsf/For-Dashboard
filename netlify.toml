@@ -1,3 +1,26 @@
+# Scheduled functions.
+#
+# These three declare `exports.config = { schedule }` in their own source, but
+# that is only read by Netlify's function BUNDLER. This site deploys by direct
+# API upload of pre-bundled functions (deploy_source: "api"), so the bundler
+# never runs and the declarations were never seen — every deploy reported
+# function_schedules: [] and none of the jobs had fired since they were written.
+# netlify.toml is read on every deploy (its redirects process fine), so the
+# schedules belong here.
+#
+# Consequences of them not running: the Forecasting renewal board served the
+# committed billing snapshot instead of live Measure data, Response Times went
+# stale, and no quarterly bonus baseline was ever captured.
+
+[functions."compute-billing"]
+  schedule = "23 * * * *"
+
+[functions."compute-response-times"]
+  schedule = "17 * * * *"
+
+[functions."capture-bonus-snapshot"]
+  schedule = "5 0 1 1,4,7,10 *"
+
 [[redirects]]
   from = "/api/hubspot"
   to = "/.netlify/functions/hubspot"
