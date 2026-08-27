@@ -440,6 +440,12 @@ tbody td:first-child{font-weight:500}
 .fc-gap-ok{color:var(--teal)}
 .fc-gap-short{color:var(--coral)}
 .fc-ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+/* Modal fields fill the dialog. Never reuse .fc-num here — it is 54px, sized for
+   a table cell, which squeezed the plan note down to a few characters wide. */
+.fc-field{width:100%;box-sizing:border-box;font-family:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;text-align:left}
+.fc-field:focus{outline:none;border-color:var(--teal)}
+textarea.fc-field{resize:vertical;min-height:64px;line-height:1.5}
+.fc-select{font-family:inherit;font-size:11px;color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 5px}
 .fc-ed-grid label,.fc-ed-note-label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--ink2)}
 .fc-ed-note-label{margin-bottom:12px}
 .fc-ed-err{color:var(--red);font-size:11px;min-height:14px;margin-bottom:8px}
@@ -1079,11 +1085,11 @@ textarea.prt-input{resize:vertical}
                onchange="fcSetNumber(this,'am_mrr_target')" title="Per-AM MRR target the book is measured against">
       </label>
       <label class="fc-set-field">Update cadence
-        <select id="fc-set-cadence" class="fc-num" onchange="fcSetCadence()">
+        <select id="fc-set-cadence" class="fc-select" onchange="fcSetCadence()">
           <option value="dates">1st and 15th</option>
           <option value="weekly2">Every two weeks on…</option>
         </select>
-        <select id="fc-set-weekday" class="fc-num" onchange="fcSetCadence()" style="display:none">
+        <select id="fc-set-weekday" class="fc-select" onchange="fcSetCadence()" style="display:none">
           <option value="1">Monday</option><option value="5">Friday</option>
         </select>
       </label>
@@ -1486,18 +1492,18 @@ textarea.prt-input{resize:vertical}
       <div style="padding:18px 22px">
         <div class="fc-muted" id="fc-ed-hint" style="margin-bottom:12px"></div>
         <div class="fc-ed-grid">
-          <label>Projected<input type="number" step="100" id="fc-ed-proj" class="fc-num"></label>
-          <label>Actual<input type="number" step="100" id="fc-ed-act" class="fc-num"></label>
+          <label>Projected<input type="number" step="100" id="fc-ed-proj" class="fc-field"></label>
+          <label>Actual<input type="number" step="100" id="fc-ed-act" class="fc-field"></label>
         </div>
         <label class="fc-ed-note-label">Plan note — what must be true to hit this
-          <textarea id="fc-ed-note" rows="3" class="fc-num" placeholder="Required if the projection is negative"></textarea></label>
+          <textarea id="fc-ed-note" rows="3" class="fc-field" placeholder="Required if the projection is negative"></textarea></label>
         <div id="fc-ed-err" class="fc-ed-err"></div>
         <div class="fc-ed-hhead">Version history</div>
         <div id="fc-ed-history" class="fc-ed-history"></div>
       </div>
       <div class="prt-modal-foot">
-        <button class="prt-btn" onclick="fcCloseProjEditor()">Cancel</button>
-        <button class="prt-btn primary" id="fc-ed-save" onclick="fcSaveProjEditor()">Save</button>
+        <button class="prt-btn-ghost" onclick="fcCloseProjEditor()">Cancel</button>
+        <button class="prt-btn-primary" id="fc-ed-save" onclick="fcSaveProjEditor()">Save</button>
       </div>
     </div>
   </div>
@@ -1510,19 +1516,19 @@ textarea.prt-input{resize:vertical}
       <div style="padding:18px 22px">
         <div class="fc-muted" id="fc-ap-sub" style="margin-bottom:14px"></div>
         <div class="fc-ed-grid">
-          <label>ACV<input type="number" min="0" step="500" id="fc-ap-acv" class="fc-num"></label>
-          <label>Est. hours / week<input type="number" min="0" step="0.5" id="fc-ap-hours" class="fc-num"></label>
+          <label>ACV<input type="number" min="0" step="500" id="fc-ap-acv" class="fc-field"></label>
+          <label>Est. hours / week<input type="number" min="0" step="0.5" id="fc-ap-hours" class="fc-field"></label>
         </div>
         <label class="fc-ed-note-label">Client&rsquo;s own close rate (%) — what they closed <em>before</em> Virio drove pipeline, not Virio&rsquo;s close rate since
-          <input type="number" min="0" max="100" step="1" id="fc-ap-close" class="fc-num"></label>
+          <input type="number" min="0" max="100" step="1" id="fc-ap-close" class="fc-field"></label>
         <label class="fc-ed-note-label">Notes — how the expansion plan gets hit, or why this account may churn
-          <textarea id="fc-ap-notes" rows="4" class="fc-num"></textarea></label>
+          <textarea id="fc-ap-notes" rows="4" class="fc-field"></textarea></label>
         <div class="fc-ap-derived" id="fc-ap-derived"></div>
         <div id="fc-ap-err" class="fc-ed-err"></div>
       </div>
       <div class="prt-modal-foot">
-        <button class="prt-btn" onclick="fcCloseAccountPanel()">Cancel</button>
-        <button class="prt-btn primary" id="fc-ap-save" onclick="fcSaveAccountPanel()">Save</button>
+        <button class="prt-btn-ghost" onclick="fcCloseAccountPanel()">Cancel</button>
+        <button class="prt-btn-primary" id="fc-ap-save" onclick="fcSaveAccountPanel()">Save</button>
       </div>
     </div>
   </div>
