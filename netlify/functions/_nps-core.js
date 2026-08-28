@@ -213,13 +213,13 @@ function emailHtml(row) {
   return `<!doctype html><html><body style="margin:0;padding:0;background:#ffffff">
 <div style="max-width:520px;margin:0 auto;padding:24px 20px;font:15px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#141414">
 <p style="margin:0 0 14px">${hi}</p>
-<p style="margin:0 0 14px">Eric here from Virio. One question, one click — it genuinely shapes what we build and fix next.</p>
+<p style="margin:0 0 14px">Eric here, CEO and Co-Founder at Virio. One quick question for you, really appreciate your help:</p>
 <p style="margin:0 0 12px"><strong>How likely are you to recommend Virio to a friend or colleague?</strong></p>
 ${scoreRow(row.token)}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:407px;margin:6px 0 18px">
 <tr><td style="font:12px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#8a8f98">Not likely</td>
 <td align="right" style="font:12px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#8a8f98">Extremely likely</td></tr></table>
-<p style="margin:0 0 14px">If anything is off, reply to this email and it comes straight to me.</p>
+<p style="margin:0 0 14px">If there&rsquo;s anything we can improve on, or if you have any additional feedback to share, just reply to this email and it comes straight to me.</p>
 <p style="margin:0">Thanks,<br>Eric</p>
 </div></body></html>`;
 }
@@ -229,13 +229,13 @@ function emailText(row) {
   const base = publicBase();
   return `${first ? `Hi ${first},` : 'Hi,'}
 
-Eric here from Virio. One question, one click — it genuinely shapes what we build and fix next.
+Eric here, CEO and Co-Founder at Virio. One quick question for you, really appreciate your help:
 
 How likely are you to recommend Virio to a friend or colleague? (0 = not likely, 10 = extremely likely)
 
 ${Array.from({ length: 11 }, (_, n) => `${n}: ${base}/api/nps-respond?t=${row.token}&s=${n}`).join('\n')}
 
-If anything is off, reply to this email and it comes straight to me.
+If there's anything we can improve on, or if you have any additional feedback to share, just reply to this email and it comes straight to me.
 
 Thanks,
 Eric`;

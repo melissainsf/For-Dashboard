@@ -70,7 +70,7 @@ function commentForm(token, score, existing) {
     ? "What's working best? It helps us do more of it."
     : score >= 7
       ? 'What would take us from here to a 9 or 10?'
-      : "What's gone wrong? We would rather hear it plainly.";
+      : "What's gone wrong? Your feedback helps us improve.";
   return `<p class="lede">You scored us <strong>${score}</strong>. One more, if you have ten seconds:</p>
 <p class="q">${escapeHtml(prompt)}</p>
 <form method="POST" action="/api/nps-respond">
