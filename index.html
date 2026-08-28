@@ -628,6 +628,7 @@ textarea.prt-input{resize:vertical}
   <button class="tab-btn" onclick="switchTab(event,'forecasting')">Forecasting</button>
   <button class="tab-btn" onclick="switchTab(event,'requests')">Product Request Tracker</button>
   <button class="tab-btn" onclick="switchTab(event,'responses')">Response Times</button>
+  <button class="tab-btn" onclick="switchTab(event,'nps')">NPS</button>
   <button class="tab-btn" onclick="switchTab(event,'bonus')">Bonus Calculator</button>
 </div>
 
@@ -1494,6 +1495,125 @@ textarea.prt-input{resize:vertical}
     <div class="rt-note" id="rt-note"></div>
   </div>
 
+  <div id="tab-nps" class="tab-content">
+    <div class="prt-toolbar" style="margin-top:4px">
+      <div class="prt-seg" id="nps-product-filter">
+        <button class="prt-seg-btn active" data-product="all">All</button>
+        <button class="prt-seg-btn" data-product="Full Service">Full Service</button>
+        <button class="prt-seg-btn" data-product="EGC">EGC</button>
+      </div>
+      <div class="prt-seg" id="nps-window-filter">
+        <button class="prt-seg-btn" data-months="3">3 mo</button>
+        <button class="prt-seg-btn active" data-months="6">6 mo</button>
+        <button class="prt-seg-btn" data-months="12">12 mo</button>
+        <button class="prt-seg-btn" data-months="0">All time</button>
+      </div>
+      <div class="prt-toolbar-spacer"></div>
+      <span class="rt-note" id="nps-updated" style="margin-top:0"></span>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Score</span>
+      <span class="section-note" id="nps-scope-note">Promoters (9–10) minus detractors (0–6), as a percentage of everyone who answered</span>
+    </div>
+    <div class="metric-grid-4" style="margin-bottom:20px">
+      <div class="mcard" id="mc-nps-score"><div class="mcard-label">NPS</div><div class="mcard-value teal" id="m-nps-score">—</div><div class="mcard-sub" id="m-nps-score-sub">No responses yet</div></div>
+      <div class="mcard" id="mc-nps-responses"><div class="mcard-label">Responses</div><div class="mcard-value ink" id="m-nps-responses">—</div><div class="mcard-sub" id="m-nps-responses-sub">Scores recorded</div></div>
+      <div class="mcard" id="mc-nps-rate"><div class="mcard-label">Response Rate</div><div class="mcard-value blue" id="m-nps-rate">—</div><div class="mcard-sub" id="m-nps-rate-sub">Of surveys actually delivered</div></div>
+      <div class="mcard" id="mc-nps-coverage"><div class="mcard-label">Coverage</div><div class="mcard-value ink" id="m-nps-coverage">—</div><div class="mcard-sub" id="m-nps-coverage-sub">Accounts we could survey at all</div></div>
+    </div>
+
+    <div class="chart-row-2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:20px">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">NPS by month</div>
+        <div class="chart-card-sub" id="nps-trend-sub">Each point is that month's send · a month with fewer than 5 answers is marked</div>
+        <div class="chart-wrap-md"><canvas id="npsTrendLine"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Where the answers sit</div>
+        <div class="chart-card-sub">Detractors 0–6 · Passives 7–8 · Promoters 9–10</div>
+        <div class="chart-wrap-md"><canvas id="npsMixBar"></canvas></div>
+        <div class="legend" id="legend-nps-mix"></div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">By segment</span>
+      <span class="section-note">A score built on very few answers is dotted — read the count, not the number</span>
+    </div>
+    <div class="chart-row-2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px">
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Product</th><th>NPS</th><th>Responses</th><th>Response rate</th></tr></thead>
+            <tbody id="nps-seg-product"><tr><td colspan="4" class="rt-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Pilot vs converted</th><th>NPS</th><th>Responses</th><th>Response rate</th></tr></thead>
+            <tbody id="nps-seg-pilot"><tr><td colspan="4" class="rt-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="chart-row-2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px">
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Vertical</th><th>NPS</th><th>Responses</th><th>Response rate</th></tr></thead>
+            <tbody id="nps-seg-vertical"><tr><td colspan="4" class="rt-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Stage</th><th>NPS</th><th>Responses</th><th>Response rate</th></tr></thead>
+            <tbody id="nps-seg-stage"><tr><td colspan="4" class="rt-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="table-card" style="margin-bottom:22px">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Account Manager</th><th>NPS</th><th>Responses</th><th>Response rate</th><th>Accounts covered</th></tr></thead>
+          <tbody id="nps-seg-am"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Every response</span>
+      <span class="section-note">Newest first · the comment is the part worth acting on</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Who</th><th>Product</th><th>AM</th><th>Score</th><th>Why</th><th>Answered</th></tr></thead>
+          <tbody id="nps-response-body"><tr><td colspan="7" class="rt-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:22px">
+      <span class="section-title">Not surveyed</span>
+      <span class="section-note">These accounts never got the email — they count against coverage, not response rate</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Company</th><th>Product</th><th>AM</th><th>Why not</th><th>Months missed</th></tr></thead>
+          <tbody id="nps-gap-body"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rt-note">Fix a gap by adding the <b>Face of Content</b> association label to the right contact on the company record in HubSpot — and make sure that contact has an email address. The next monthly send picks it up automatically.</div>
+  </div>
+
   <!-- Forecasting: projection editor (versioned) -->
   <div class="prt-modal-overlay" id="fc-ed-modal" style="display:none" onclick="if(event.target===this)fcCloseProjEditor()">
     <div class="prt-modal">
@@ -2202,6 +2322,7 @@ function switchTab(e, name) {
   if(e&&e.target) e.target.classList.add('active');
   if(name==='bonus'){ bonusEnsureInit(); return; }
   if(name==='responses'){ rtEnsureLoaded(); return; }
+  if(name==='nps'){ npsEnsureLoaded(); return; }
   if(!allCompanies.length) return;
   if(name==='cohorts')   renderCohortsTab(managedSet());
   if(name==='portfolio') renderPortfolioTable(workingSet());
@@ -5167,6 +5288,273 @@ function rtRender(){
   } else {
     note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). Accounts without a Slack channel (e.g. email-only or not yet onboarded) are excluded.';
   }
+}
+
+// ── NPS ────────────────────────────────────────────────────────
+// Rows come straight from Supabase (nps_sends), one per person we INTENDED to
+// survey each month. The segment columns on each row are the snapshot taken at
+// send time, so a converted account never rewrites the score it gave as a pilot.
+let npsRows=null, npsProduct='all', npsMonths=6, npsWired=false, npsLoading=null;
+
+// A score is only meaningful with enough answers behind it. Below this we still
+// show the number — hiding it invites someone to recompute it worse — but mark
+// it so nobody reports "EGC is at -100" off a single bad month.
+const NPS_MIN_N = 5;
+
+function npsBucket(score){ return score>=9?'promoter':score>=7?'passive':'detractor'; }
+
+// Standard NPS: promoters minus detractors, as a percentage of respondents.
+// Passives count in the denominator and nowhere else — that is the whole point
+// of the metric, so a book full of 7s and 8s scores zero, not "fine".
+function npsScore(rows){
+  const answered=rows.filter(r=>r.score!=null);
+  if(!answered.length) return null;
+  const p=answered.filter(r=>r.score>=9).length;
+  const d=answered.filter(r=>r.score<=6).length;
+  return Math.round(((p-d)/answered.length)*100);
+}
+
+function npsFilterRows(){
+  if(!npsRows) return [];
+  let rows=npsRows;
+  if(npsProduct!=='all') rows=rows.filter(r=>(r.product||'Full Service')===npsProduct);
+  if(npsMonths>0){
+    const cut=new Date();
+    cut.setUTCDate(1); cut.setUTCHours(0,0,0,0);
+    cut.setUTCMonth(cut.getUTCMonth()-(npsMonths-1));
+    const cutStr=cut.toISOString().slice(0,10);
+    rows=rows.filter(r=>String(r.period)>=cutStr);
+  }
+  return rows;
+}
+
+// Three different denominators, kept apart on purpose:
+//   delivered   — surveys that actually reached an inbox ('sent'). Response rate
+//                 is measured against this and nothing else.
+//   answered    — delivered surveys that came back with a score.
+//   companies   — every active account in the period. Coverage is how many of
+//                 those we could survey at all, which is a HubSpot hygiene
+//                 number, not an engagement one. Folding the two together would
+//                 make a book we cannot even reach look like a book that ignored us.
+function npsStats(rows){
+  const delivered=rows.filter(r=>r.status==='sent');
+  const answered=delivered.filter(r=>r.score!=null);
+  const companies=new Set(rows.map(r=>r.hs_company_id));
+  const covered=new Set(delivered.map(r=>r.hs_company_id));
+  return {
+    delivered, answered, score:npsScore(delivered),
+    rate: delivered.length ? Math.round((answered.length/delivered.length)*100) : null,
+    companies: companies.size, covered: covered.size,
+    coverage: companies.size ? Math.round((covered.size/companies.size)*100) : null,
+  };
+}
+
+function npsScoreCell(rows){
+  const s=npsScore(rows);
+  const n=rows.filter(r=>r.score!=null).length;
+  if(s==null) return '<td class="rt-val"><span class="rt-pending">—</span></td>';
+  const low=n<NPS_MIN_N;
+  const tip=low
+    ? `Built on only ${n} answer${n===1?'':'s'} — one more reply could swing this by tens of points. Treat it as a hint, not a number.`
+    : `Promoters minus detractors across ${n} answers.`;
+  return `<td class="rt-val"><span class="${low?'rt-lowconf':''}" title="${escapeHtml(tip)}">${s>0?'+':''}${s}</span></td>`;
+}
+
+function npsSegRows(rows, keyFn, labelFn){
+  const by={};
+  rows.forEach(r=>{ const k=keyFn(r); if(k==null) return; (by[k]=by[k]||[]).push(r); });
+  return Object.entries(by).map(([k,rs])=>{
+    const st=npsStats(rs);
+    return { key:k, label:labelFn?labelFn(k):k, rows:rs, stats:st, sort:st.score==null?-Infinity:st.score };
+  }).sort((a,b)=>b.sort-a.sort || a.label.localeCompare(b.label));
+}
+
+function npsRenderSegTable(bodyId, segs, extraCell){
+  const body=document.getElementById(bodyId);
+  if(!body) return;
+  if(!segs.length){ body.innerHTML=`<tr><td colspan="${extraCell?5:4}" class="rt-empty">No responses for this filter yet.</td></tr>`; return; }
+  body.innerHTML=segs.map(s=>{
+    const st=s.stats;
+    return `<tr><td>${escapeHtml(s.label)}</td>`
+      + npsScoreCell(s.rows)
+      + `<td class="rt-val">${st.answered.length}</td>`
+      + `<td class="rt-val">${st.rate==null?'<span class="rt-pending">—</span>':st.rate+'%'}</td>`
+      + (extraCell?`<td class="rt-val">${st.covered}/${st.companies}</td>`:'')
+      + '</tr>';
+  }).join('');
+}
+
+function npsRender(){
+  const rows=npsFilterRows();
+  const st=npsStats(rows);
+
+  const setTxt=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  setTxt('m-nps-score', st.score==null?'—':(st.score>0?'+':'')+st.score);
+  setTxt('m-nps-score-sub', st.answered.length
+    ? (st.answered.length<NPS_MIN_N
+        ? `Only ${st.answered.length} answer${st.answered.length===1?'':'s'} — too few to read as a trend`
+        : `${st.answered.filter(r=>r.score>=9).length} promoters · ${st.answered.filter(r=>r.score<=6).length} detractors`)
+    : 'No responses yet');
+  setTxt('m-nps-responses', String(st.answered.length));
+  setTxt('m-nps-responses-sub', `Of ${st.delivered.length} survey${st.delivered.length===1?'':'s'} delivered`);
+  setTxt('m-nps-rate', st.rate==null?'—':st.rate+'%');
+  setTxt('m-nps-coverage', st.coverage==null?'—':st.coverage+'%');
+  setTxt('m-nps-coverage-sub', st.companies
+    ? `${st.covered} of ${st.companies} accounts had a Face of Content to email`
+    : 'Accounts we could survey at all');
+
+  npsRenderTrend(rows);
+  npsRenderMix(st.answered);
+
+  npsRenderSegTable('nps-seg-product', npsSegRows(rows, r=>r.product||'Full Service'));
+  npsRenderSegTable('nps-seg-pilot',   npsSegRows(rows, r=>r.pilot_status||'Unset'));
+  npsRenderSegTable('nps-seg-vertical',npsSegRows(rows, r=>r.vertical||'Unset'));
+  npsRenderSegTable('nps-seg-stage',   npsSegRows(rows, r=>r.stage||'Unset'));
+  npsRenderSegTable('nps-seg-am',      npsSegRows(rows, r=>r.am||'Unassigned'), true);
+
+  npsRenderResponses(st.answered);
+  npsRenderGaps(rows);
+}
+
+function npsRenderTrend(rows){
+  const el=document.getElementById('npsTrendLine');
+  if(!el) return;
+  const by={};
+  rows.filter(r=>r.status==='sent').forEach(r=>{ (by[r.period]=by[r.period]||[]).push(r); });
+  const periods=Object.keys(by).sort();
+  const labels=periods.map(p=>new Date(p+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'}));
+  const data=periods.map(p=>npsScore(by[p]));
+  const counts=periods.map(p=>by[p].filter(r=>r.score!=null).length);
+  const sub=document.getElementById('nps-trend-sub');
+  if(sub) sub.textContent = periods.length
+    ? `${periods.length} month${periods.length===1?'':'s'} of sends · a point built on fewer than ${NPS_MIN_N} answers is hollow`
+    : 'No sends recorded yet — the first survey goes out on the 1st.';
+  if(charts['npsTrendLine']) charts['npsTrendLine'].destroy();
+  charts['npsTrendLine']=new Chart(el.getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{
+      data, borderColor:'#0F6E56', backgroundColor:'rgba(15,110,86,0.10)',
+      fill:true, tension:0.3, spanGaps:true,
+      pointRadius:counts.map(n=>n?4:0),
+      // A hollow point is a month with too few answers to trust.
+      pointBackgroundColor:counts.map(n=>n>=NPS_MIN_N?'#0F6E56':'#FFFFFF'),
+      pointBorderColor:'#0F6E56', pointBorderWidth:2,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{
+      label:ctx=>ctx.raw==null?'No answers':` NPS ${ctx.raw>0?'+':''}${ctx.raw} · ${counts[ctx.dataIndex]} answer${counts[ctx.dataIndex]===1?'':'s'}${counts[ctx.dataIndex]<NPS_MIN_N?' (too few to trust)':''}`
+    }}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{min:-100,max:100,ticks:{font:{size:10}},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
+}
+
+function npsRenderMix(answered){
+  const el=document.getElementById('npsMixBar');
+  if(!el) return;
+  const bands=[
+    {label:'Detractors (0–6)', color:'#D85A30', rows:answered.filter(r=>r.score<=6)},
+    {label:'Passives (7–8)',   color:'#9B9890', rows:answered.filter(r=>r.score>=7&&r.score<=8)},
+    {label:'Promoters (9–10)', color:'#1D9E75', rows:answered.filter(r=>r.score>=9)},
+  ];
+  if(charts['npsMixBar']) charts['npsMixBar'].destroy();
+  charts['npsMixBar']=new Chart(el.getContext('2d'),{
+    type:'bar',
+    data:{labels:bands.map(b=>b.label),datasets:[{data:bands.map(b=>b.rows.length),backgroundColor:bands.map(b=>b.color),borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{
+      label:ctx=>[` ${ctx.raw} response${ctx.raw===1?'':'s'}:`,...buildLines(bands[ctx.dataIndex].rows.map(r=>`${r.company_name} (${r.score})`))]
+    }}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(26,25,22,0.06)'}}}}
+  });
+  const leg=document.getElementById('legend-nps-mix');
+  const total=answered.length;
+  if(leg) leg.innerHTML = total
+    ? bands.map(b=>`<span class="legend-item"><span class="legend-dot" style="background:${b.color}"></span>${b.label}: ${b.rows.length} · ${Math.round((b.rows.length/total)*100)}%</span>`).join('')
+    : '<span class="legend-item">No responses yet.</span>';
+}
+
+function npsScoreChip(score){
+  const color = score>=9?'#1D9E75':score>=7?'#9B9890':'#D85A30';
+  return `<span class="rt-chip" style="background:${color}1f;color:${color==='#9B9890'?'#5C5A55':color}">${score}</span>`;
+}
+
+function npsRenderResponses(answered){
+  const body=document.getElementById('nps-response-body');
+  if(!body) return;
+  if(!answered.length){ body.innerHTML='<tr><td colspan="7" class="rt-empty">No responses for this filter yet.</td></tr>'; return; }
+  const sorted=[...answered].sort((a,b)=>String(b.responded_at||'').localeCompare(String(a.responded_at||'')));
+  body.innerHTML=sorted.map(r=>`<tr>
+    <td>${escapeHtml(r.company_name||'—')}</td>
+    <td>${escapeHtml(r.contact_name||r.contact_email||'—')}</td>
+    <td>${rtProdChip(r.product)}</td>
+    <td>${escapeHtml(r.am||'Unassigned')}</td>
+    <td class="rt-val">${npsScoreChip(r.score)}</td>
+    <td>${r.comment?escapeHtml(r.comment):'<span class="rt-pending">—</span>'}</td>
+    <td class="rt-val">${r.responded_at?new Date(r.responded_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—'}</td>
+  </tr>`).join('');
+}
+
+// The coverage gap, rolled up per account rather than per month — an account
+// missing a Face of Content for six months is one problem to fix, not six.
+function npsRenderGaps(rows){
+  const body=document.getElementById('nps-gap-body');
+  if(!body) return;
+  const gaps={};
+  rows.filter(r=>String(r.status||'').startsWith('skipped')).forEach(r=>{
+    const g=gaps[r.hs_company_id]=gaps[r.hs_company_id]||{ name:r.company_name, product:r.product, am:r.am, reasons:new Set(), periods:new Set() };
+    g.reasons.add(r.status); g.periods.add(r.period); g.name=r.company_name||g.name;
+  });
+  const list=Object.values(gaps).sort((a,b)=>b.periods.size-a.periods.size || String(a.name).localeCompare(String(b.name)));
+  if(!list.length){ body.innerHTML='<tr><td colspan="5" class="rt-empty">Every active account had someone to survey. Nothing to fix.</td></tr>'; return; }
+  const why=s=>s==='skipped_no_email'
+    ? 'Face of Content labelled, but that contact has no email address'
+    : 'No contact carries the Face of Content label';
+  body.innerHTML=list.map(g=>`<tr>
+    <td>${escapeHtml(g.name||'—')}</td>
+    <td>${rtProdChip(g.product)}</td>
+    <td>${escapeHtml(g.am||'Unassigned')}</td>
+    <td>${[...g.reasons].map(why).map(escapeHtml).join(' · ')}</td>
+    <td class="rt-val">${g.periods.size}</td>
+  </tr>`).join('');
+}
+
+async function npsEnsureLoaded(){
+  npsWire();
+  if(npsRows) { npsRender(); return; }
+  if(npsLoading) return npsLoading;
+  npsLoading=(async()=>{
+    try{
+      const { data, error }=await sb.from('nps_sends').select('*').order('period',{ascending:false});
+      if(error) throw error;
+      npsRows=data||[];
+      const upd=document.getElementById('nps-updated');
+      if(upd) upd.textContent = npsRows.length
+        ? `${npsRows.length} survey records · sends go out on the 1st of each month`
+        : 'No surveys sent yet — the first goes out on the 1st of the month.';
+    }catch(e){
+      console.warn('nps load failed', e);
+      npsRows=[];
+      const upd=document.getElementById('nps-updated');
+      if(upd) upd.textContent='Could not load NPS data: '+(e.message||e);
+    }
+    npsRender();
+  })();
+  return npsLoading;
+}
+
+function npsWire(){
+  if(npsWired) return;
+  npsWired=true;
+  const seg=(id,fn)=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('click', e=>{
+      const btn=e.target.closest('.prt-seg-btn');
+      if(!btn) return;
+      el.querySelectorAll('.prt-seg-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      fn(btn);
+      npsRender();
+    });
+  };
+  seg('nps-product-filter', btn=>{ npsProduct=btn.dataset.product; });
+  seg('nps-window-filter',  btn=>{ npsMonths=Number(btn.dataset.months); });
 }
 
 // ── INIT ────────────────────────────────────────────────────────
