@@ -21,6 +21,12 @@
 [functions."capture-bonus-snapshot"]
   schedule = "5 0 1 1,4,7,10 *"
 
+# Monthly NPS survey — 1st of the month, 13:00 UTC (09:00 US/Eastern in EDT,
+# 08:00 in EST). Dormant until RESEND_API_KEY and the Supabase service-role
+# vars are set, so this cannot email a client before it is turned on.
+[functions."send-nps"]
+  schedule = "0 13 1 * *"
+
 [[redirects]]
   from = "/api/hubspot"
   to = "/.netlify/functions/hubspot"
@@ -99,6 +105,16 @@
 [[redirects]]
   from = "/api/run-response-times"
   to = "/.netlify/functions/run-response-times"
+  status = 200
+
+[[redirects]]
+  from = "/api/nps-respond"
+  to = "/.netlify/functions/nps-respond"
+  status = 200
+
+[[redirects]]
+  from = "/api/run-nps"
+  to = "/.netlify/functions/run-nps"
   status = 200
 
 [[redirects]]
