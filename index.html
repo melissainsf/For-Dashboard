@@ -1645,13 +1645,30 @@ textarea.prt-input{resize:vertical}
         <table>
           <thead><tr>
             <th>Account</th><th>AM</th><th>Seats</th><th>Silent &gt;72h</th>
-            <th>Last post</th><th>Posts 30d</th><th>Published 30d</th><th>Dismissed 30d</th><th>LinkedIn</th>
+            <th>Last post</th><th>Posts 30d</th><th>Acted on 30d</th><th>Expired unread</th><th>LinkedIn</th>
           </tr></thead>
           <tbody id="egc-body"><tr><td colspan="9" class="rt-empty">Loading&hellip;</td></tr></tbody>
         </table>
       </div>
     </div>
-    <div class="rt-note" id="egc-note">&ldquo;Silent&rdquo; is the later of a fresh sign-in and any session activity &mdash; a login alone understates use, because a session keeps refreshing without signing in again. Dismissed counts drafts the client rejected; a high ratio against Published is a content-fit problem, not a disengagement one.</div>
+    <div class="rt-note" id="egc-note">&ldquo;Silent&rdquo; is the later of a fresh sign-in and any session activity &mdash; a login alone understates use, because a session keeps refreshing without signing in again.</div>
+
+    <div class="section-header" style="margin-top:22px">
+      <span class="section-title">What happens to the proposals we surface</span>
+      <span class="section-note">Last 30 days &middot; the counts are the story here, so they are shown as counts</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Account</th><th>Surfaced</th><th>Published</th><th>Rejected</th>
+            <th>Expired unread</th><th>Acted on</th>
+          </tr></thead>
+          <tbody id="egc-attention-body"><tr><td colspan="6" class="rt-empty">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rt-note" id="egc-attention-note"></div>
   </div>
 
   <!-- Forecasting: projection editor (versioned) -->
@@ -5645,9 +5662,12 @@ function egcGroup(rows){
     return {
       ...g,
       silent, worst,
-      posts30: g.people.reduce((n,p)=>n+(p.posts_30d||0),0),
-      pub30:   g.people.reduce((n,p)=>n+(p.published_30d||0),0),
-      dis30:   g.people.reduce((n,p)=>n+(p.dismissed_30d||0),0),
+      posts30:   g.people.reduce((n,p)=>n+(p.posts_30d||0),0),
+      pub30:     g.people.reduce((n,p)=>n+(p.published_30d||0),0),
+      acted30:   g.people.reduce((n,p)=>n+(p.acted_30d||0),0),
+      ignored30: g.people.reduce((n,p)=>n+(p.ignored_30d||0),0),
+      reject30:  g.people.reduce((n,p)=>n+(p.rejected_30d||0),0),
+      surfaced30:g.people.reduce((n,p)=>n+(p.surfaced_30d||0),0),
       lastPost: g.people.map(p=>p.last_post).filter(Boolean).sort().pop() || null,
       liBroken: g.people.filter(p=>p.li_broken).length,
       liNone:   g.people.filter(p=>!p.li_connected).length,
@@ -5675,6 +5695,8 @@ function egcRender(){
 
   const body=document.getElementById('egc-body');
   if(!body) return;
+  egcRenderAttention(groups);
+
   if(!shown.length){
     body.innerHTML = `<tr><td colspan="9" class="rt-empty">${rows.length ? 'Nothing needs attention right now.' : 'No EGC publishers found.'}</td></tr>`;
     return;
@@ -5695,8 +5717,8 @@ function egcRender(){
       <td class="rt-val">${silentChip}</td>
       <td class="rt-val">${g.lastPost ? new Date(g.lastPost+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
       <td class="rt-val">${g.posts30}</td>
-      <td class="rt-val">${g.pub30}</td>
-      <td class="rt-val">${g.dis30}</td>
+      <td class="rt-val">${g.acted30}</td>
+      <td class="rt-val">${g.ignored30}</td>
       <td class="rt-val">${li}</td>
     </tr>`;
     if(!open) return head;
@@ -5708,13 +5730,58 @@ function egcRender(){
         <td class="rt-val"><span class="rt-chip" style="background:${sil?'rgba(216,90,48,0.15)':'rgba(29,158,117,0.14)'};color:${sil?'#993C1D':'#137a58'}">${egcSince(p.hours_silent)}</span></td>
         <td class="rt-val">${p.last_post ? new Date(p.last_post+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
         <td class="rt-val">${p.posts_30d||0}</td>
-        <td class="rt-val">${p.published_30d||0}</td>
-        <td class="rt-val">${p.dismissed_30d||0}</td>
+        <td class="rt-val">${p.acted_30d||0}</td>
+        <td class="rt-val">${p.ignored_30d||0}</td>
         <td class="rt-val">${p.li_broken?'<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D">broken</span>':(p.li_connected?'<span class="rt-chip egc">ok</span>':'<span class="rt-chip fs">none</span>')}</td>
       </tr>`;
     }).join('');
     return head + `<tr><td colspan="9" style="padding:0;background:var(--surface2)"><table style="width:100%"><tbody>${people}</tbody></table></td></tr>`;
   }).join('');
+}
+
+// What happens to the proposals we put in front of each account.
+//
+// Deliberately NOT a proportion bar: at 6 acted on out of 2,021 surfaced the
+// meaningful segment renders sub-pixel and every account reads as one solid
+// block. The counts carry the meaning, so they are shown as counts.
+//
+// Only what the CLIENT could act on is counted. Virio-side dismissals — an
+// agent withdrawing a proposal, a regeneration after a strategy change,
+// de-duplication, backlog cleanup — are our own housekeeping and are excluded
+// upstream in egc_usage(), so they never read as client neglect.
+function egcRenderAttention(groups){
+  const body=document.getElementById('egc-attention-body');
+  if(!body) return;
+  const rows=groups.slice().sort((a,b)=>b.ignored30-a.ignored30);
+  if(!rows.length){ body.innerHTML='<tr><td colspan="6" class="rt-empty">No proposal activity in the last 30 days.</td></tr>'; return; }
+
+  body.innerHTML = rows.map(g=>{
+    // Nothing surfaced is a different state from nothing acted on: one is our
+    // supply, the other is their attention. Never render it as 0%.
+    const nothingSurfaced = g.surfaced30 === 0;
+    const rate = nothingSurfaced ? null : (g.acted30 / g.surfaced30) * 100;
+    const rateTxt = nothingSurfaced
+      ? '<span class="rt-pending" title="No proposals reached this account in the last 30 days — a supply problem on our side, not their attention.">nothing surfaced</span>'
+      : `${g.acted30} <span style="color:var(--ink3)">of ${g.surfaced30} · ${rate<1?rate.toFixed(1):Math.round(rate)}%</span>`;
+    return `<tr>
+      <td>${escapeHtml(g.name)}</td>
+      <td class="rt-val">${g.surfaced30}</td>
+      <td class="rt-val">${g.pub30}</td>
+      <td class="rt-val">${g.reject30}</td>
+      <td class="rt-val">${g.ignored30 ? `<span style="color:var(--coral)">${g.ignored30}</span>` : '0'}</td>
+      <td class="rt-val">${rateTxt}</td>
+    </tr>`;
+  }).join('');
+
+  const surfaced=rows.reduce((n,g)=>n+g.surfaced30,0);
+  const ignored =rows.reduce((n,g)=>n+g.ignored30,0);
+  const rejected=rows.reduce((n,g)=>n+g.reject30,0);
+  const note=document.getElementById('egc-attention-note');
+  if(note) note.innerHTML = surfaced
+    ? `<b>${ignored.toLocaleString()} of ${surfaced.toLocaleString()}</b> proposals expired without anyone opening them, against `
+      + `<b>${rejected}</b> actively rejected. Almost nothing is being turned down on quality — it is going unread, `
+      + `which is an attention problem rather than a content-fit one. Excludes drafts we withdrew or regenerated ourselves.`
+    : 'No proposals surfaced to EGC publishers in the last 30 days.';
 }
 
 function egcToggle(id){ egcOpen[id]=!egcOpen[id]; egcRender(); }
