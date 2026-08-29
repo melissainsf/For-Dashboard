@@ -1697,7 +1697,7 @@ textarea.prt-input{resize:vertical}
         </table>
       </div>
     </div>
-    <div class="rt-note" id="egc-note">&ldquo;Silent&rdquo; is the later of a fresh sign-in and any session activity &mdash; a login alone understates use, because a session keeps refreshing without signing in again.</div>
+    <div class="rt-note" id="egc-note">&ldquo;Silent&rdquo; is the later of a fresh sign-in and any session activity &mdash; a login alone understates use, because a session keeps refreshing without signing in again. Rows are product seats; the <b>Face of Content</b> label on the HubSpot company record is cross-checked against them, and a publishing seat without one is flagged because the monthly NPS send resolves off that label.</div>
 
     <div class="section-header" style="margin-top:22px">
       <span class="section-title">How much clients rework the copy we write</span>
@@ -5684,7 +5684,7 @@ function npsWire(){
 // One row per EGC publisher, from the egc_usage() SECURITY DEFINER function.
 // The login signal lives in Supabase's auth schema, which PostgREST does not
 // expose, so the function reaches in and hands back only what this renders.
-let egcRows=null, egcWeeks=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
+let egcRows=null, egcWeeks=null, egcFocs=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
 
 // The one signal Melissa is confident about: a publisher who has not been in
 // the product for three days is worth a call. Everything else on this tab is
@@ -5698,6 +5698,47 @@ function egcSilent(r){ return r.hours_silent==null || r.hours_silent >= EGC_SILE
 // Thrad has posts_content = false, so nothing is written for him at all.
 // Holding either to a publishing metric measures a job they do not have.
 function egcIsPublisher(p){ return !p.is_manager && p.posts_content !== false; }
+
+// A seat is what generates usage data, so seats are the rows. HubSpot's "Face of
+// Content" label is where the team records who is SUPPOSED to be publishing, and
+// the two drift apart quietly: Runpod's EGC engagement kicked off on 25 August
+// with two seats and neither was labelled, so this tab read fine while the NPS
+// survey went to the Full Service publisher instead. Cross-checking catches the
+// next one.
+//
+// Only the actionable direction is flagged — a publishing seat with no label.
+// The reverse is legitimate on a dual account: Runpod's Zhen Lu is labelled and
+// has no EGC seat because he is the Full Service face, and the NPS tab already
+// tracks label coverage on its own.
+function egcFocFor(companyName){
+  return (egcFocs && egcFocs[String(companyName||'').trim().toLowerCase()]) || null;
+}
+const egcNorm = v => String(v||'').trim().toLowerCase();
+
+// Two different problems wear the same disguise, and calling both "no label"
+// would be wrong. Willow Thom at Bland IS labelled — her HubSpot contact simply
+// carries no email address, so an email-only match reports her as unlabelled
+// when the actual fix is to fill in her email. So: match on email, fall back to
+// name, and report which of the two states we are in.
+//
+//   'missing'  — no labelled contact matches this seat at all
+//   'no-email' — labelled, but the contact has no email, so NPS cannot reach them
+//   null       — fine, or not our business (managers, labels unavailable)
+//
+// The name fallback only ever REMOVES a warning, never adds one, which is the
+// safe direction for a flag that asks someone to go and edit the CRM.
+function egcFocState(p, companyName){
+  if(!egcIsPublisher(p)) return null;            // managers are not meant to be labelled
+  const list = egcFocFor(companyName);
+  if(!list) return null;                          // labels unavailable, or account has none
+  const email = egcNorm(p.email), name = egcNorm(p.person);
+  if(email && list.some(f => f.email === email)) return null;
+  const byName = name && list.find(f => egcNorm(f.name) === name);
+  if(byName) return byName.email ? null : 'no-email';
+  return 'missing';
+}
+function egcMissingFoc(p, companyName){ return egcFocState(p, companyName) === 'missing'; }
+function egcFocNoEmail(p, companyName){ return egcFocState(p, companyName) === 'no-email'; }
 function egcRoleLabel(p){
   if(p.is_manager) return 'Manager';
   if(p.posts_content === false) return 'Not set to post';
@@ -5816,6 +5857,8 @@ function egcGroup(rows){
       // shows Brennen's post and says nothing about Justin.
       stalled:  g.people.filter(p=>egcNeverPosted(p)==='stalled'),
       publishers: g.people.filter(egcIsPublisher),
+      unlabelled: g.people.filter(p=>egcMissingFoc(p, g.name)),
+      focNoEmail: g.people.filter(p=>egcFocNoEmail(p, g.name)),
       // Seats we are generating for who are never going to publish. Brandon Ray
       // has 838 drafts expired unread since June and 127 more waiting today.
       misaimed: g.people.filter(p=>!egcIsPublisher(p) && p.surfaced_30d > 0),
@@ -5835,7 +5878,7 @@ function egcGroup(rows){
 function egcRender(opts){
   const rows = egcRows||[];
   const groups = egcGroup(rows);
-  const shown = egcView==='risk' ? groups.filter(g=>g.silent.length || g.stalled.length || g.liBroken || g.liNone) : groups;
+  const shown = egcView==='risk' ? groups.filter(g=>g.silent.length || g.stalled.length || g.unlabelled.length || g.focNoEmail.length || g.liBroken || g.liNone) : groups;
 
   const setTxt=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
   const silentAll = rows.filter(egcSilent);
@@ -5903,7 +5946,9 @@ function egcRender(opts){
       <td class="rt-val">${g.people.length}${g.seats!=null&&g.seats!==g.people.length?` <span style="color:var(--ink3)">of ${g.seats}</span>`:''}</td>
       <td class="rt-val">${silentChip}</td>
       <td class="rt-val">${g.lastPost ? new Date(g.lastPost+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}${
-        g.stalled.length ? ` <span class="rt-chip" style="${EGC_CORAL_CHIP}" title="${g.stalled.map(p=>`${p.person||p.email} — ${p.seat_days} days, nothing published`).join('; ')}">${g.stalled.length} never posted</span>` : ''}</td>
+        g.stalled.length ? ` <span class="rt-chip" style="${EGC_CORAL_CHIP}" title="${g.stalled.map(p=>`${p.person||p.email} — ${p.seat_days} days, nothing published`).join('; ')}">${g.stalled.length} never posted</span>` : ''}${
+        g.unlabelled.length ? ` <span class="rt-chip" style="${EGC_CORAL_CHIP}" title="${g.unlabelled.map(p=>p.person||p.email).join(', ')} — publishing seats with no Face of Content label in HubSpot, so the monthly NPS send will miss them.">${g.unlabelled.length} no FOC label</span>` : ''}${
+        g.focNoEmail.length ? ` <span class="rt-chip" style="background:rgba(186,117,23,0.15);color:#854F0B" title="${g.focNoEmail.map(p=>p.person||p.email).join(', ')} — labelled Face of Content, but the HubSpot contact has no email address.">${g.focNoEmail.length} FOC, no email</span>` : ''}</td>
       <td class="rt-val">${g.posts30}</td>
       <td class="rt-val">${egcAvgEdits(g.edits30, g.posts30)}</td>
       <td class="rt-val">${g.pub30}</td>
@@ -5915,7 +5960,9 @@ function egcRender(opts){
       const sil = egcSilent(p);
       return `<tr style="background:var(--surface2)">
         <td style="padding-left:26px">${escapeHtml(p.person || p.email || '—')}${
-          egcRoleLabel(p) ? ` <span class="rt-chip fs" title="Excluded from the publishing metrics on this tab.">${egcRoleLabel(p)}</span>` : ''}</td>
+          egcRoleLabel(p) ? ` <span class="rt-chip fs" title="Excluded from the publishing metrics on this tab.">${egcRoleLabel(p)}</span>` : ''}${
+          egcMissingFoc(p, g.name) ? ` <span class="rt-chip" style="${EGC_CORAL_CHIP}" title="This seat publishes, but carries no Face of Content label on the HubSpot company record — so they are invisible to the monthly NPS send.">no FOC label</span>` : ''}${
+          egcFocNoEmail(p, g.name) ? ` <span class="rt-chip" style="background:rgba(186,117,23,0.15);color:#854F0B" title="Labelled Face of Content, but the HubSpot contact has no email address, so the monthly NPS send cannot reach them. Fix the contact, not the label.">FOC, no email</span>` : ''}</td>
         <td colspan="2" style="color:var(--ink2)">${escapeHtml(p.email||'')}</td>
         <td class="rt-val"><span class="rt-chip" style="background:${sil?'rgba(216,90,48,0.15)':'rgba(29,158,117,0.14)'};color:${sil?'#993C1D':'#137a58'}">${egcSince(p.hours_silent)}</span></td>
         <td class="rt-val">${egcLastPostCell(p)}</td>
@@ -6337,10 +6384,13 @@ async function egcEnsureLoaded(){
   if(egcLoading) return egcLoading;
   egcLoading=(async()=>{
     try{
-      const [usage, weeks] = await Promise.all([
+      const [usage, weeks, focs] = await Promise.all([
         sb.rpc('egc_usage'),
         sb.rpc('egc_post_weeks'),
+        // The label cross-check is a nicety; losing it must not cost the tab.
+        fetch('/api/egc-focs').then(r=>r.ok?r.json():null).catch(()=>null),
       ]);
+      egcFocs = focs && focs.focs || null;
       if(usage.error) throw usage.error;
       egcRows = usage.data||[];
       // The trend is a nicety; a failure there must not cost us the whole tab.
