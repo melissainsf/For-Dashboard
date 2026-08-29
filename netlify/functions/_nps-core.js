@@ -198,7 +198,7 @@ function jobSecret() {
 }
 
 const recordSends = (rows)          => rpc('nps_record_sends', { p_secret: jobSecret(), p_rows: rows });
-const pendingSends = (period)       => rpc('nps_pending',      { p_secret: jobSecret(), p_period: period });
+const pendingSends = (period, incFailed) => rpc('nps_pending', { p_secret: jobSecret(), p_period: period, p_include_failed: !!incFailed });
 const markSent = (id, status, err)  => rpc('nps_mark_sent',    { p_secret: jobSecret(), p_id: id, p_status: status, p_error: err || null });
 const submitResponse = (token, score, comment) =>
   rpc('nps_submit_response', { p_token: token, p_score: score == null ? null : score, p_comment: comment == null ? null : comment });

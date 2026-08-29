@@ -9,6 +9,9 @@
 //              which the NPS tab filters out of every metric.
 //   (no dry) — do the real run for the current month. Safe to re-run: rows are
 //              claimed per (period, company, contact), so nobody is emailed twice.
+//   ?retry=1 — also re-attempt sends that previously FAILED, for when a whole
+//              month was rejected for one fixable reason. Never re-sends to
+//              anyone whose survey actually went out.
 //   &period=YYYY-MM-01 — target a specific month instead of the current one.
 //
 // Gated on NPS_JOB_SECRET — the same string the monthly job uses — so client
@@ -89,7 +92,8 @@ exports.handler = async function (event) {
   if (!dryRun && !process.env.RESEND_API_KEY) return json(500, { error: 'RESEND_API_KEY not set — a real run would send nothing. Use ?dry=1 to preview.' });
 
   try {
-    return json(200, { ok: true, ...(await runMonth({ hsToken, period, dryRun })) });
+    const retryFailed = q.retry === '1' || q.retry === 'true';
+    return json(200, { ok: true, ...(await runMonth({ hsToken, period, dryRun, retryFailed })) });
   } catch (e) {
     return json(500, { error: e.message });
   }

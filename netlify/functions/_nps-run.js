@@ -7,7 +7,7 @@
 
 const core = require('./_nps-core');
 
-async function runMonth({ hsToken, period, dryRun }) {
+async function runMonth({ hsToken, period, dryRun, retryFailed }) {
   const audience = await core.buildAudience(hsToken, period);
 
   const summary = {
@@ -37,7 +37,11 @@ async function runMonth({ hsToken, period, dryRun }) {
   summary.already_recorded = audience.length - summary.newly_recorded;
 
   // New rows plus anything a previous run claimed but never got out the door.
-  const pending = await core.pendingSends(period);
+  // With retryFailed, also pick up sends that were rejected — a whole month can
+  // fail for one fixable reason (an unverified sending domain, an expired key),
+  // and without this the only remedy would be waiting for next month.
+  const pending = await core.pendingSends(period, !!retryFailed);
+  summary.retrying_failed = !!retryFailed;
 
   for (const row of pending) {
     try {
