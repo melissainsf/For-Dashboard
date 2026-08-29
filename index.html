@@ -1635,7 +1635,7 @@ textarea.prt-input{resize:vertical}
       <div class="mcard"><div class="mcard-label">Publishers</div><div class="mcard-value ink" id="m-egc-publishers">&mdash;</div><div class="mcard-sub" id="m-egc-publishers-sub">Active seats</div></div>
       <div class="mcard"><div class="mcard-label">Silent &gt; 72h</div><div class="mcard-value coral" id="m-egc-silent">&mdash;</div><div class="mcard-sub" id="m-egc-silent-sub">Not in the product since</div></div>
       <div class="mcard"><div class="mcard-label">Posts (30d)</div><div class="mcard-value teal" id="m-egc-posts">&mdash;</div><div class="mcard-sub" id="m-egc-posts-sub">Published to LinkedIn</div></div>
-      <div class="mcard"><div class="mcard-label">Edited our draft</div><div class="mcard-value ink" id="m-egc-edit">&mdash;</div><div class="mcard-sub" id="m-egc-edit-sub">Clients changed our copy before posting</div></div>
+      <div class="mcard"><div class="mcard-label">Edits per post</div><div class="mcard-value ink" id="m-egc-edit">&mdash;</div><div class="mcard-sub" id="m-egc-edit-sub">How much clients rework our copy</div></div>
     </div>
 
     <div class="section-header">
@@ -1647,7 +1647,7 @@ textarea.prt-input{resize:vertical}
         <table>
           <thead><tr>
             <th>Account</th><th>AM</th><th>Seats</th><th>Silent &gt;72h</th>
-            <th>Last post</th><th>Posts 30d</th><th>Edited by client</th><th>Published 30d</th><th>Expired unread</th><th>LinkedIn</th>
+            <th>Last post</th><th>Posts 30d</th><th>Edits 30d</th><th>Published 30d</th><th>Expired unread</th><th>LinkedIn</th>
           </tr></thead>
           <tbody id="egc-body"><tr><td colspan="10" class="rt-empty">Loading&hellip;</td></tr></tbody>
         </table>
@@ -1673,15 +1673,15 @@ textarea.prt-input{resize:vertical}
     <div class="rt-note" id="egc-attention-note"></div>
 
     <div class="section-header" style="margin-top:22px">
-      <span class="section-title">How often clients edit the copy we write</span>
-      <span class="section-note">Counting only posts they actually put on LinkedIn &middot; 90 days shown too, because 30 days is only about 18 posts across the whole book</span>
+      <span class="section-title">How much clients rework the copy we write</span>
+      <span class="section-note">Last 90 days &middot; only edits made by the client, on posts they actually put on LinkedIn</span>
     </div>
     <div class="table-card">
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Account</th><th>Posted 30d</th><th>Edited 30d</th>
-            <th>Posted 90d</th><th>Edited 90d</th><th>Edit rate 90d</th>
+            <th>Account</th><th>Posted</th><th>Touched</th>
+            <th>Edits</th><th>Edits per post</th><th>Time editing</th>
           </tr></thead>
           <tbody id="egc-edit-body"><tr><td colspan="6" class="rt-empty">Loading&hellip;</td></tr></tbody>
         </table>
@@ -5647,17 +5647,16 @@ let egcRows=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
 // descriptive until we learn which behaviours actually precede churn.
 const EGC_SILENT_HOURS = 72;
 
-// Below this many published posts an edit percentage is noise: at two posts
-// one edit swings it from 0% to 50%. The counts are still shown; only the rate
-// is withheld.
-const EGC_MIN_POSTS = 3;
-
 function egcSilent(r){ return r.hours_silent==null || r.hours_silent >= EGC_SILENT_HOURS; }
 
-// "n of m" plus a rate once m is big enough to carry one.
-function egcRate(edited, posts){
-  if(!posts) return null;
-  return posts >= EGC_MIN_POSTS ? Math.round((edited/posts)*100) : null;
+// Minutes of editing, as a person would say it.
+function egcMins(m){
+  const n = Number(m)||0;
+  if(n <= 0) return '0';
+  if(n < 1)  return '<1 min';
+  if(n < 60) return Math.round(n) + ' min';
+  const h = Math.floor(n/60), r = Math.round(n%60);
+  return h + 'h' + (r ? ' ' + r + 'm' : '');
 }
 
 function egcSince(hours){
@@ -5694,8 +5693,11 @@ function egcGroup(rows){
       silent, worst,
       posts30:   g.people.reduce((n,p)=>n+(p.posts_30d||0),0),
       edited30:  g.people.reduce((n,p)=>n+(p.edited_30d||0),0),
+      edits30:   g.people.reduce((n,p)=>n+(p.edits_30d||0),0),
       posts90:   g.people.reduce((n,p)=>n+(p.posts_90d||0),0),
       edited90:  g.people.reduce((n,p)=>n+(p.edited_90d||0),0),
+      edits90:   g.people.reduce((n,p)=>n+(p.edits_90d||0),0),
+      editMin90: g.people.reduce((n,p)=>n+Number(p.edit_min_90d||0),0),
       pub30:     g.people.reduce((n,p)=>n+(p.published_30d||0),0),
       ignored30: g.people.reduce((n,p)=>n+(p.ignored_30d||0),0),
       surfaced30:g.people.reduce((n,p)=>n+(p.surfaced_30d||0),0),
@@ -5727,10 +5729,10 @@ function egcRender(){
   // Book-wide over 90 days, which is the only window with enough posts behind
   // it to state as a percentage at all.
   const p90 = rows.reduce((n,r)=>n+(r.posts_90d||0),0);
-  const e90 = rows.reduce((n,r)=>n+(r.edited_90d||0),0);
-  setTxt('m-egc-edit', p90 ? Math.round((e90/p90)*100)+'%' : '—');
+  const x90 = rows.reduce((n,r)=>n+(r.edits_90d||0),0);
+  setTxt('m-egc-edit', p90 ? (x90/p90).toFixed(1) : '—');
   setTxt('m-egc-edit-sub', p90
-    ? `They changed our copy on ${e90} of the ${p90} posts they put on LinkedIn (90d)`
+    ? `${x90.toLocaleString()} client edits across the ${p90} posts they published (90d)`
     : 'No posts went out in the last 90 days');
 
   const body=document.getElementById('egc-body');
@@ -5758,7 +5760,7 @@ function egcRender(){
       <td class="rt-val">${silentChip}</td>
       <td class="rt-val">${g.lastPost ? new Date(g.lastPost+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
       <td class="rt-val">${g.posts30}</td>
-      <td class="rt-val">${egcEditCell(g.edited30, g.posts30)}</td>
+      <td class="rt-val">${g.posts30 ? g.edits30 : '<span class="rt-pending">&mdash;</span>'}</td>
       <td class="rt-val">${g.pub30}</td>
       <td class="rt-val">${g.ignored30}</td>
       <td class="rt-val">${li}</td>
@@ -5772,7 +5774,7 @@ function egcRender(){
         <td class="rt-val"><span class="rt-chip" style="background:${sil?'rgba(216,90,48,0.15)':'rgba(29,158,117,0.14)'};color:${sil?'#993C1D':'#137a58'}">${egcSince(p.hours_silent)}</span></td>
         <td class="rt-val">${p.last_post ? new Date(p.last_post+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
         <td class="rt-val">${p.posts_30d||0}</td>
-        <td class="rt-val">${egcEditCell(p.edited_30d||0, p.posts_30d||0)}</td>
+        <td class="rt-val">${(p.posts_30d||0) ? (p.edits_30d||0) : '<span class="rt-pending">&mdash;</span>'}</td>
         <td class="rt-val">${p.published_30d||0}</td>
         <td class="rt-val">${p.ignored_30d||0}</td>
         <td class="rt-val">${p.li_broken?'<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D">broken</span>':(p.li_connected?'<span class="rt-chip egc">ok</span>':'<span class="rt-chip fs">none</span>')}</td>
@@ -5828,68 +5830,64 @@ function egcRenderAttention(groups){
     : 'No proposals surfaced to EGC publishers in the last 30 days.';
 }
 
-function egcEditCell(edited, posts){
-  if(!posts) return '<span class="rt-pending">&mdash;</span>';
-  const pct = egcRate(edited, posts);
-  const txt = `${edited} of ${posts}`;
-  return pct==null ? txt : `${txt} <span style="color:var(--ink3)">(${pct}%)</span>`;
-}
-
-// How often a client edits the copy we write, before they post it.
+// How much clients rework the copy we write, before they post it.
 //
-// This is a RATE, not a depth, and the difference is not a nicety. The product
-// records differs_from_original at publish time — a boolean, set on every
-// lineage_posts row — but the originally generated text is not kept anywhere:
-// drafts.content is edited in place and drafts.publish_content is a copy taken
-// at publish (1,194 of 1,197 published drafts have the two byte-identical), so
-// there is no before/after left to diff. Edit-log byte volume does not stand in
-// either: unedited posts run 1.0k–12.2k bytes and edited ones 2.5k–16.4k, an
-// almost total overlap that mostly tracks post length.
+// The metric is a COUNT of the client's own saved changes, not a yes/no flag.
+// Every client tweaks something, so "was it touched" separates almost nothing;
+// the volume is the quality signal. draft_yjs_updates holds one row per saved
+// change from the editor, timestamped and attributed.
 //
-// The boolean itself holds up against the collaborative edit log: EGC posts
-// flagged unedited average 2.1 updates, flagged edited average 14.7.
+// ATTRIBUTION IS THE WHOLE BALLGAME, and it is not a theoretical worry. Virio
+// service accounts write into client drafts: on Othello alone, 165 internal
+// edits across 113 drafts against 7 from the client. Jared Zelman has published
+// six posts and edited none of them — the old differs_from_original flag said
+// one, because melissa+service@virio.ai made 8 changes to it. egc_usage()
+// filters to editors with is_internal = false, so this counts the client only.
 //
-// So: "how often", stated plainly, and no invented measure of "how much".
+// A row is a debounced save, so it is a burst of typing rather than one
+// user-intended change: read it as effort. Time editing sits beside it because
+// a count alone cannot tell 55 saves in ten minutes from 55 across a week; it
+// sums the gaps between consecutive edits and ignores any gap over 5 minutes.
 function egcRenderEdits(groups){
   const body=document.getElementById('egc-edit-body');
   if(!body) return;
-  const rows=groups.slice().sort((a,b)=>{
-    const ra=egcRate(a.edited90,a.posts90), rb=egcRate(b.edited90,b.posts90);
-    if(ra==null && rb==null) return b.posts90-a.posts90 || a.name.localeCompare(b.name);
-    if(ra==null) return 1;
-    if(rb==null) return -1;
-    return rb-ra || b.posts90-a.posts90;
-  });
+  const per = g => g.posts90 ? g.edits90/g.posts90 : -1;
+  const rows=groups.slice().sort((a,b)=> per(b)-per(a) || b.posts90-a.posts90 || a.name.localeCompare(b.name));
   if(!rows.length){ body.innerHTML='<tr><td colspan="6" class="rt-empty">No EGC publishers found.</td></tr>'; return; }
 
   body.innerHTML = rows.map(g=>{
-    const pct = egcRate(g.edited90, g.posts90);
-    // Nobody posted is not a 0% edit rate — it is nothing to measure.
-    const rateTxt = !g.posts90
-      ? '<span class="rt-pending" title="They put nothing on LinkedIn in the last 90 days, so there is nothing to have edited.">nothing posted</span>'
-      : pct==null
-        ? `<span class="rt-pending" title="Fewer than ${EGC_MIN_POSTS} posts — one edit would swing the percentage.">too few posts</span>`
-        : `${pct}%`;
+    // Nobody posted is not zero editing — it is nothing to measure.
+    if(!g.posts90) return `<tr>
+      <td>${escapeHtml(g.name)}</td>
+      <td class="rt-val">0</td>
+      <td class="rt-val" colspan="4"><span class="rt-pending" title="They put nothing on LinkedIn in the last 90 days, so there is nothing to have edited.">nothing posted</span></td>
+    </tr>`;
+    const rate = g.edits90 / g.posts90;
+    // Publishing our copy untouched is the one case worth a colour: it is either
+    // the copy landing perfectly or nobody reading it, and both need a call.
+    const perTxt = g.edits90 === 0
+      ? '<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D" title="They published our drafts without changing a word.">0 &mdash; posted as-is</span>'
+      : rate.toFixed(1);
     return `<tr>
       <td>${escapeHtml(g.name)}</td>
-      <td class="rt-val">${g.posts30}</td>
-      <td class="rt-val">${g.posts30 ? g.edited30 : '<span class="rt-pending">&mdash;</span>'}</td>
       <td class="rt-val">${g.posts90}</td>
-      <td class="rt-val">${g.posts90 ? g.edited90 : '<span class="rt-pending">&mdash;</span>'}</td>
-      <td class="rt-val">${rateTxt}</td>
+      <td class="rt-val">${g.edited90} of ${g.posts90}</td>
+      <td class="rt-val">${g.edits90.toLocaleString()}</td>
+      <td class="rt-val">${perTxt}</td>
+      <td class="rt-val">${egcMins(g.editMin90)}</td>
     </tr>`;
   }).join('');
 
   const p90=rows.reduce((n,g)=>n+g.posts90,0);
-  const e90=rows.reduce((n,g)=>n+g.edited90,0);
+  const x90=rows.reduce((n,g)=>n+g.edits90,0);
+  const m90=rows.reduce((n,g)=>n+g.editMin90,0);
   const note=document.getElementById('egc-edit-note');
   if(note) note.innerHTML = p90
-    ? `Clients changed our copy on <b>${e90} of the ${p90}</b> posts they put on LinkedIn in the last 90 days. `
-      + `This is how <i>often</i> they edit, not how much: the product flags that the published text `
-      + `differed, but it does not keep the original, so there is no before-and-after to measure the size of the `
-      + `change against. Getting depth would mean storing the generated text at creation &mdash; a small change on `
-      + `the product side, worth asking for if the rate turns out to move with renewals.`
-    : 'No EGC publisher has published a post in the last 90 days.';
+    ? `Clients made <b>${x90.toLocaleString()} edits</b> across the ${p90} posts they put on LinkedIn in the last 90 days, `
+      + `spending ${egcMins(m90)} in the editor. An "edit" is one save from the editor, which batches a few seconds of `
+      + `typing &mdash; so it measures effort, not a count of deliberate changes. Edits made by Virio accounts are `
+      + `excluded: they are us doing the work, which is the opposite of the signal here.`
+    : 'No EGC publisher has put a post on LinkedIn in the last 90 days.';
 }
 
 function egcToggle(id){ egcOpen[id]=!egcOpen[id]; egcRender(); }
