@@ -12,7 +12,9 @@
 -- read as multiple days more silent by sign-in than they actually were. The
 -- later of sign-in and session activity is the honest number.
 
-create or replace function public.egc_usage()
+drop function if exists public.egc_usage();
+
+create function public.egc_usage()
 returns table (
   company_id      uuid,
   company_name    text,
@@ -25,7 +27,10 @@ returns table (
   last_post       date,
   posts_30d       int,
   published_30d   int,
-  dismissed_30d   int,
+  acted_30d       int,
+  ignored_30d     int,
+  rejected_30d    int,
+  surfaced_30d    int,
   li_connected    boolean,
   li_broken       boolean
 )
@@ -54,6 +59,26 @@ begin
        and coalesce(u.is_test_user, false) = false
        and coalesce(u.is_active, true)
   ),
+  d30 as (
+    -- Only what the CLIENT could act on. Virio-side dismissals — an agent
+    -- withdrawing a proposal, a regeneration after a strategy change,
+    -- de-duplication, backlog cleanup — are our own housekeeping and must never
+    -- read as client neglect, so they are counted in none of these buckets.
+    --
+    -- Across the EGC book in a 30-day window there was exactly ONE active
+    -- rejection; everything else expired unactioned. Collapsing the two into a
+    -- single "dismissed" number reads as "they hate the content" when the truth
+    -- is "nobody opened it" — a different problem with a different fix.
+    select d.user_id,
+           count(*) filter (where d.status = 'published') as published,
+           count(*) filter (where d.status = 'dismissed'
+                              and d.dismissed_reason in ('rejected from feed','negative','bulk hidden from feed')) as rejected,
+           count(*) filter (where d.status = 'dismissed'
+                              and d.dismissed_reason = 'auto_expired_unactioned') as ignored
+      from public.drafts d
+     where d.updated_at > now() - interval '30 days'
+     group by d.user_id
+  ),
   act as (
     select p.*,
            greatest(
@@ -76,12 +101,11 @@ begin
          (select max(lp.published_at)::date from public.lineage_posts lp where lp.user_id = a.id),
          (select count(*)::int from public.lineage_posts lp
            where lp.user_id = a.id and lp.published_at > now() - interval '30 days'),
-         (select count(*)::int from public.drafts d
-           where d.user_id = a.id and d.status = 'published'
-             and d.updated_at > now() - interval '30 days'),
-         (select count(*)::int from public.drafts d
-           where d.user_id = a.id and d.status = 'dismissed'
-             and d.updated_at > now() - interval '30 days'),
+         coalesce(d.published,0)::int,
+         (coalesce(d.published,0) + coalesce(d.rejected,0))::int,           -- acted on
+         coalesce(d.ignored,0)::int,                                        -- expired unread
+         coalesce(d.rejected,0)::int,
+         (coalesce(d.published,0) + coalesce(d.rejected,0) + coalesce(d.ignored,0))::int,  -- surfaced
          exists (select 1 from public.linkedin_auth la
                   where la.user_id = a.id and la.disconnected_at is null),
          exists (select 1 from public.linkedin_auth la
@@ -90,6 +114,7 @@ begin
                          or la.token_revoked_at is not null
                          or la.token_expires_at < now()))
     from act a
+    left join d30 d on d.user_id = a.id
    order by a.company_name, a.person;
 end;
 $$;
