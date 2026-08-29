@@ -157,32 +157,36 @@ async function buildAudience(token, period) {
   return rows;
 }
 
-// ── Supabase (service role — these functions serve unauthenticated respondents,
-//    so they cannot go through the dashboard's RLS policy) ───────────────────
-function sbHeaders() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
-}
-
-async function sb(path, init) {
+// ── Supabase (PUBLIC anon key only) ────────────────────────────────────────
+// Nothing here can read or write the database at large. Every call goes through
+// a SECURITY DEFINER function that does exactly one thing: the respondent path
+// can only touch its own row, and the job's functions are gated on a shared
+// secret. There is deliberately no service-role key in this codebase.
+async function rpc(fn, args) {
   const base = process.env.SUPABASE_URL;
-  if (!base || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set');
-  }
-  const res = await fetch(`${base}/rest/v1/${path}`, {
-    ...init,
-    headers: { ...sbHeaders(), ...((init && init.headers) || {}) },
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!base || !key) throw new Error('SUPABASE_URL / SUPABASE_ANON_KEY not set');
+  const res = await fetch(`${base}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`Supabase ${path} → ${res.status} ${text.slice(0, 300)}`);
+  if (!res.ok) throw new Error(`Supabase ${fn} → ${res.status} ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : null;
 }
 
-const sbSelect = (q) => sb(q, { method: 'GET' });
-const sbInsert = (table, rows) =>
-  sb(table, { method: 'POST', body: JSON.stringify(rows), headers: { Prefer: 'return=representation' } });
-const sbPatch = (q, patch) =>
-  sb(q, { method: 'PATCH', body: JSON.stringify(patch), headers: { Prefer: 'return=representation' } });
+function jobSecret() {
+  const s = process.env.NPS_JOB_SECRET;
+  if (!s) throw new Error('NPS_JOB_SECRET not set');
+  return s;
+}
+
+const recordSends = (rows)          => rpc('nps_record_sends', { p_secret: jobSecret(), p_rows: rows });
+const pendingSends = (period)       => rpc('nps_pending',      { p_secret: jobSecret(), p_period: period });
+const markSent = (id, status, err)  => rpc('nps_mark_sent',    { p_secret: jobSecret(), p_id: id, p_status: status, p_error: err || null });
+const submitResponse = (token, score, comment) =>
+  rpc('nps_submit_response', { p_token: token, p_score: score == null ? null : score, p_comment: comment == null ? null : comment });
 
 // ── Email ──────────────────────────────────────────────────────────────────
 const FROM = process.env.NPS_FROM || 'Eric from Virio <eric@virio.ai>';
@@ -279,7 +283,7 @@ function escapeHtml(s) {
 module.exports = {
   FOC_LABEL, CHURNED_STAGE,
   tierOf, fetchActiveCompanies, fetchFocContactIds, fetchContacts, buildAudience,
-  sbSelect, sbInsert, sbPatch,
+  recordSends, pendingSends, markSent, submitResponse,
   sendEmail, emailHtml, emailText, publicBase,
   newToken, periodOf, escapeHtml,
 };

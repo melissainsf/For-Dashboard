@@ -6,7 +6,7 @@
 // (See the comment at the top of netlify.toml.) The declaration below is kept
 // only as documentation of intent.
 //
-// Dormant (204) until RESEND_API_KEY and the Supabase service-role vars are set,
+// Dormant (204) until RESEND_API_KEY and the Supabase vars are set,
 // so deploying this cannot email anyone before it is deliberately turned on.
 
 const { runMonth } = require('./_nps-run');
@@ -18,8 +18,8 @@ exports.handler = async function () {
   const hsToken = process.env.HUBSPOT_TOKEN;
   if (!hsToken) { console.log('send-nps: HUBSPOT_TOKEN not set — skipping.'); return { statusCode: 204 }; }
   if (!process.env.RESEND_API_KEY) { console.log('send-nps: RESEND_API_KEY not set — skipping (dormant).'); return { statusCode: 204 }; }
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.SUPABASE_URL) {
-    console.log('send-nps: Supabase service-role vars not set — skipping (dormant).');
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY || !process.env.NPS_JOB_SECRET) {
+    console.log('send-nps: Supabase vars not set — skipping (dormant).');
     return { statusCode: 204 };
   }
 
