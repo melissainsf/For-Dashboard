@@ -6163,12 +6163,21 @@ function egcRenderPoc(groups){
     const day     = egcDays(kickoff, today);
     const pocEnd  = kickoff ? prtAddDays(prtUtcDate(kickoff), PRT_CFG.pilotDays) : null;
     const left    = pocEnd ? Math.round((pocEnd - today) / 86400000) : null;
-    const ttv     = egcDays(kickoff, g.firstPost);
-    // Runpod kicked off in February and only took EGC seats in August. Measuring
-    // time to value across that gap is arithmetic, not a fact about onboarding.
+    // Where HubSpot carries BOTH halves, use its own pair: they describe the
+    // engagement its kickoff belongs to. Runpod is Full Service AND EGC, and the
+    // kickoff on the record is the Full Service one — pairing it with the EGC
+    // seats' first post spans two engagements and yields 197 days of nothing.
+    // Its HubSpot pair gives the real Full Service figure instead. On the other
+    // four accounts first_post_date is blank, so Lineage is the only source.
+    const hsFirst = hs && hs.first_post_date || null;
+    const firstPost = hsFirst || g.firstPost || null;
+    const fromHs  = !!hsFirst;
+    const ttv     = egcDays(kickoff, firstPost);
+    // Seats appearing long after kickoff only distorts a Lineage-measured TTV;
+    // HubSpot's pair is internally consistent whatever the seats did.
     const seatLag = egcDays(kickoff, g.firstSeat);
-    const lagged  = seatLag != null && seatLag > 14;
-    return {g, kickoff, status, term, day, pocEnd, left, ttv, seatLag, lagged};
+    const lagged  = !fromHs && seatLag != null && seatLag > 14;
+    return {g, kickoff, status, term, day, pocEnd, left, firstPost, fromHs, ttv, seatLag, lagged};
   }).sort((a,b) => {
     const live = r => (!r.term && r.left != null) ? 0 : 1;
     if(live(a) !== live(b)) return live(a) - live(b);
@@ -6204,7 +6213,9 @@ function egcRenderPoc(groups){
           const c = r.ttv <= 14 ? 'var(--teal)' : r.ttv <= 30 ? 'var(--blue)' : 'var(--amber)';
           const warn = r.lagged
             ? ` title="Seats were not created until ${egcFmtDate(r.g.firstSeat)}, ${r.seatLag} days after kickoff — most of this span is before anyone could post."`
-            : '';
+            : r.fromHs
+              ? ` title="Kickoff and first post both from HubSpot, so they describe the same engagement."`
+              : ` title="Kickoff from HubSpot, first post from Lineage."`;
           return `<span style="color:${r.lagged?'var(--ink3)':c}"${warn}>${r.ttv} days${r.lagged?' *':''}</span>`;
         })();
 
@@ -6213,7 +6224,9 @@ function egcRenderPoc(groups){
       <td>${egcFmtDate(r.kickoff)}</td>
       <td>${dayCell}</td>
       <td>${endCell}</td>
-      <td>${r.g.firstPost ? egcFmtDate(r.g.firstPost) : '<span class="rt-pending">none yet</span>'}</td>
+      <td>${r.firstPost
+        ? `<span title="${r.fromHs ? 'From HubSpot first_post_date' : 'First post recorded in Lineage'}">${egcFmtDate(r.firstPost)}${r.fromHs ? ' <span style="color:var(--ink3)">·&nbsp;HS</span>' : ''}</span>`
+        : '<span class="rt-pending">none yet</span>'}</td>
       <td>${ttvCell}</td>
       <td>${r.term ? `<span class="rt-chip ${r.term==='converted'?'egc':'fs'}">${escapeHtml(r.status)}</span>` : escapeHtml(r.status || 'In progress')}</td>
     </tr>`;
@@ -6223,9 +6236,10 @@ function egcRenderPoc(groups){
   const note = document.getElementById('egc-poc-note');
   if(note) note.innerHTML = live.length
     ? `<b>${live[0].g.name}</b> is next to reach the end of its proof of concept &mdash; ${live[0].left} days, on ${egcFmtDate(live[0].pocEnd)}. `
-      + `Time to value is kickoff to first post going live, taken from Lineage rather than HubSpot's first_post_date, which is `
-      + `filled in by hand and empty on most of this book. A row marked * had its seats created well after kickoff, so most of `
-      + `that span is before anyone could have posted.`
+      + `Time to value is kickoff to first post going live. Where HubSpot carries its own first_post_date it is used with the `
+      + `kickoff beside it (marked HS), because the two describe the same engagement; everywhere else that field is blank and `
+      + `the first post comes from Lineage. A row marked * had its seats created well after kickoff, so most of that span is `
+      + `before anyone could have posted.`
     : 'No EGC account is currently inside a proof of concept.';
 }
 
