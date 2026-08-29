@@ -18,8 +18,8 @@ exports.handler = async function () {
   const hsToken = process.env.HUBSPOT_TOKEN;
   if (!hsToken) { console.log('send-nps: HUBSPOT_TOKEN not set — skipping.'); return { statusCode: 204 }; }
   if (!process.env.RESEND_API_KEY) { console.log('send-nps: RESEND_API_KEY not set — skipping (dormant).'); return { statusCode: 204 }; }
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY || !process.env.NPS_JOB_SECRET) {
-    console.log('send-nps: Supabase vars not set — skipping (dormant).');
+  if (!process.env.NPS_JOB_SECRET) {
+    console.log('send-nps: NPS_JOB_SECRET not set — skipping (dormant).');
     return { statusCode: 204 };
   }
 

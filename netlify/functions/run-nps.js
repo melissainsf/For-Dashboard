@@ -97,7 +97,9 @@ exports.handler = async function (event) {
 
 // Returns a human-readable complaint about the first unusable env var, or null.
 function checkEnv() {
-  for (const name of ['HUBSPOT_TOKEN', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'NPS_JOB_SECRET', 'RESEND_API_KEY', 'NPS_FROM']) {
+  // SUPABASE_URL / SUPABASE_ANON_KEY are omitted: they are public, they fall
+  // back to the committed values, and a bad paste of them is now harmless.
+  for (const name of ['HUBSPOT_TOKEN', 'NPS_JOB_SECRET', 'RESEND_API_KEY', 'NPS_FROM']) {
     const v = process.env[name];
     if (!v) continue;
     const bad = [...v].find(c => c.charCodeAt(0) > 126 || c.charCodeAt(0) < 32);
