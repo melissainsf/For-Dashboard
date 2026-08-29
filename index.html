@@ -5693,6 +5693,17 @@ const EGC_SILENT_HOURS = 72;
 
 function egcSilent(r){ return r.hours_silent==null || r.hours_silent >= EGC_SILENT_HOURS; }
 
+// Not every EGC seat is a publisher. Brandon Ray at Othello is is_manager — he
+// oversees Jared's content and was never going to post himself. Alex Perez at
+// Thrad has posts_content = false, so nothing is written for him at all.
+// Holding either to a publishing metric measures a job they do not have.
+function egcIsPublisher(p){ return !p.is_manager && p.posts_content !== false; }
+function egcRoleLabel(p){
+  if(p.is_manager) return 'Manager';
+  if(p.posts_content === false) return 'Not set to post';
+  return null;
+}
+
 // Days on a seat before "hasn't posted yet" stops being onboarding and starts
 // being a problem. Seven, because the accounts that got going on this book went
 // live fast — Runpod published the day after kickoff, Bland and Buzzlead inside
@@ -5706,6 +5717,7 @@ const EGC_FIRST_POST_DAYS = 7;
 //   'settling' — on a seat less than a week, which is normal onboarding
 //   'stalled'  — past a week, proposals waiting, still nothing published
 function egcNeverPosted(p){
+  if(!egcIsPublisher(p)) return null;   // not their job
   if(p.last_post) return null;
   if(!(p.surfaced_30d > 0)) return 'supply';
   return (p.seat_days == null || p.seat_days > EGC_FIRST_POST_DAYS) ? 'stalled' : 'settling';
@@ -5716,6 +5728,9 @@ const EGC_CORAL_CHIP = 'background:rgba(216,90,48,0.15);color:#993C1D';
 // One cell, whether the row is a person who has posted, one who never has, or
 // one nobody has sent anything to.
 function egcLastPostCell(p){
+  if(!egcIsPublisher(p)) return `<span class="rt-pending" title="${p.is_manager
+      ? 'A manager, not a publisher — they oversee someone else\u2019s content.'
+      : 'posts_content is off for this seat, so nothing is written for them to publish.'}">n/a &middot; ${egcRoleLabel(p).toLowerCase()}</span>`;
   const state = egcNeverPosted(p);
   if(!state) return p.last_post
     ? new Date(p.last_post+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})
@@ -5800,6 +5815,10 @@ function egcGroup(rows){
       // have not published. An account average hides this: Runpod's group row
       // shows Brennen's post and says nothing about Justin.
       stalled:  g.people.filter(p=>egcNeverPosted(p)==='stalled'),
+      publishers: g.people.filter(egcIsPublisher),
+      // Seats we are generating for who are never going to publish. Brandon Ray
+      // has 838 drafts expired unread since June and 127 more waiting today.
+      misaimed: g.people.filter(p=>!egcIsPublisher(p) && p.surfaced_30d > 0),
       firstSeat: g.people.map(p=>p.seat_added).filter(Boolean).sort()[0] || null,
       firstPost: g.people.map(p=>p.first_post).filter(Boolean).sort()[0] || null,
       pub30:     g.people.reduce((n,p)=>n+(p.published_30d||0),0),
@@ -5821,10 +5840,17 @@ function egcRender(opts){
   const setTxt=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
   const silentAll = rows.filter(egcSilent);
   setTxt('m-egc-accounts', String(groups.length));
-  setTxt('m-egc-publishers', String(rows.length));
+  const pubRows = rows.filter(egcIsPublisher);
+  const otherSeats = rows.length - pubRows.length;
+  setTxt('m-egc-publishers', String(pubRows.length));
+  setTxt('m-egc-publishers-sub', otherSeats
+    ? `Plus ${otherSeats} seat${otherSeats===1?'':'s'} who do not publish`
+    : 'Active seats');
   setTxt('m-egc-silent', String(silentAll.length));
   const neverIn = silentAll.some(r=>r.hours_silent==null);
   const longest = silentAll.length ? Math.max(...silentAll.map(r=>r.hours_silent||0)) : 0;
+  // Silence is about every seat, publisher or not: a manager who has gone dark
+  // still is not reviewing anything.
   setTxt('m-egc-silent-sub', silentAll.length
     ? (neverIn ? 'Longest: never signed in' : 'Longest: ' + egcSince(longest))
     : 'Everyone active in the last 3 days');
@@ -5888,7 +5914,8 @@ function egcRender(opts){
     const people = g.people.slice().sort((a,b)=>(b.hours_silent==null?1e9:b.hours_silent)-(a.hours_silent==null?1e9:a.hours_silent)).map(p=>{
       const sil = egcSilent(p);
       return `<tr style="background:var(--surface2)">
-        <td style="padding-left:26px">${escapeHtml(p.person || p.email || '—')}</td>
+        <td style="padding-left:26px">${escapeHtml(p.person || p.email || '—')}${
+          egcRoleLabel(p) ? ` <span class="rt-chip fs" title="Excluded from the publishing metrics on this tab.">${egcRoleLabel(p)}</span>` : ''}</td>
         <td colspan="2" style="color:var(--ink2)">${escapeHtml(p.email||'')}</td>
         <td class="rt-val"><span class="rt-chip" style="background:${sil?'rgba(216,90,48,0.15)':'rgba(29,158,117,0.14)'};color:${sil?'#993C1D':'#137a58'}">${egcSince(p.hours_silent)}</span></td>
         <td class="rt-val">${egcLastPostCell(p)}</td>
@@ -5940,13 +5967,19 @@ function egcRenderAttention(groups){
 
   const surfaced=rows.reduce((n,g)=>n+g.surfaced30,0);
   const ignored =rows.reduce((n,g)=>n+g.ignored30,0);
+  const misaimed = groups.flatMap(g=>g.misaimed);
+  const misCount = misaimed.reduce((n,p)=>n+(p.surfaced_30d||0),0);
   const note=document.getElementById('egc-attention-note');
-  if(note) note.innerHTML = surfaced
+  if(note) note.innerHTML = (misCount
+    ? `<b>${misCount.toLocaleString()}</b> of these went to seats that do not publish &mdash; `
+      + misaimed.map(p=>`${escapeHtml(p.person||p.email)} (${egcRoleLabel(p).toLowerCase()})`).join(', ')
+      + `. That content was never going to be posted by them, so it is generation to stop rather than attention to chase. `
+    : '') + (surfaced
     ? `<b>${ignored.toLocaleString()} of ${surfaced.toLocaleString()}</b> proposals expired without being published. `
       + `There is no reject action in the product, so this is not content being turned down on quality — it is content `
       + `going unused, which sits alongside the login flag as a question of attention. Drafts our own pipeline withdrew, `
       + `regenerated or bulk-hid are excluded.`
-    : 'No proposals surfaced to EGC publishers in the last 30 days.';
+    : 'No proposals surfaced to EGC publishers in the last 30 days.');
 }
 
 // How much clients rework the copy we write, before they post it.
