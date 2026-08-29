@@ -629,6 +629,7 @@ textarea.prt-input{resize:vertical}
   <button class="tab-btn" onclick="switchTab(event,'requests')">Product Request Tracker</button>
   <button class="tab-btn" onclick="switchTab(event,'responses')">Response Times</button>
   <button class="tab-btn" onclick="switchTab(event,'nps')">NPS</button>
+  <button class="tab-btn" onclick="switchTab(event,'egc')">EGC Usage</button>
   <button class="tab-btn" onclick="switchTab(event,'bonus')">Bonus Calculator</button>
 </div>
 
@@ -1614,6 +1615,45 @@ textarea.prt-input{resize:vertical}
     <div class="rt-note">Fix a gap by adding the <b>Face of Content</b> association label to the right contact on the company record in HubSpot — and make sure that contact has an email address. The next monthly send picks it up automatically.</div>
   </div>
 
+  <div id="tab-egc" class="tab-content">
+    <div class="prt-toolbar" style="margin-top:4px">
+      <div class="prt-seg" id="egc-filter">
+        <button class="prt-seg-btn active" data-view="all">All accounts</button>
+        <button class="prt-seg-btn" data-view="risk">Needs attention</button>
+      </div>
+      <div class="prt-toolbar-spacer"></div>
+      <span class="rt-note" id="egc-updated" style="margin-top:0"></span>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">EGC product usage</span>
+      <span class="section-note">Every publisher on an EGC seat &middot; a publisher silent more than 72 hours is flagged</span>
+    </div>
+    <div class="metric-grid-4" style="margin-bottom:20px">
+      <div class="mcard"><div class="mcard-label">EGC Accounts</div><div class="mcard-value ink" id="m-egc-accounts">&mdash;</div><div class="mcard-sub" id="m-egc-accounts-sub">With a seat in the product</div></div>
+      <div class="mcard"><div class="mcard-label">Publishers</div><div class="mcard-value ink" id="m-egc-publishers">&mdash;</div><div class="mcard-sub" id="m-egc-publishers-sub">Active seats</div></div>
+      <div class="mcard"><div class="mcard-label">Silent &gt; 72h</div><div class="mcard-value coral" id="m-egc-silent">&mdash;</div><div class="mcard-sub" id="m-egc-silent-sub">Not in the product since</div></div>
+      <div class="mcard"><div class="mcard-label">Posts (30d)</div><div class="mcard-value teal" id="m-egc-posts">&mdash;</div><div class="mcard-sub" id="m-egc-posts-sub">Published to LinkedIn</div></div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Accounts</span>
+      <span class="section-note">Riskiest first &middot; click a row for the people behind it</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Account</th><th>AM</th><th>Seats</th><th>Silent &gt;72h</th>
+            <th>Last post</th><th>Posts 30d</th><th>Published 30d</th><th>Dismissed 30d</th><th>LinkedIn</th>
+          </tr></thead>
+          <tbody id="egc-body"><tr><td colspan="9" class="rt-empty">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rt-note" id="egc-note">&ldquo;Silent&rdquo; is the later of a fresh sign-in and any session activity &mdash; a login alone understates use, because a session keeps refreshing without signing in again. Dismissed counts drafts the client rejected; a high ratio against Published is a content-fit problem, not a disengagement one.</div>
+  </div>
+
   <!-- Forecasting: projection editor (versioned) -->
   <div class="prt-modal-overlay" id="fc-ed-modal" style="display:none" onclick="if(event.target===this)fcCloseProjEditor()">
     <div class="prt-modal">
@@ -2323,6 +2363,7 @@ function switchTab(e, name) {
   if(name==='bonus'){ bonusEnsureInit(); return; }
   if(name==='responses'){ rtEnsureLoaded(); return; }
   if(name==='nps'){ npsEnsureLoaded(); return; }
+  if(name==='egc'){ egcEnsureLoaded(); return; }
   if(!allCompanies.length) return;
   if(name==='cohorts')   renderCohortsTab(managedSet());
   if(name==='portfolio') renderPortfolioTable(workingSet());
@@ -5557,6 +5598,162 @@ function npsWire(){
   };
   seg('nps-product-filter', btn=>{ npsProduct=btn.dataset.product; });
   seg('nps-window-filter',  btn=>{ npsMonths=Number(btn.dataset.months); });
+}
+
+// ── EGC USAGE ──────────────────────────────────────────────────
+// One row per EGC publisher, from the egc_usage() SECURITY DEFINER function.
+// The login signal lives in Supabase's auth schema, which PostgREST does not
+// expose, so the function reaches in and hands back only what this renders.
+let egcRows=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
+
+// The one signal Melissa is confident about: a publisher who has not been in
+// the product for three days is worth a call. Everything else on this tab is
+// descriptive until we learn which behaviours actually precede churn.
+const EGC_SILENT_HOURS = 72;
+
+function egcSilent(r){ return r.hours_silent==null || r.hours_silent >= EGC_SILENT_HOURS; }
+
+function egcSince(hours){
+  if(hours==null) return 'never';
+  if(hours < 24) return hours + 'h';
+  const d=Math.floor(hours/24);
+  return d + (d===1?' day':' days');
+}
+
+// Accounts come from the product database; the AM and health colour live in
+// HubSpot. Match on name, which is how the rest of this dashboard joins the two.
+function egcHubspot(name){
+  return (allCompanies||[]).find(c => (c.name||'').toLowerCase() === (name||'').toLowerCase()) || null;
+}
+
+function egcGroup(rows){
+  const by={};
+  rows.forEach(r=>{
+    const g = by[r.company_id] = by[r.company_id] || {
+      id:r.company_id, name:r.company_name, seats:r.seats, people:[],
+    };
+    g.people.push(r);
+  });
+  return Object.values(by).map(g=>{
+    const silent = g.people.filter(egcSilent);
+    // An account's risk is its most-neglected seat: one dark publisher out of
+    // two is half the account gone quiet, which a company-wide average hides.
+    const worst = g.people.reduce((m,p)=>{
+      const h = p.hours_silent==null ? Infinity : p.hours_silent;
+      return h > m ? h : m;
+    }, 0);
+    return {
+      ...g,
+      silent, worst,
+      posts30: g.people.reduce((n,p)=>n+(p.posts_30d||0),0),
+      pub30:   g.people.reduce((n,p)=>n+(p.published_30d||0),0),
+      dis30:   g.people.reduce((n,p)=>n+(p.dismissed_30d||0),0),
+      lastPost: g.people.map(p=>p.last_post).filter(Boolean).sort().pop() || null,
+      liBroken: g.people.filter(p=>p.li_broken).length,
+      liNone:   g.people.filter(p=>!p.li_connected).length,
+      hs: egcHubspot(g.name),
+    };
+  }).sort((a,b)=> b.silent.length - a.silent.length || b.worst - a.worst || a.name.localeCompare(b.name));
+}
+
+function egcRender(){
+  const rows = egcRows||[];
+  const groups = egcGroup(rows);
+  const shown = egcView==='risk' ? groups.filter(g=>g.silent.length || g.liBroken || g.liNone) : groups;
+
+  const setTxt=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  const silentAll = rows.filter(egcSilent);
+  setTxt('m-egc-accounts', String(groups.length));
+  setTxt('m-egc-publishers', String(rows.length));
+  setTxt('m-egc-silent', String(silentAll.length));
+  const neverIn = silentAll.some(r=>r.hours_silent==null);
+  const longest = silentAll.length ? Math.max(...silentAll.map(r=>r.hours_silent||0)) : 0;
+  setTxt('m-egc-silent-sub', silentAll.length
+    ? (neverIn ? 'Longest: never signed in' : 'Longest: ' + egcSince(longest))
+    : 'Everyone active in the last 3 days');
+  setTxt('m-egc-posts', String(rows.reduce((n,r)=>n+(r.posts_30d||0),0)));
+
+  const body=document.getElementById('egc-body');
+  if(!body) return;
+  if(!shown.length){
+    body.innerHTML = `<tr><td colspan="9" class="rt-empty">${rows.length ? 'Nothing needs attention right now.' : 'No EGC publishers found.'}</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = shown.map(g=>{
+    const open = !!egcOpen[g.id];
+    const silentChip = g.silent.length
+      ? `<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D">${g.silent.length} of ${g.people.length}</span>`
+      : '<span class="rt-chip fs">none</span>';
+    const li = g.liNone || g.liBroken
+      ? `<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D">${g.liBroken?g.liBroken+' broken':''}${g.liBroken&&g.liNone?' · ':''}${g.liNone?g.liNone+' not connected':''}</span>`
+      : '<span class="rt-chip egc">ok</span>';
+    const head = `<tr class="egc-row" style="cursor:pointer" onclick="egcToggle('${g.id}')">
+      <td><span style="display:inline-block;width:12px;color:var(--ink3)">${open?'▾':'▸'}</span> ${escapeHtml(g.name)}</td>
+      <td>${escapeHtml(g.hs && g.hs.csm || '—')}</td>
+      <td class="rt-val">${g.people.length}${g.seats!=null&&g.seats!==g.people.length?` <span style="color:var(--ink3)">of ${g.seats}</span>`:''}</td>
+      <td class="rt-val">${silentChip}</td>
+      <td class="rt-val">${g.lastPost ? new Date(g.lastPost+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
+      <td class="rt-val">${g.posts30}</td>
+      <td class="rt-val">${g.pub30}</td>
+      <td class="rt-val">${g.dis30}</td>
+      <td class="rt-val">${li}</td>
+    </tr>`;
+    if(!open) return head;
+    const people = g.people.slice().sort((a,b)=>(b.hours_silent==null?1e9:b.hours_silent)-(a.hours_silent==null?1e9:a.hours_silent)).map(p=>{
+      const sil = egcSilent(p);
+      return `<tr>
+        <td style="padding-left:26px">${escapeHtml(p.person || p.email || '—')}</td>
+        <td colspan="2" style="color:var(--ink2)">${escapeHtml(p.email||'')}</td>
+        <td class="rt-val"><span class="rt-chip" style="background:${sil?'rgba(216,90,48,0.15)':'rgba(29,158,117,0.14)'};color:${sil?'#993C1D':'#137a58'}">${egcSince(p.hours_silent)}</span></td>
+        <td class="rt-val">${p.last_post ? new Date(p.last_post+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
+        <td class="rt-val">${p.posts_30d||0}</td>
+        <td class="rt-val">${p.published_30d||0}</td>
+        <td class="rt-val">${p.dismissed_30d||0}</td>
+        <td class="rt-val">${p.li_broken?'<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D">broken</span>':(p.li_connected?'<span class="rt-chip egc">ok</span>':'<span class="rt-chip fs">none</span>')}</td>
+      </tr>`;
+    }).join('');
+    return head + `<tr><td colspan="9" style="padding:0;background:var(--surface2)"><table style="width:100%"><tbody>${people}</tbody></table></td></tr>`;
+  }).join('');
+}
+
+function egcToggle(id){ egcOpen[id]=!egcOpen[id]; egcRender(); }
+
+async function egcEnsureLoaded(){
+  egcWire();
+  if(egcRows){ egcRender(); return; }
+  if(egcLoading) return egcLoading;
+  egcLoading=(async()=>{
+    try{
+      const { data, error } = await sb.rpc('egc_usage');
+      if(error) throw error;
+      egcRows = data||[];
+      const upd=document.getElementById('egc-updated');
+      if(upd) upd.textContent = `${egcRows.length} publisher${egcRows.length===1?'':'s'} across the EGC book`;
+    }catch(e){
+      console.warn('egc load failed', e);
+      egcRows=[];
+      const upd=document.getElementById('egc-updated');
+      if(upd) upd.textContent='Could not load usage: '+(e.message||e);
+    }
+    egcRender();
+  })();
+  return egcLoading;
+}
+
+function egcWire(){
+  if(egcWired) return;
+  egcWired=true;
+  const el=document.getElementById('egc-filter');
+  if(!el) return;
+  el.addEventListener('click', e=>{
+    const btn=e.target.closest('.prt-seg-btn');
+    if(!btn) return;
+    el.querySelectorAll('.prt-seg-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    egcView=btn.dataset.view;
+    egcRender();
+  });
 }
 
 // ── INIT ────────────────────────────────────────────────────────
