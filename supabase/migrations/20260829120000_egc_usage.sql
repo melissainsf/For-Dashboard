@@ -27,9 +27,7 @@ returns table (
   last_post       date,
   posts_30d       int,
   published_30d   int,
-  acted_30d       int,
   ignored_30d     int,
-  rejected_30d    int,
   surfaced_30d    int,
   li_connected    boolean,
   li_broken       boolean
@@ -60,19 +58,21 @@ begin
        and coalesce(u.is_active, true)
   ),
   d30 as (
-    -- Only what the CLIENT could act on. Virio-side dismissals — an agent
-    -- withdrawing a proposal, a regeneration after a strategy change,
-    -- de-duplication, backlog cleanup — are our own housekeeping and must never
-    -- read as client neglect, so they are counted in none of these buckets.
+    -- There is NO reject action in the product. A publisher either publishes a
+    -- proposal or it expires unactioned, so publishing is the only positive
+    -- client signal that exists.
     --
-    -- Across the EGC book in a 30-day window there was exactly ONE active
-    -- rejection; everything else expired unactioned. Collapsing the two into a
-    -- single "dismissed" number reads as "they hate the content" when the truth
-    -- is "nobody opened it" — a different problem with a different fix.
+    -- The handful of rows reading 'rejected from feed' / 'negative' / 'bulk
+    -- hidden from feed' are NOT clients declining anything: they carry
+    -- created_by_session_id and trigger_source values from our own pipeline
+    -- (outlier_rewrite, abm, monitor, file_upload), and cluster on the backlog
+    -- cleanup date. Counting them as rejections would have reported our
+    -- pipeline's behaviour as the client's.
+    --
+    -- So every dismissal except auto_expired_unactioned is ours, and is counted
+    -- in neither bucket.
     select d.user_id,
            count(*) filter (where d.status = 'published') as published,
-           count(*) filter (where d.status = 'dismissed'
-                              and d.dismissed_reason in ('rejected from feed','negative','bulk hidden from feed')) as rejected,
            count(*) filter (where d.status = 'dismissed'
                               and d.dismissed_reason = 'auto_expired_unactioned') as ignored
       from public.drafts d
@@ -102,10 +102,8 @@ begin
          (select count(*)::int from public.lineage_posts lp
            where lp.user_id = a.id and lp.published_at > now() - interval '30 days'),
          coalesce(d.published,0)::int,
-         (coalesce(d.published,0) + coalesce(d.rejected,0))::int,           -- acted on
          coalesce(d.ignored,0)::int,                                        -- expired unread
-         coalesce(d.rejected,0)::int,
-         (coalesce(d.published,0) + coalesce(d.rejected,0) + coalesce(d.ignored,0))::int,  -- surfaced
+         (coalesce(d.published,0) + coalesce(d.ignored,0))::int,            -- surfaced
          exists (select 1 from public.linkedin_auth la
                   where la.user_id = a.id and la.disconnected_at is null),
          exists (select 1 from public.linkedin_auth la
