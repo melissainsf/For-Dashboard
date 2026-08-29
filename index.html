@@ -1635,7 +1635,7 @@ textarea.prt-input{resize:vertical}
       <div class="mcard"><div class="mcard-label">Publishers</div><div class="mcard-value ink" id="m-egc-publishers">&mdash;</div><div class="mcard-sub" id="m-egc-publishers-sub">Active seats</div></div>
       <div class="mcard"><div class="mcard-label">Silent &gt; 72h</div><div class="mcard-value coral" id="m-egc-silent">&mdash;</div><div class="mcard-sub" id="m-egc-silent-sub">Not in the product since</div></div>
       <div class="mcard"><div class="mcard-label">Posts (30d)</div><div class="mcard-value teal" id="m-egc-posts">&mdash;</div><div class="mcard-sub" id="m-egc-posts-sub">Published to LinkedIn</div></div>
-      <div class="mcard"><div class="mcard-label">Edits per post</div><div class="mcard-value ink" id="m-egc-edit">&mdash;</div><div class="mcard-sub" id="m-egc-edit-sub">How much clients rework our copy</div></div>
+      <div class="mcard"><div class="mcard-label">Avg. edits per post</div><div class="mcard-value ink" id="m-egc-edit">&mdash;</div><div class="mcard-sub" id="m-egc-edit-sub">How much clients rework our copy</div></div>
     </div>
 
     <div class="section-header">
@@ -1647,7 +1647,7 @@ textarea.prt-input{resize:vertical}
         <table>
           <thead><tr>
             <th>Account</th><th>AM</th><th>Seats</th><th>Silent &gt;72h</th>
-            <th>Last post</th><th>Posts 30d</th><th>Edits 30d</th><th>Published 30d</th><th>Expired unread</th><th>LinkedIn</th>
+            <th>Last post</th><th>Posts 30d</th><th>Avg. edits</th><th>Published 30d</th><th>Expired unread</th><th>LinkedIn</th>
           </tr></thead>
           <tbody id="egc-body"><tr><td colspan="10" class="rt-empty">Loading&hellip;</td></tr></tbody>
         </table>
@@ -1681,7 +1681,7 @@ textarea.prt-input{resize:vertical}
         <table>
           <thead><tr>
             <th>Account</th><th>Posted</th><th>Touched</th>
-            <th>Edits</th><th>Edits per post</th><th>Time editing</th>
+            <th>Total edits</th><th>Avg. edits per post</th><th>Total time editing</th>
           </tr></thead>
           <tbody id="egc-edit-body"><tr><td colspan="6" class="rt-empty">Loading&hellip;</td></tr></tbody>
         </table>
@@ -5649,6 +5649,13 @@ const EGC_SILENT_HOURS = 72;
 
 function egcSilent(r){ return r.hours_silent==null || r.hours_silent >= EGC_SILENT_HOURS; }
 
+// Average client edits per published post. A raw total is not comparable down
+// a column: 55 edits on one post and 49 across two read alike and are not.
+function egcAvgEdits(edits, posts){
+  if(!posts) return '<span class="rt-pending">&mdash;</span>';
+  return (edits/posts).toFixed(1);
+}
+
 // Minutes of editing, as a person would say it.
 function egcMins(m){
   const n = Number(m)||0;
@@ -5760,7 +5767,7 @@ function egcRender(){
       <td class="rt-val">${silentChip}</td>
       <td class="rt-val">${g.lastPost ? new Date(g.lastPost+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
       <td class="rt-val">${g.posts30}</td>
-      <td class="rt-val">${g.posts30 ? g.edits30 : '<span class="rt-pending">&mdash;</span>'}</td>
+      <td class="rt-val">${egcAvgEdits(g.edits30, g.posts30)}</td>
       <td class="rt-val">${g.pub30}</td>
       <td class="rt-val">${g.ignored30}</td>
       <td class="rt-val">${li}</td>
@@ -5768,19 +5775,19 @@ function egcRender(){
     if(!open) return head;
     const people = g.people.slice().sort((a,b)=>(b.hours_silent==null?1e9:b.hours_silent)-(a.hours_silent==null?1e9:a.hours_silent)).map(p=>{
       const sil = egcSilent(p);
-      return `<tr>
+      return `<tr style="background:var(--surface2)">
         <td style="padding-left:26px">${escapeHtml(p.person || p.email || '—')}</td>
         <td colspan="2" style="color:var(--ink2)">${escapeHtml(p.email||'')}</td>
         <td class="rt-val"><span class="rt-chip" style="background:${sil?'rgba(216,90,48,0.15)':'rgba(29,158,117,0.14)'};color:${sil?'#993C1D':'#137a58'}">${egcSince(p.hours_silent)}</span></td>
         <td class="rt-val">${p.last_post ? new Date(p.last_post+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
         <td class="rt-val">${p.posts_30d||0}</td>
-        <td class="rt-val">${(p.posts_30d||0) ? (p.edits_30d||0) : '<span class="rt-pending">&mdash;</span>'}</td>
+        <td class="rt-val">${egcAvgEdits(p.edits_30d||0, p.posts_30d||0)}</td>
         <td class="rt-val">${p.published_30d||0}</td>
         <td class="rt-val">${p.ignored_30d||0}</td>
         <td class="rt-val">${p.li_broken?'<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D">broken</span>':(p.li_connected?'<span class="rt-chip egc">ok</span>':'<span class="rt-chip fs">none</span>')}</td>
       </tr>`;
     }).join('');
-    return head + `<tr><td colspan="10" style="padding:0;background:var(--surface2)"><table style="width:100%"><tbody>${people}</tbody></table></td></tr>`;
+    return head + people;
   }).join('');
 }
 
