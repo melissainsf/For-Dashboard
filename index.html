@@ -5679,6 +5679,16 @@ function egcAvgEdits(edits, posts){
   return (edits/posts).toFixed(1);
 }
 
+// A publisher who got their seat nine days ago has not been quiet for thirty
+// days — they have not had thirty days. Where the seat is younger than the
+// window, say the seat's age instead of the window's.
+function egcPostsPhrase(posts, seatDays){
+  const n = posts||0, word = `${n} post${n===1?'':'s'}`;
+  if(seatDays==null || seatDays >= 30) return `${word} in 30 days`;
+  if(seatDays <= 0) return `${word} — seat added today`;
+  return `${word} since getting a seat ${seatDays} day${seatDays===1?'':'s'} ago`;
+}
+
 // Minutes of editing, as a person would say it.
 function egcMins(m){
   const n = Number(m)||0;
@@ -6010,7 +6020,7 @@ function egcRenderSilentChart(groups){
           label: ctx => {
             const p = people[ctx.dataIndex];
             return [` ${p.company}`, ` Last seen: ${egcSince(p.hours_silent)} ago`,
-                    ` ${p.posts_30d||0} post${(p.posts_30d||0)===1?'':'s'} in 30 days`];
+                    ` ${egcPostsPhrase(p.posts_30d, p.seat_days)}`];
           }
         }}
       },
