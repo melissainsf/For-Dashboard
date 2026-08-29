@@ -1638,6 +1638,29 @@ textarea.prt-input{resize:vertical}
       <div class="mcard"><div class="mcard-label">Avg. edits per post</div><div class="mcard-value ink" id="m-egc-edit">&mdash;</div><div class="mcard-sub" id="m-egc-edit-sub">How much clients rework our copy</div></div>
     </div>
 
+    <div class="chart-card">
+      <div class="chart-card-title">Days since each publisher was last in the product</div>
+      <div class="chart-card-sub">Longest first &middot; the line marks 72 hours</div>
+      <div class="chart-wrap-lg"><canvas id="egcSilentBar"></canvas></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#D85A30"></span>Silent &gt; 72h</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Active</span>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Avg. edits per post</div>
+        <div class="chart-card-sub">Client edits only, last 90 days &middot; accounts that published</div>
+        <div class="chart-wrap-sm"><canvas id="egcEditsBar"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-card-title">Posts published per week</div>
+        <div class="chart-card-sub">Whole EGC book &middot; the faded bar is this week, still in progress</div>
+        <div class="chart-wrap-sm"><canvas id="egcWeekBar"></canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:20px"></div>
+
     <div class="section-header">
       <span class="section-title">Accounts</span>
       <span class="section-note">Riskiest first &middot; click a row for the people behind it</span>
@@ -5640,7 +5663,7 @@ function npsWire(){
 // One row per EGC publisher, from the egc_usage() SECURITY DEFINER function.
 // The login signal lives in Supabase's auth schema, which PostgREST does not
 // expose, so the function reaches in and hands back only what this renders.
-let egcRows=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
+let egcRows=null, egcWeeks=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
 
 // The one signal Melissa is confident about: a publisher who has not been in
 // the product for three days is worth a call. Everything else on this tab is
@@ -5716,7 +5739,7 @@ function egcGroup(rows){
   }).sort((a,b)=> b.silent.length - a.silent.length || b.worst - a.worst || a.name.localeCompare(b.name));
 }
 
-function egcRender(){
+function egcRender(opts){
   const rows = egcRows||[];
   const groups = egcGroup(rows);
   const shown = egcView==='risk' ? groups.filter(g=>g.silent.length || g.liBroken || g.liNone) : groups;
@@ -5746,6 +5769,8 @@ function egcRender(){
   if(!body) return;
   egcRenderAttention(groups);
   egcRenderEdits(groups);
+  // Toggling a row only rewrites the table; rebuilding the canvases would flash.
+  if(!(opts&&opts.tableOnly)) egcRenderCharts(shown);
 
   if(!shown.length){
     body.innerHTML = `<tr><td colspan="10" class="rt-empty">${rows.length ? 'Nothing needs attention right now.' : 'No EGC publishers found.'}</td></tr>`;
@@ -5897,7 +5922,177 @@ function egcRenderEdits(groups){
     : 'No EGC publisher has put a post on LinkedIn in the last 90 days.';
 }
 
-function egcToggle(id){ egcOpen[id]=!egcOpen[id]; egcRender(); }
+// ── EGC charts ─────────────────────────────────────────────────
+// Three charts, each carrying one number the tables state in full. Colour is
+// doing status work in the first (dark vs active) and identity work in the
+// other two, so those get a single hue rather than a value ramp — shading five
+// bars by their own height would spend the one free channel restating the bar.
+const EGC_TEAL = '#1D9E75', EGC_CORAL = '#D85A30', EGC_BLUE = '#378ADD';
+
+// Draws the 72-hour line. Chart.js has no annotation support without the
+// plugin, and the threshold is the entire point of that chart.
+const egcThresholdLine = {
+  id:'egcThresholdLine',
+  afterDatasetsDraw(chart, args, opts){
+    const x = chart.scales.x; if(!x) return;
+    const px = x.getPixelForValue(opts.at);
+    if(!isFinite(px) || px < x.left || px > x.right) return;
+    const {ctx, chartArea} = chart;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(26,25,22,0.35)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px, chartArea.top); ctx.lineTo(px, chartArea.bottom); ctx.stroke();
+    // Above the plot, not inside it: at chartArea.top the label sits on the
+    // longest bar, which is exactly the row a reader is looking at.
+    ctx.fillStyle = '#5C5A55'; ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(opts.label, px, chartArea.top - 3);
+    ctx.restore();
+  }
+};
+
+// Values above each bar. Five bars is not a dense chart, and it is the only way
+// a zero — Othello publishing our copy untouched — is visible at all.
+const egcBarValues = {
+  id:'egcBarValues',
+  afterDatasetsDraw(chart, args, opts){
+    const meta = chart.getDatasetMeta(0); if(!meta) return;
+    const {ctx} = chart;
+    ctx.save();
+    ctx.fillStyle = '#5C5A55'; ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    meta.data.forEach((bar, i) => {
+      const v = chart.data.datasets[0].data[i];
+      ctx.fillText((opts && opts.fmt ? opts.fmt(v) : String(v)), bar.x, bar.y - 3);
+    });
+    ctx.restore();
+  }
+};
+
+function egcDestroy(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+function egcRenderCharts(groups){
+  egcRenderSilentChart(groups);
+  egcRenderEditsChart(groups);
+  egcRenderWeekChart();
+}
+
+// Every publisher, longest dark first. The scale stays linear even though one
+// person is far out: an 18-day gap dwarfing everyone else IS the finding, and
+// compressing it would be flattering the number.
+function egcRenderSilentChart(groups){
+  const el = document.getElementById('egcSilentBar');
+  if(!el || typeof Chart === 'undefined') return;
+  egcDestroy('egcSilentBar');
+
+  const people = groups.flatMap(g => g.people.map(p => ({...p, company:g.name})))
+    .sort((a,b) => (b.hours_silent==null?1e9:b.hours_silent) - (a.hours_silent==null?1e9:a.hours_silent));
+  if(!people.length) return;
+
+  const days  = people.map(p => p.hours_silent==null ? 0 : +(p.hours_silent/24).toFixed(1));
+  const short = n => (n||'').length > 20 ? (n||'').slice(0,19) + '…' : (n||'');
+
+  charts['egcSilentBar'] = new Chart(el.getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: people.map(p => short(p.person || p.email || '—')),
+      datasets:[{ data: days, borderRadius:4, maxBarThickness:13,
+        backgroundColor: people.map(p => egcSilent(p) ? EGC_CORAL : EGC_TEAL) }]
+    },
+    plugins:[egcThresholdLine],
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:14}},
+      plugins:{
+        legend:{display:false},
+        egcThresholdLine:{ at: EGC_SILENT_HOURS/24, label:'72h' },
+        tooltip:{callbacks:{
+          title: items => people[items[0].dataIndex].person || people[items[0].dataIndex].email || '—',
+          label: ctx => {
+            const p = people[ctx.dataIndex];
+            return [` ${p.company}`, ` Last seen: ${egcSince(p.hours_silent)} ago`,
+                    ` ${p.posts_30d||0} post${(p.posts_30d||0)===1?'':'s'} in 30 days`];
+          }
+        }}
+      },
+      scales:{
+        x:{ title:{display:true, text:'Days since last active', font:{size:10}, color:'#9B9890'},
+            ticks:{font:{size:10}}, grid:{color:'rgba(26,25,22,0.06)'}, beginAtZero:true },
+        y:{ ticks:{font:{size:10}}, grid:{display:false} }
+      }
+    }
+  });
+}
+
+// Accounts that published nothing are left out rather than drawn as zero: no
+// posts is an empty denominator, not a client who changed nothing.
+function egcRenderEditsChart(groups){
+  const el = document.getElementById('egcEditsBar');
+  if(!el || typeof Chart === 'undefined') return;
+  egcDestroy('egcEditsBar');
+
+  const gs = groups.filter(g => g.posts90 > 0)
+    .sort((a,b) => (b.edits90/b.posts90) - (a.edits90/a.posts90));
+  if(!gs.length) return;
+
+  charts['egcEditsBar'] = new Chart(el.getContext('2d'), {
+    type:'bar',
+    data:{ labels: gs.map(g => g.name),
+      datasets:[{ data: gs.map(g => +(g.edits90/g.posts90).toFixed(1)),
+        backgroundColor: EGC_TEAL, borderRadius:4, maxBarThickness:52 }] },
+    plugins:[egcBarValues],
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:14}},
+      plugins:{
+        legend:{display:false},
+        egcBarValues:{ fmt: v => v.toFixed(1) },
+        tooltip:{callbacks:{ label: ctx => {
+          const g = gs[ctx.dataIndex];
+          return [` ${g.edits90} edit${g.edits90===1?'':'s'} across ${g.posts90} post${g.posts90===1?'':'s'}`,
+                  ` ${g.edited90} of ${g.posts90} touched at all`,
+                  ` ${egcMins(g.editMin90)} in the editor`];
+        }}}
+      },
+      scales:{ x:{ticks:{font:{size:10}}, grid:{display:false}},
+               y:{ticks:{font:{size:10}}, grid:{color:'rgba(26,25,22,0.06)'}, beginAtZero:true} }
+    }
+  });
+}
+
+// The current week is partial, so it is drawn faded — a live week read as a
+// finished one looks like a collapse every Monday morning.
+function egcRenderWeekChart(){
+  const el = document.getElementById('egcWeekBar');
+  if(!el || typeof Chart === 'undefined') return;
+  egcDestroy('egcWeekBar');
+
+  const wks = egcWeeks || [];
+  if(!wks.length) return;
+  const last = wks.length - 1;
+  const fmtWk = w => new Date(w + 'T00:00:00Z')
+    .toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
+
+  charts['egcWeekBar'] = new Chart(el.getContext('2d'), {
+    type:'bar',
+    data:{ labels: wks.map(w => fmtWk(w.week)),
+      datasets:[{ data: wks.map(w => w.posts), borderRadius:3,
+        backgroundColor: wks.map((w,i) => i===last ? 'rgba(55,138,221,0.45)' : EGC_BLUE) }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          title: items => 'Week of ' + items[0].label,
+          label: ctx => ` ${ctx.raw} post${ctx.raw===1?'':'s'}${ctx.dataIndex===last?' so far (week in progress)':''}`
+        }}
+      },
+      scales:{ x:{ticks:{font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:7}, grid:{display:false}},
+               y:{ticks:{font:{size:10}, stepSize:1, precision:0}, grid:{color:'rgba(26,25,22,0.06)'}, beginAtZero:true} }
+    }
+  });
+}
+
+function egcToggle(id){ egcOpen[id]=!egcOpen[id]; egcRender({tableOnly:true}); }
 
 async function egcEnsureLoaded(){
   egcWire();
@@ -5905,9 +6100,14 @@ async function egcEnsureLoaded(){
   if(egcLoading) return egcLoading;
   egcLoading=(async()=>{
     try{
-      const { data, error } = await sb.rpc('egc_usage');
-      if(error) throw error;
-      egcRows = data||[];
+      const [usage, weeks] = await Promise.all([
+        sb.rpc('egc_usage'),
+        sb.rpc('egc_post_weeks'),
+      ]);
+      if(usage.error) throw usage.error;
+      egcRows = usage.data||[];
+      // The trend is a nicety; a failure there must not cost us the whole tab.
+      egcWeeks = weeks.error ? [] : (weeks.data||[]);
       const upd=document.getElementById('egc-updated');
       if(upd) upd.textContent = `${egcRows.length} publisher${egcRows.length===1?'':'s'} across the EGC book`;
     }catch(e){
