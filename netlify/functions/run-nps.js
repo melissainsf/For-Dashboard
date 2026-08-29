@@ -65,6 +65,13 @@ exports.handler = async function (event) {
     return json(401, { error: 'unauthorized — key must be NPS_JOB_SECRET (or the last 6 characters of the HubSpot token)' });
   }
 
+  // A value copied off a screen instead of with the Copy button can carry
+  // masking characters (•, …) or stray whitespace. Those blow up as an opaque
+  // "cannot convert argument to a ByteString" the moment they reach an HTTP
+  // header, so name the offender here instead.
+  const badVar = checkEnv();
+  if (badVar) return json(500, { error: badVar });
+
   const dryRun = q.dry === '1' || q.dry === 'true';
   const period = /^\d{4}-\d{2}-01$/.test(q.period || '') ? q.period : periodOf();
   const testTo = (q.test || '').trim();
@@ -87,6 +94,23 @@ exports.handler = async function (event) {
     return json(500, { error: e.message });
   }
 };
+
+// Returns a human-readable complaint about the first unusable env var, or null.
+function checkEnv() {
+  for (const name of ['HUBSPOT_TOKEN', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'NPS_JOB_SECRET', 'RESEND_API_KEY', 'NPS_FROM']) {
+    const v = process.env[name];
+    if (!v) continue;
+    const bad = [...v].find(c => c.charCodeAt(0) > 126 || c.charCodeAt(0) < 32);
+    if (bad) {
+      const at = [...v].findIndex(c => c === bad);
+      return `${name} contains the character "${bad}" (code ${bad.charCodeAt(0)}) at position ${at}. `
+        + 'That usually means the value was copied off the screen while partly masked, rather than with the Copy button. '
+        + 'Re-copy it at the source and paste it again in Netlify.';
+    }
+    if (v !== v.trim()) return `${name} has leading or trailing whitespace. Re-paste it in Netlify without the spaces.`;
+  }
+  return null;
+}
 
 function json(statusCode, body) {
   return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body, null, 2) };
