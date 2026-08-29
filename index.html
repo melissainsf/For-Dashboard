@@ -139,6 +139,8 @@ body.data-stale .chart-card,body.data-stale .mcard{opacity:0.6;transition:opacit
 .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .chart-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
 .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.egc-meter{display:block;width:100%;max-width:120px;height:4px;border-radius:2px;background:var(--surface2);margin-top:4px;overflow:hidden}
+.egc-meter>i{display:block;height:100%;border-radius:2px}
 .legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink2)}
 .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 /* HEALTH WIDGET */
@@ -1660,6 +1662,23 @@ textarea.prt-input{resize:vertical}
       </div>
     </div>
     <div style="margin-bottom:20px"></div>
+
+    <div class="section-header">
+      <span class="section-title">Pilot clock and time to value</span>
+      <span class="section-note">Kickoff from HubSpot &middot; first post from Lineage &middot; POC runs 90 days from kickoff</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Account</th><th>Kickoff</th><th>Day of POC</th><th>POC ends</th>
+            <th>First post</th><th>Time to value</th><th>Status</th>
+          </tr></thead>
+          <tbody id="egc-poc-body"><tr><td colspan="7" class="rt-empty">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rt-note" id="egc-poc-note"></div>
 
     <div class="section-header">
       <span class="section-title">Accounts</span>
@@ -5738,6 +5757,10 @@ function egcGroup(rows){
       edited90:  g.people.reduce((n,p)=>n+(p.edited_90d||0),0),
       edits90:   g.people.reduce((n,p)=>n+(p.edits_90d||0),0),
       editMin90: g.people.reduce((n,p)=>n+Number(p.edit_min_90d||0),0),
+      // Earliest of each across the account's seats: the pilot clock is an
+      // account-level contract, not a per-person one.
+      firstSeat: g.people.map(p=>p.seat_added).filter(Boolean).sort()[0] || null,
+      firstPost: g.people.map(p=>p.first_post).filter(Boolean).sort()[0] || null,
       pub30:     g.people.reduce((n,p)=>n+(p.published_30d||0),0),
       ignored30: g.people.reduce((n,p)=>n+(p.ignored_30d||0),0),
       surfaced30:g.people.reduce((n,p)=>n+(p.surfaced_30d||0),0),
@@ -5777,6 +5800,7 @@ function egcRender(opts){
 
   const body=document.getElementById('egc-body');
   if(!body) return;
+  egcRenderPoc(groups);
   egcRenderAttention(groups);
   egcRenderEdits(groups);
   // Toggling a row only rewrites the table; rebuilding the canvases would flash.
@@ -6100,6 +6124,109 @@ function egcRenderWeekChart(){
                y:{ticks:{font:{size:10}, stepSize:1, precision:0}, grid:{color:'rgba(26,25,22,0.06)'}, beginAtZero:true} }
     }
   });
+}
+
+// ── Pilot clock and time to value ──────────────────────────────
+// Kickoff and pilot status come from HubSpot; first post comes from Lineage,
+// because HubSpot's first_post_date is set by hand and is null on four of the
+// five EGC accounts. Time to value is kickoff to first post going live.
+//
+// The 90 is PRT_CFG.pilotDays, shared with the request tracker, so the pilot
+// length has one definition on this dashboard rather than two that can drift.
+//
+// A converted or exited account gets no countdown. Othello sits at day 89 of
+// 90 and converted; running a clock on it would invent a deadline that has
+// already been answered.
+const EGC_TERMINAL = { 'Converted':'converted', 'Churned Post Conversion':'churned', 'Exited During Pilot':'exited' };
+
+function egcDays(from, to){
+  if(!from || !to) return null;
+  const a = prtUtcDate(from), b = prtUtcDate(to);
+  if(!a || !b) return null;
+  return Math.round((b - a) / 86400000);
+}
+function egcFmtDate(d){
+  const dt = prtUtcDate(d);
+  return dt ? dt.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '—';
+}
+
+function egcRenderPoc(groups){
+  const body = document.getElementById('egc-poc-body');
+  if(!body) return;
+  const today = new Date();
+
+  const rows = groups.map(g => {
+    const hs      = g.hs;
+    const kickoff = hs && hs.kickoff_date || null;
+    const status  = hs && hs.pilot_status || null;
+    const term    = EGC_TERMINAL[status] || null;
+    const day     = egcDays(kickoff, today);
+    const pocEnd  = kickoff ? prtAddDays(prtUtcDate(kickoff), PRT_CFG.pilotDays) : null;
+    const left    = pocEnd ? Math.round((pocEnd - today) / 86400000) : null;
+    const ttv     = egcDays(kickoff, g.firstPost);
+    // Runpod kicked off in February and only took EGC seats in August. Measuring
+    // time to value across that gap is arithmetic, not a fact about onboarding.
+    const seatLag = egcDays(kickoff, g.firstSeat);
+    const lagged  = seatLag != null && seatLag > 14;
+    return {g, kickoff, status, term, day, pocEnd, left, ttv, seatLag, lagged};
+  }).sort((a,b) => {
+    const live = r => (!r.term && r.left != null) ? 0 : 1;
+    if(live(a) !== live(b)) return live(a) - live(b);
+    if(!live(a)) return a.left - b.left;               // soonest deadline first
+    return a.g.name.localeCompare(b.g.name);
+  });
+
+  if(!rows.length){ body.innerHTML='<tr><td colspan="7" class="rt-empty">No EGC accounts found.</td></tr>'; return; }
+
+  body.innerHTML = rows.map(r => {
+    if(!r.kickoff) return `<tr>
+      <td>${escapeHtml(r.g.name)}</td>
+      <td colspan="5"><span class="rt-pending" title="No kickoff_call_date on the HubSpot company record.">no kickoff date in HubSpot</span></td>
+      <td>${r.status ? escapeHtml(r.status) : '<span class="rt-pending">&mdash;</span>'}</td>
+    </tr>`;
+
+    const pct  = Math.max(0, Math.min(100, (r.day / PRT_CFG.pilotDays) * 100));
+    const hue  = r.term ? '#9B9890' : r.left <= 14 ? '#D85A30' : r.left <= 30 ? '#BA7517' : '#1D9E75';
+    const dayCell = r.term
+      ? `<span style="color:var(--ink3)">Day ${r.day} &middot; ended</span>`
+      : `Day ${r.day} of ${PRT_CFG.pilotDays}<span class="egc-meter"><i style="width:${pct.toFixed(1)}%;background:${hue}"></i></span>`;
+
+    const endCell = r.term
+      ? `<span style="color:var(--ink3)">${egcFmtDate(r.pocEnd)}</span>`
+      : r.left < 0
+        ? `<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D" title="Past the 90-day POC with no recorded outcome.">${egcFmtDate(r.pocEnd)} &middot; ${Math.abs(r.left)}d overdue</span>`
+        : `${egcFmtDate(r.pocEnd)} <span style="color:${hue}">&middot; ${r.left}d left</span>`;
+
+    // Same colour convention as time-to-value everywhere else on the dashboard.
+    const ttvCell = r.ttv == null
+      ? `<span class="rt-pending" title="Nobody at this account has published yet.">none yet &middot; day ${r.day}</span>`
+      : (() => {
+          const c = r.ttv <= 14 ? 'var(--teal)' : r.ttv <= 30 ? 'var(--blue)' : 'var(--amber)';
+          const warn = r.lagged
+            ? ` title="Seats were not created until ${egcFmtDate(r.g.firstSeat)}, ${r.seatLag} days after kickoff — most of this span is before anyone could post."`
+            : '';
+          return `<span style="color:${r.lagged?'var(--ink3)':c}"${warn}>${r.ttv} days${r.lagged?' *':''}</span>`;
+        })();
+
+    return `<tr>
+      <td>${escapeHtml(r.g.name)}</td>
+      <td>${egcFmtDate(r.kickoff)}</td>
+      <td>${dayCell}</td>
+      <td>${endCell}</td>
+      <td>${r.g.firstPost ? egcFmtDate(r.g.firstPost) : '<span class="rt-pending">none yet</span>'}</td>
+      <td>${ttvCell}</td>
+      <td>${r.term ? `<span class="rt-chip ${r.term==='converted'?'egc':'fs'}">${escapeHtml(r.status)}</span>` : escapeHtml(r.status || 'In progress')}</td>
+    </tr>`;
+  }).join('');
+
+  const live = rows.filter(r => !r.term && r.left != null && r.left >= 0).sort((a,b)=>a.left-b.left);
+  const note = document.getElementById('egc-poc-note');
+  if(note) note.innerHTML = live.length
+    ? `<b>${live[0].g.name}</b> is next to reach the end of its proof of concept &mdash; ${live[0].left} days, on ${egcFmtDate(live[0].pocEnd)}. `
+      + `Time to value is kickoff to first post going live, taken from Lineage rather than HubSpot's first_post_date, which is `
+      + `filled in by hand and empty on most of this book. A row marked * had its seats created well after kickoff, so most of `
+      + `that span is before anyone could have posted.`
+    : 'No EGC account is currently inside a proof of concept.';
 }
 
 function egcToggle(id){ egcOpen[id]=!egcOpen[id]; egcRender({tableOnly:true}); }
