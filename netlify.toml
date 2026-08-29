@@ -118,6 +118,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/egc-focs"
+  to = "/.netlify/functions/egc-focs"
+  status = 200
+
+[[redirects]]
   from = "/hs-api/*"
   to = "https://api.hubapi.com/:splat"
   status = 200
