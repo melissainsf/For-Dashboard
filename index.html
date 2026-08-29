@@ -5316,7 +5316,9 @@ function npsScore(rows){
 
 function npsFilterRows(){
   if(!npsRows) return [];
-  let rows=npsRows;
+  // Test sends (from /api/run-nps?test=...) are recorded under a reserved
+  // company id so a dry-run of the delivery chain never moves a real number.
+  let rows=npsRows.filter(r=>r.hs_company_id!=='__TEST__');
   if(npsProduct!=='all') rows=rows.filter(r=>(r.product||'Full Service')===npsProduct);
   if(npsMonths>0){
     const cut=new Date();
