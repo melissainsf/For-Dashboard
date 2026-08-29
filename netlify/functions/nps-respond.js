@@ -1,7 +1,8 @@
 // Public NPS response endpoint. NO AUTH — respondents are clients, not Virio
-// staff, so this runs on the Supabase service-role key rather than the
-// dashboard's RLS policy, and every write is scoped to a single row by an
-// unguessable per-survey token.
+// staff. It calls one SECURITY DEFINER function with the PUBLIC anon key; that
+// function is scoped to a single row by an unguessable per-survey token and can
+// only write score, comment and responded_at. No service-role key is involved,
+// so nothing reachable from here can read or write the database at large.
 //
 //   GET  /api/nps-respond?t=<token>&s=<0-10>   record the score, ask why
 //   POST /api/nps-respond   (form-encoded t, comment)   record the comment
@@ -9,7 +10,7 @@
 // The score is recorded on the click from the email itself, so abandoning the
 // comment box still leaves us the number — the reason NPS is asked this way.
 
-const { sbSelect, sbPatch, escapeHtml } = require('./_nps-core');
+const { submitResponse, escapeHtml } = require('./_nps-core');
 
 exports.handler = async function (event) {
   try {
@@ -22,44 +23,30 @@ exports.handler = async function (event) {
   }
 };
 
-async function lookup(token) {
-  if (!token) return null;
-  const rows = await sbSelect(
-    `nps_sends?select=id,score,comment,responded_at,status,contact_name&token=eq.${encodeURIComponent(token)}&limit=1`
-  );
-  return rows && rows[0] ? rows[0] : null;
-}
-
 async function handleScore(event) {
   const q = (event && event.queryStringParameters) || {};
-  const row = await lookup(q.t);
-  if (!row) return page(404, 'Link not found', 'This survey link has expired or was already replaced by a newer one.');
-  if (row.status !== 'sent') return page(410, 'Link not active', 'This survey is no longer accepting responses.');
-
   const score = Number(q.s);
+  if (!q.t) return page(404, 'Link not found', 'This survey link has expired or was already replaced by a newer one.');
   if (!Number.isInteger(score) || score < 0 || score > 10) {
     return page(400, 'Invalid score', 'That link was missing a score between 0 and 10.');
   }
 
-  // A re-click changes the score (people do misclick on a phone), but
-  // responded_at keeps the FIRST reply so response-time reporting stays honest.
-  const patch = { score };
-  if (!row.responded_at) patch.responded_at = new Date().toISOString();
-  await sbPatch(`nps_sends?id=eq.${row.id}`, patch);
-
-  return page(200, 'Thanks — got it.', null, commentForm(q.t, score, row.comment));
+  const [res] = (await submitResponse(q.t, score, null)) || [];
+  if (!res || !res.ok) {
+    return page(404, 'Link not found', 'This survey link has expired or is no longer accepting responses.');
+  }
+  return page(200, 'Thanks — got it.', null, commentForm(q.t, score, res.out_comment));
 }
 
 async function handleComment(event) {
   const body = new URLSearchParams(
     event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : (event.body || '')
   );
-  const row = await lookup(body.get('t'));
-  if (!row) return page(404, 'Link not found', 'This survey link has expired.');
-  if (row.status !== 'sent') return page(410, 'Link not active', 'This survey is no longer accepting responses.');
-
+  const token = body.get('t');
   const comment = (body.get('comment') || '').trim().slice(0, 4000);
-  await sbPatch(`nps_sends?id=eq.${row.id}`, { comment: comment || null });
+
+  const [res] = (await submitResponse(token, null, comment)) || [];
+  if (!res || !res.ok) return page(404, 'Link not found', 'This survey link has expired.');
 
   return page(200, 'Thank you.', 'That goes straight to Eric and your account team. If it needs a conversation, he will be in touch.');
 }
