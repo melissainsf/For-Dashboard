@@ -162,10 +162,25 @@ async function buildAudience(token, period) {
 // a SECURITY DEFINER function that does exactly one thing: the respondent path
 // can only touch its own row, and the job's functions are gated on a shared
 // secret. There is deliberately no service-role key in this codebase.
+// The project URL and anon key are PUBLIC — both already ship inside
+// index.html, because the dashboard needs them in the browser. Defaulting to
+// the committed values means the monthly job cannot be broken by a mistyped or
+// screen-copied paste of a constant that is not a secret in the first place.
+// An env var still overrides, but only if it is actually usable.
+const SUPABASE_URL_DEFAULT = 'https://ylplirptcybuzxnecsgp.supabase.co';
+const SUPABASE_ANON_DEFAULT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlscGxpcnB0Y3lidXp4bmVjc2dwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDAwNjcsImV4cCI6MjA2NzA3NjA2N30.H7BnhxTNvZ8WnByos5P84M2f8qhthIRlt_5Whkwt1wg';
+
+// A value copied off a screen while masked carries bullets or ellipses, which
+// throw an opaque error the moment they reach an HTTP header. Ignore those.
+function usable(v) {
+  return typeof v === 'string' && v.trim() !== '' && !/[^\x20-\x7E]/.test(v.trim());
+}
+function supabaseUrl()  { const v = process.env.SUPABASE_URL;      return usable(v) ? v.trim() : SUPABASE_URL_DEFAULT; }
+function supabaseAnon() { const v = process.env.SUPABASE_ANON_KEY; return usable(v) ? v.trim() : SUPABASE_ANON_DEFAULT; }
+
 async function rpc(fn, args) {
-  const base = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
-  if (!base || !key) throw new Error('SUPABASE_URL / SUPABASE_ANON_KEY not set');
+  const base = supabaseUrl();
+  const key = supabaseAnon();
   const res = await fetch(`${base}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
@@ -281,7 +296,7 @@ function escapeHtml(s) {
 }
 
 module.exports = {
-  FOC_LABEL, CHURNED_STAGE,
+  FOC_LABEL, CHURNED_STAGE, usable, supabaseUrl, supabaseAnon,
   tierOf, fetchActiveCompanies, fetchFocContactIds, fetchContacts, buildAudience,
   recordSends, pendingSends, markSent, submitResponse,
   sendEmail, emailHtml, emailText, publicBase,
