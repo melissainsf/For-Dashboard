@@ -6,8 +6,10 @@
 //              claimed per (period, company, contact), so nobody is emailed twice.
 //   &period=YYYY-MM-01 — target a specific month instead of the current one.
 //
-// Gated on the HubSpot token's last 6 characters, matching run-billing, so
-// client contact details are not exposed publicly.
+// Gated on NPS_JOB_SECRET — the same string the monthly job uses — so client
+// contact details are not exposed publicly. (The HubSpot token's last 6 chars
+// also work, matching run-billing, but Netlify only ever reveals the last 4 of
+// a secret variable, which made that impractical to look up.)
 
 const { runMonth } = require('./_nps-run');
 const { periodOf } = require('./_nps-core');
@@ -16,8 +18,11 @@ exports.handler = async function (event) {
   const hsToken = process.env.HUBSPOT_TOKEN;
   const q = (event && event.queryStringParameters) || {};
   if (!hsToken) return json(500, { error: 'HUBSPOT_TOKEN not set' });
-  if ((q.key || '') !== hsToken.slice(-6)) {
-    return json(401, { error: 'unauthorized — key must be the last 6 characters of the HubSpot token' });
+  const key = q.key || '';
+  const jobSecret = process.env.NPS_JOB_SECRET || '';
+  const ok = (jobSecret && key === jobSecret) || key === hsToken.slice(-6);
+  if (!ok) {
+    return json(401, { error: 'unauthorized — key must be NPS_JOB_SECRET (or the last 6 characters of the HubSpot token)' });
   }
 
   const dryRun = q.dry === '1' || q.dry === 'true';
