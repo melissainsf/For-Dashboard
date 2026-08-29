@@ -121,6 +121,7 @@ body.data-stale .chart-card,body.data-stale .mcard{opacity:0.6;transition:opacit
 .metric-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
 .metric-grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
 .metric-grid-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.metric-grid-6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:12px}
 .mcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);cursor:default;transition:border-color 0.15s,box-shadow 0.15s}
 .mcard:hover{border-color:var(--border-strong);box-shadow:0 2px 8px rgba(26,25,22,0.10)}
 .mcard-label{font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
@@ -1632,10 +1633,11 @@ textarea.prt-input{resize:vertical}
       <span class="section-title">EGC product usage</span>
       <span class="section-note">Every publisher on an EGC seat &middot; a publisher silent more than 72 hours is flagged</span>
     </div>
-    <div class="metric-grid-5" style="margin-bottom:20px">
+    <div class="metric-grid-6" style="margin-bottom:20px">
       <div class="mcard"><div class="mcard-label">EGC Accounts</div><div class="mcard-value ink" id="m-egc-accounts">&mdash;</div><div class="mcard-sub" id="m-egc-accounts-sub">With a seat in the product</div></div>
       <div class="mcard"><div class="mcard-label">Publishers</div><div class="mcard-value ink" id="m-egc-publishers">&mdash;</div><div class="mcard-sub" id="m-egc-publishers-sub">Active seats</div></div>
       <div class="mcard"><div class="mcard-label">Silent &gt; 72h</div><div class="mcard-value coral" id="m-egc-silent">&mdash;</div><div class="mcard-sub" id="m-egc-silent-sub">Not in the product since</div></div>
+      <div class="mcard"><div class="mcard-label">Never posted</div><div class="mcard-value coral" id="m-egc-never">&mdash;</div><div class="mcard-sub" id="m-egc-never-sub">Past onboarding, nothing published</div></div>
       <div class="mcard"><div class="mcard-label">Posts (30d)</div><div class="mcard-value teal" id="m-egc-posts">&mdash;</div><div class="mcard-sub" id="m-egc-posts-sub">Published to LinkedIn</div></div>
       <div class="mcard"><div class="mcard-label">Avg. edits per post</div><div class="mcard-value ink" id="m-egc-edit">&mdash;</div><div class="mcard-sub" id="m-egc-edit-sub">How much clients rework our copy</div></div>
     </div>
@@ -5691,6 +5693,41 @@ const EGC_SILENT_HOURS = 72;
 
 function egcSilent(r){ return r.hours_silent==null || r.hours_silent >= EGC_SILENT_HOURS; }
 
+// Days on a seat before "hasn't posted yet" stops being onboarding and starts
+// being a problem. Seven, because the accounts that got going on this book went
+// live fast — Runpod published the day after kickoff, Bland and Buzzlead inside
+// three. A week on a seat with proposals waiting and nothing published is a
+// real signal, not a slow start.
+const EGC_FIRST_POST_DAYS = 7;
+
+// Three different reasons a publisher has never posted, and they are not the
+// same conversation:
+//   'supply'   — we have surfaced nothing to them, so there was nothing to post
+//   'settling' — on a seat less than a week, which is normal onboarding
+//   'stalled'  — past a week, proposals waiting, still nothing published
+function egcNeverPosted(p){
+  if(p.last_post) return null;
+  if(!(p.surfaced_30d > 0)) return 'supply';
+  return (p.seat_days == null || p.seat_days > EGC_FIRST_POST_DAYS) ? 'stalled' : 'settling';
+}
+
+const EGC_CORAL_CHIP = 'background:rgba(216,90,48,0.15);color:#993C1D';
+
+// One cell, whether the row is a person who has posted, one who never has, or
+// one nobody has sent anything to.
+function egcLastPostCell(p){
+  const state = egcNeverPosted(p);
+  if(!state) return p.last_post
+    ? new Date(p.last_post+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})
+    : '<span class="rt-pending">never</span>';
+  const day = p.seat_days == null ? '' : ` &middot; day ${p.seat_days}`;
+  if(state === 'supply')
+    return `<span class="rt-pending" title="Nothing has been surfaced to this publisher in the last 30 days, so there has been nothing for them to publish. That is our supply, not their attention.">nothing surfaced${day}</span>`;
+  if(state === 'settling')
+    return `<span class="rt-pending" title="On a seat for ${p.seat_days} day${p.seat_days===1?'':'s'} — still inside the ${EGC_FIRST_POST_DAYS}-day window we treat as onboarding.">none yet${day}</span>`;
+  return `<span class="rt-chip" style="${EGC_CORAL_CHIP}" title="${p.seat_days} days on a seat, ${p.surfaced_30d} proposal${p.surfaced_30d===1?'':'s'} surfaced in the last 30 days, nothing published.">never posted${day}</span>`;
+}
+
 // Average client edits per published post. A raw total is not comparable down
 // a column: 55 edits on one post and 49 across two read alike and are not.
 function egcAvgEdits(edits, posts){
@@ -5759,6 +5796,10 @@ function egcGroup(rows){
       editMin90: g.people.reduce((n,p)=>n+Number(p.edit_min_90d||0),0),
       // Earliest of each across the account's seats: the pilot clock is an
       // account-level contract, not a per-person one.
+      // Publishers who are past onboarding, have had work surfaced, and still
+      // have not published. An account average hides this: Runpod's group row
+      // shows Brennen's post and says nothing about Justin.
+      stalled:  g.people.filter(p=>egcNeverPosted(p)==='stalled'),
       firstSeat: g.people.map(p=>p.seat_added).filter(Boolean).sort()[0] || null,
       firstPost: g.people.map(p=>p.first_post).filter(Boolean).sort()[0] || null,
       pub30:     g.people.reduce((n,p)=>n+(p.published_30d||0),0),
@@ -5775,7 +5816,7 @@ function egcGroup(rows){
 function egcRender(opts){
   const rows = egcRows||[];
   const groups = egcGroup(rows);
-  const shown = egcView==='risk' ? groups.filter(g=>g.silent.length || g.liBroken || g.liNone) : groups;
+  const shown = egcView==='risk' ? groups.filter(g=>g.silent.length || g.stalled.length || g.liBroken || g.liNone) : groups;
 
   const setTxt=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
   const silentAll = rows.filter(egcSilent);
@@ -5788,6 +5829,17 @@ function egcRender(opts){
     ? (neverIn ? 'Longest: never signed in' : 'Longest: ' + egcSince(longest))
     : 'Everyone active in the last 3 days');
   setTxt('m-egc-posts', String(rows.reduce((n,r)=>n+(r.posts_30d||0),0)));
+
+  const stalled  = rows.filter(r=>egcNeverPosted(r)==='stalled');
+  const settling = rows.filter(r=>egcNeverPosted(r)==='settling').length;
+  const noSupply = rows.filter(r=>egcNeverPosted(r)==='supply').length;
+  setTxt('m-egc-never', String(stalled.length));
+  const worstStall = stalled.slice().sort((a,b)=>(b.seat_days||0)-(a.seat_days||0))[0];
+  setTxt('m-egc-never-sub', stalled.length
+    ? `Longest: ${worstStall.person||worstStall.email} at ${worstStall.seat_days} days`
+    : (settling || noSupply
+        ? `${settling+noSupply} not counted — onboarding or nothing surfaced`
+        : 'Everyone with a seat has published'));
 
   // Book-wide over 90 days, which is the only window with enough posts behind
   // it to state as a percentage at all.
@@ -5824,7 +5876,8 @@ function egcRender(opts){
       <td>${escapeHtml(g.hs && g.hs.csm || '—')}</td>
       <td class="rt-val">${g.people.length}${g.seats!=null&&g.seats!==g.people.length?` <span style="color:var(--ink3)">of ${g.seats}</span>`:''}</td>
       <td class="rt-val">${silentChip}</td>
-      <td class="rt-val">${g.lastPost ? new Date(g.lastPost+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
+      <td class="rt-val">${g.lastPost ? new Date(g.lastPost+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}${
+        g.stalled.length ? ` <span class="rt-chip" style="${EGC_CORAL_CHIP}" title="${g.stalled.map(p=>`${p.person||p.email} — ${p.seat_days} days, nothing published`).join('; ')}">${g.stalled.length} never posted</span>` : ''}</td>
       <td class="rt-val">${g.posts30}</td>
       <td class="rt-val">${egcAvgEdits(g.edits30, g.posts30)}</td>
       <td class="rt-val">${g.pub30}</td>
@@ -5838,7 +5891,7 @@ function egcRender(opts){
         <td style="padding-left:26px">${escapeHtml(p.person || p.email || '—')}</td>
         <td colspan="2" style="color:var(--ink2)">${escapeHtml(p.email||'')}</td>
         <td class="rt-val"><span class="rt-chip" style="background:${sil?'rgba(216,90,48,0.15)':'rgba(29,158,117,0.14)'};color:${sil?'#993C1D':'#137a58'}">${egcSince(p.hours_silent)}</span></td>
-        <td class="rt-val">${p.last_post ? new Date(p.last_post+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}) : '<span class="rt-pending">never</span>'}</td>
+        <td class="rt-val">${egcLastPostCell(p)}</td>
         <td class="rt-val">${p.posts_30d||0}</td>
         <td class="rt-val">${egcAvgEdits(p.edits_30d||0, p.posts_30d||0)}</td>
         <td class="rt-val">${p.published_30d||0}</td>
