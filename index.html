@@ -1635,7 +1635,7 @@ textarea.prt-input{resize:vertical}
       <div class="mcard"><div class="mcard-label">Publishers</div><div class="mcard-value ink" id="m-egc-publishers">&mdash;</div><div class="mcard-sub" id="m-egc-publishers-sub">Active seats</div></div>
       <div class="mcard"><div class="mcard-label">Silent &gt; 72h</div><div class="mcard-value coral" id="m-egc-silent">&mdash;</div><div class="mcard-sub" id="m-egc-silent-sub">Not in the product since</div></div>
       <div class="mcard"><div class="mcard-label">Posts (30d)</div><div class="mcard-value teal" id="m-egc-posts">&mdash;</div><div class="mcard-sub" id="m-egc-posts-sub">Published to LinkedIn</div></div>
-      <div class="mcard"><div class="mcard-label">Rewritten (90d)</div><div class="mcard-value ink" id="m-egc-edit">&mdash;</div><div class="mcard-sub" id="m-egc-edit-sub">Changed before publishing</div></div>
+      <div class="mcard"><div class="mcard-label">Edited our draft</div><div class="mcard-value ink" id="m-egc-edit">&mdash;</div><div class="mcard-sub" id="m-egc-edit-sub">Clients changed our copy before posting</div></div>
     </div>
 
     <div class="section-header">
@@ -1647,7 +1647,7 @@ textarea.prt-input{resize:vertical}
         <table>
           <thead><tr>
             <th>Account</th><th>AM</th><th>Seats</th><th>Silent &gt;72h</th>
-            <th>Last post</th><th>Posts 30d</th><th>Rewritten</th><th>Published 30d</th><th>Expired unread</th><th>LinkedIn</th>
+            <th>Last post</th><th>Posts 30d</th><th>Edited by client</th><th>Published 30d</th><th>Expired unread</th><th>LinkedIn</th>
           </tr></thead>
           <tbody id="egc-body"><tr><td colspan="10" class="rt-empty">Loading&hellip;</td></tr></tbody>
         </table>
@@ -1673,15 +1673,15 @@ textarea.prt-input{resize:vertical}
     <div class="rt-note" id="egc-attention-note"></div>
 
     <div class="section-header" style="margin-top:22px">
-      <span class="section-title">How often publishers rewrite what we generate</span>
-      <span class="section-note">Of the posts they actually published &middot; 90 days alongside 30, because the 30-day book is thin</span>
+      <span class="section-title">How often clients edit the copy we write</span>
+      <span class="section-note">Counting only posts they actually put on LinkedIn &middot; 90 days shown too, because 30 days is only about 18 posts across the whole book</span>
     </div>
     <div class="table-card">
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Account</th><th>Published 30d</th><th>Rewritten 30d</th>
-            <th>Published 90d</th><th>Rewritten 90d</th><th>Rewrite rate 90d</th>
+            <th>Account</th><th>Posted 30d</th><th>Edited 30d</th>
+            <th>Posted 90d</th><th>Edited 90d</th><th>Edit rate 90d</th>
           </tr></thead>
           <tbody id="egc-edit-body"><tr><td colspan="6" class="rt-empty">Loading&hellip;</td></tr></tbody>
         </table>
@@ -5647,7 +5647,7 @@ let egcRows=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
 // descriptive until we learn which behaviours actually precede churn.
 const EGC_SILENT_HOURS = 72;
 
-// Below this many published posts a rewrite percentage is noise: at two posts
+// Below this many published posts an edit percentage is noise: at two posts
 // one edit swings it from 0% to 50%. The counts are still shown; only the rate
 // is withheld.
 const EGC_MIN_POSTS = 3;
@@ -5730,8 +5730,8 @@ function egcRender(){
   const e90 = rows.reduce((n,r)=>n+(r.edited_90d||0),0);
   setTxt('m-egc-edit', p90 ? Math.round((e90/p90)*100)+'%' : '—');
   setTxt('m-egc-edit-sub', p90
-    ? `${e90} of ${p90} published posts changed before publishing`
-    : 'No posts published in the last 90 days');
+    ? `They changed our copy on ${e90} of the ${p90} posts they put on LinkedIn (90d)`
+    : 'No posts went out in the last 90 days');
 
   const body=document.getElementById('egc-body');
   if(!body) return;
@@ -5835,7 +5835,7 @@ function egcEditCell(edited, posts){
   return pct==null ? txt : `${txt} <span style="color:var(--ink3)">(${pct}%)</span>`;
 }
 
-// How often a publisher rewrites what we generate, before they post it.
+// How often a client edits the copy we write, before they post it.
 //
 // This is a RATE, not a depth, and the difference is not a nicety. The product
 // records differs_from_original at publish time — a boolean, set on every
@@ -5864,9 +5864,9 @@ function egcRenderEdits(groups){
 
   body.innerHTML = rows.map(g=>{
     const pct = egcRate(g.edited90, g.posts90);
-    // Nobody published is not a 0% rewrite rate — it is nothing to measure.
+    // Nobody posted is not a 0% edit rate — it is nothing to measure.
     const rateTxt = !g.posts90
-      ? '<span class="rt-pending" title="Nothing published in the last 90 days, so there is nothing to have rewritten.">nothing published</span>'
+      ? '<span class="rt-pending" title="They put nothing on LinkedIn in the last 90 days, so there is nothing to have edited.">nothing posted</span>'
       : pct==null
         ? `<span class="rt-pending" title="Fewer than ${EGC_MIN_POSTS} posts — one edit would swing the percentage.">too few posts</span>`
         : `${pct}%`;
@@ -5884,8 +5884,8 @@ function egcRenderEdits(groups){
   const e90=rows.reduce((n,g)=>n+g.edited90,0);
   const note=document.getElementById('egc-edit-note');
   if(note) note.innerHTML = p90
-    ? `<b>${e90} of ${p90}</b> posts published in the last 90 days were changed from the draft we generated. `
-      + `This is how <i>often</i> the copy gets rewritten, not how much: the product flags that the published text `
+    ? `Clients changed our copy on <b>${e90} of the ${p90}</b> posts they put on LinkedIn in the last 90 days. `
+      + `This is how <i>often</i> they edit, not how much: the product flags that the published text `
       + `differed, but it does not keep the original, so there is no before-and-after to measure the size of the `
       + `change against. Getting depth would mean storing the generated text at creation &mdash; a small change on `
       + `the product side, worth asking for if the rate turns out to move with renewals.`
