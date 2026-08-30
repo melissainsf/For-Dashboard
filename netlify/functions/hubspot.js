@@ -37,6 +37,9 @@ exports.handler = async function(event, context) {
       'name', 'pilot_status', 'lifecyclestage', 'stage', 'mrr', 'expansion_mrr',
       'churned_mrr_value', 'churn_reason', 'churn_date', 'domain', 'csm',
       'kickoff_call_date', 'first_post_date', 'vertical', 'customer_journey',
+      // HubSpot's own industry field. Distinct from `vertical`, which is Virio's
+      // ICP segmentation — VitalBenefits has an industry and no vertical.
+      'industry',
       'posts_per_month', 'product', 'upsold_products',
       'success_criteria'
     ],

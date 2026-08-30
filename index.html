@@ -1714,17 +1714,17 @@ textarea.prt-input{resize:vertical}
     <div class="rt-note" id="egc-churn-note"></div>
 
     <div class="section-header">
-      <span class="section-title">Accounts</span>
-      <span class="section-note">Riskiest first &middot; click a row for the people behind it</span>
+      <span class="section-title">Active accounts</span>
+      <span class="section-note">In pilot first, then converted &middot; riskiest within each &middot; click a row for the people behind it</span>
     </div>
     <div class="table-card">
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Account</th><th>AM</th><th>Seats</th><th>Silent &gt;72h</th>
+            <th>Account</th><th>Status</th><th>AM</th><th>Seats</th><th>Silent &gt;72h</th>
             <th>Last post</th><th>Posts 30d</th><th>Avg. edits</th><th>Published 30d</th><th>Expired unread</th><th>LinkedIn</th>
           </tr></thead>
-          <tbody id="egc-body"><tr><td colspan="10" class="rt-empty">Loading&hellip;</td></tr></tbody>
+          <tbody id="egc-body"><tr><td colspan="11" class="rt-empty">Loading&hellip;</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2126,6 +2126,14 @@ function isEgcOnly(c) {
   return t.length > 0 && t.every(v => /^EGC$/i.test(v));
 }
 function tierOf(c) { return isEgcOnly(c) ? 'EGC' : 'Full Service'; }
+// HubSpot returns the industry as an enum name — HOSPITAL_HEALTH_CARE. Render
+// it the way HubSpot's own UI does, with "and" as an ampersand.
+function industryLabel(v){
+  if(!v) return null;
+  return String(v).toLowerCase().split('_').filter(Boolean)
+    .map(w => w === 'and' ? '&' : w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
 // The managed book: every account a Strategic Account Manager owns. EGC-only
 // accounts can run a pilot and carry a pilot_status like any other account, so
 // nothing upstream separates them — this is the gate that keeps them out of the
@@ -2551,6 +2559,11 @@ async function loadData() {
         kickoff_date:r.properties.kickoff_call_date||null,
         first_post_date:r.properties.first_post_date||null,
         vertical:r.properties.vertical||null,
+        // HubSpot's own industry taxonomy, NOT the same thing as `vertical`.
+        // vertical is how Virio segments its ICPs ("GTM - ICP", "YC Startup
+        // ICPs"); industry is what the company actually does. They disagree on
+        // coverage — VitalBenefits carries an industry and no vertical.
+        industry:r.properties.industry||null,
         customer_journey:r.properties.customer_journey||null,
         account_health:healthById[r.id]||null,
         focs:focsMap[r.id]||null,
@@ -5978,7 +5991,7 @@ function egcGroup(rows){
     }));
 
   return [...ghosts, ...list]
-    .sort((a,b)=> (b.notProvisioned?1:0) - (a.notProvisioned?1:0)
+    .sort((a,b)=> egcStatusRank(a) - egcStatusRank(b)
               || b.silent.length - a.silent.length || b.worst - a.worst
               || a.name.localeCompare(b.name));
 }
@@ -6041,7 +6054,7 @@ function egcRender(opts){
   if(!(opts&&opts.tableOnly)) egcRenderCharts(shown);
 
   if(!shown.length){
-    body.innerHTML = `<tr><td colspan="10" class="rt-empty">${rows.length ? 'Nothing needs attention right now.' : 'No EGC publishers found.'}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="11" class="rt-empty">${rows.length ? 'Nothing needs attention right now.' : 'No EGC publishers found.'}</td></tr>`;
     return;
   }
 
@@ -6051,6 +6064,7 @@ function egcRender(opts){
     if(g.notProvisioned) return `<tr>
       <td><span style="display:inline-block;width:12px"></span> ${escapeHtml(g.name)}
         <span class="rt-chip" style="${EGC_CORAL_CHIP}" title="HubSpot has this account as a customer on the EGC product, but it has no company record in the product database — nobody has been provisioned. There is no usage to measure until someone is.">not in the product</span></td>
+      <td>${egcStatusChip(g)}</td>
       <td>${escapeHtml(g.hs && g.hs.csm || '—')}</td>
       <td class="rt-val" colspan="7"><span class="rt-pending">No seats created &mdash; nothing to measure yet</span></td>
       <td class="rt-val"><span class="rt-pending">&mdash;</span></td>
@@ -6064,6 +6078,7 @@ function egcRender(opts){
       : '<span class="rt-chip egc">ok</span>';
     const head = `<tr class="egc-row" style="cursor:pointer" onclick="egcToggle('${g.id}')">
       <td><span style="display:inline-block;width:12px;color:var(--ink3)">${open?'▾':'▸'}</span> ${escapeHtml(g.name)}</td>
+      <td>${egcStatusChip(g)}</td>
       <td>${escapeHtml(g.hs && g.hs.csm || '—')}</td>
       <td class="rt-val">${g.people.length}${g.seats!=null&&g.seats!==g.people.length?` <span style="color:var(--ink3)">of ${g.seats}</span>`:''}</td>
       <td class="rt-val">${silentChip}</td>
@@ -6085,7 +6100,7 @@ function egcRender(opts){
           egcRoleLabel(p) ? ` <span class="rt-chip fs" title="Excluded from the publishing metrics on this tab.">${egcRoleLabel(p)}</span>` : ''}${
           egcMissingFoc(p, g.name) ? ` <span class="rt-chip" style="${EGC_CORAL_CHIP}" title="This seat publishes, but carries no Face of Content label on the HubSpot company record — so they are invisible to the monthly NPS send.">no FOC label</span>` : ''}${
           egcFocNoEmail(p, g.name) ? ` <span class="rt-chip" style="background:rgba(186,117,23,0.15);color:#854F0B" title="Labelled Face of Content, but the HubSpot contact has no email address, so the monthly NPS send cannot reach them. Fix the contact, not the label.">FOC, no email</span>` : ''}</td>
-        <td colspan="2" style="color:var(--ink2)">${escapeHtml(p.email||'')}</td>
+        <td colspan="3" style="color:var(--ink2)">${escapeHtml(p.email||'')}</td>
         <td class="rt-val"><span class="rt-chip" style="background:${sil?'rgba(216,90,48,0.15)':'rgba(29,158,117,0.14)'};color:${sil?'#993C1D':'#137a58'}">${egcSince(p.hours_silent)}</span></td>
         <td class="rt-val">${egcLastPostCell(p)}</td>
         <td class="rt-val">${p.posts_30d||0}</td>
@@ -6517,6 +6532,25 @@ function egcFmtDate(d){
 // dropdown and the same HubSpot write path as the portfolio tabs — so changing
 // it moves the account in HubSpot, not just on this screen. An account with no
 // HubSpot record has nothing to write to and stays a dash.
+// Pilot before converted, because an account still deciding is the one a CSM
+// can change. Not-provisioned outranks both — we are billing them and nobody
+// has been let in — and an unset status sits between, since it is undecided
+// rather than settled.
+function egcStatusRank(g){
+  if(g.notProvisioned) return 0;
+  const st = g.hs && g.hs.pilot_status;
+  if(st === 'In progress') return 1;
+  if(st === 'Converted') return 3;
+  return 2;
+}
+function egcStatusChip(g){
+  if(g.notProvisioned) return '<span class="rt-pending">&mdash;</span>';
+  const st = g.hs && g.hs.pilot_status;
+  if(!st) return '<span class="rt-chip fs" title="No pilot status set on the HubSpot company record.">not set</span>';
+  const c = EGC_STATUS_COLORS[st] || '#9B9890';
+  return `<span class="rt-chip" style="background:${c}22;color:${c === '#1D9E75' ? '#137a58' : c === '#378ADD' ? '#185FA5' : '#993C1D'}">${escapeHtml(st)}</span>`;
+}
+
 function egcStatusCell(g){
   if(!(g.hs && g.hs.id)) return '<span class="rt-pending" title="No HubSpot company matched this account by name.">&mdash;</span>';
   return statusSelect(g.hs);
@@ -6655,7 +6689,16 @@ function egcRenderChurned(){
       <td>${c.churn_date ? egcFmtDate(c.churn_date) : '<span class="rt-pending">not set</span>'}</td>
       <td>${ttvCell}</td>
       <td>${c.churn_reason ? escapeHtml(c.churn_reason) : '<span class="rt-pending">not recorded</span>'}</td>
-      <td>${c.vertical ? escapeHtml(c.vertical) : '<span class="rt-pending">not set</span>'}</td>
+      <td>${(() => {
+        // The column says Industry, so it shows HubSpot's industry. The Virio
+        // vertical is a different taxonomy and rides in the tooltip rather than
+        // being substituted into the same column when industry is blank.
+        const ind = industryLabel(c.industry);
+        const tip = c.vertical ? ` title="Virio vertical: ${escapeHtml(c.vertical)}"` : '';
+        return ind
+          ? `<span${tip}>${escapeHtml(ind)}</span>`
+          : `<span class="rt-pending"${tip}>not set</span>`;
+      })()}</td>
       <td class="rt-val">${lost ? fmt$(lost) : '<span class="rt-pending">&mdash;</span>'}</td>
       <td>${escapeHtml(c.pilot_status || '—')}</td>
       <td>${c.stage ? escapeHtml(c.stage) : '<span class="rt-pending">not set</span>'}</td>
