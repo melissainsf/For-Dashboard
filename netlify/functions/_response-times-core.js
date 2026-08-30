@@ -311,7 +311,15 @@ async function computeAndStore(token) {
     };
   });
 
-  const payload = { generated_at: new Date().toISOString(), window_days: WINDOW_DAYS, source: 'slack', roster_source: rosterSource, accounts, ams };
+  // Accounts with no channel are carried in the payload, not just dropped. A
+  // silently missing row is exactly how the old matcher hid Othello for weeks:
+  // the tab showed nothing wrong because the account simply was not there. Now
+  // the tab names them, so "no channel" is a claim someone can check rather
+  // than an absence nobody notices.
+  const payload = {
+    generated_at: new Date().toISOString(), window_days: WINDOW_DAYS, source: 'slack',
+    roster_source: rosterSource, accounts, ams, unmatched,
+  };
 
   const { getStore } = require('@netlify/blobs');
   await getStore('response-times').setJSON('latest', payload);
