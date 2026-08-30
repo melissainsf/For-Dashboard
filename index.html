@@ -5407,7 +5407,12 @@ function rtRender(){
   } else if(rtData.source==='error'){
     note.innerHTML='Could not load response-time data.';
   } else {
-    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). Accounts without a Slack channel (e.g. email-only or not yet onboarded) are excluded.';
+    // A silent fallback to the bundled snapshot is how an AM ends up owning
+    // accounts they gave up months ago, so say which roster produced this.
+    const stale = rtData.roster_source === 'snapshot'
+      ? ' <b style="color:var(--coral)">Account owners came from the bundled snapshot, not live HubSpot</b> — the HubSpot fetch failed on the last run, so reassignments since the snapshot was cut are not reflected.'
+      : '';
+    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). A burst of customer messages counts as one prompt, timed from the first message. Accounts without a Slack channel (e.g. email-only or not yet onboarded) are excluded.'+stale;
   }
 }
 
