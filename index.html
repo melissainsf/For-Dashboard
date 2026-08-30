@@ -5758,7 +5758,9 @@ function egcIsPublisher(p){ return !p.is_manager && p.posts_content !== false; }
 // has no EGC seat because he is the Full Service face, and the NPS tab already
 // tracks label coverage on its own.
 function egcFocFor(companyName){
-  return (egcFocs && egcFocs[String(companyName||'').trim().toLowerCase()]) || null;
+  if(!egcFocs) return null;
+  const hit = Object.keys(egcFocs).find(k => egcSameCo(k, companyName));
+  return hit ? egcFocs[hit] : null;
 }
 const egcNorm = v => String(v||'').trim().toLowerCase();
 
@@ -5872,9 +5874,29 @@ function egcSince(hours){
 // would have shown a churned account as "not in the product". Compare on
 // letters and digits only.
 const egcKey = n => String(n||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+
+// The two systems disagree about names in more than one way, and each mismatch
+// so far has cost an account: HubSpot "VitalBenefits" vs the product's "Vital
+// Benefits" (spacing), and HubSpot "Madison West Partners" vs the product's
+// "Madison West" (a dropped word). Exact matching on a stripped key fixes the
+// first and not the second, and the second is worse — the account appears
+// TWICE, once with its real usage and once as a ghost claiming it was never
+// provisioned.
+//
+// So: equal, or one a prefix of the other with the shorter at least six
+// characters. Six is what keeps a genuinely short name from swallowing a longer
+// unrelated one; exact matches never depend on it. Verified against every
+// company name in both systems — no pair matches that should not.
+function egcSameCo(a, b){
+  const x = egcKey(a), y = egcKey(b);
+  if(!x || !y) return false;
+  if(x === y) return true;
+  const short = x.length <= y.length ? x : y;
+  const long  = x.length <= y.length ? y : x;
+  return short.length >= 6 && long.startsWith(short);
+}
 function egcHubspot(name){
-  const k = egcKey(name);
-  return (allCompanies||[]).find(c => egcKey(c.name) === k) || null;
+  return (allCompanies||[]).find(c => egcSameCo(c.name, name)) || null;
 }
 
 // Churned accounts belong in their own list, not in the active roster — they
@@ -5942,9 +5964,9 @@ function egcGroup(rows){
   // a gap in the data, it is the most severe state an account can be in: we are
   // billing them and nobody has been given a way in. It outranks every other
   // flag here, so it sorts first.
-  const seen = new Set(list.map(g => egcKey(g.name)));
   const ghosts = (typeof allCompanies !== 'undefined' ? allCompanies : [])
-    .filter(c => tierOf(c) === 'EGC' && !egcIsChurned(c) && !seen.has(egcKey(c.name)))
+    .filter(c => tierOf(c) === 'EGC' && !egcIsChurned(c)
+              && !list.some(g => egcSameCo(g.name, c.name)))
     .map(c => ({
       id: 'hs:' + c.id, name: c.name, seats: null, people: [],
       notProvisioned: true,
@@ -6327,14 +6349,6 @@ function egcRenderChurnPie(){
   withReason.forEach(c => { (byReason[c.churn_reason] = byReason[c.churn_reason] || []).push(c); });
   const labels = Object.keys(byReason).sort((a,b) => byReason[b].length - byReason[a].length);
 
-  // One reason draws a solid circle, which says less than the sentence does.
-  if(labels.length === 1){
-    const r = labels[0], lost = byReason[r].reduce((s,c)=>s+(c.churned_mrr||c.mrr||0),0);
-    egcPieEmpty('egcChurnPie','legend-egc-churn',
-      `Every EGC churn so far — ${withReason.length === 1 ? byReason[r][0].name : withReason.length + ' accounts'} — `
-      + `left for the same reason: <b>${escapeHtml(r)}</b>, ${fmtBig$(lost)}/mo.`);
-    return;
-  }
   const noReason = churned.length - withReason.length;
   egcPieShow('egcChurnPie');
   renderPie('egcChurnPie',
@@ -6344,9 +6358,18 @@ function egcRenderChurnPie(){
     'legend-egc-churn',
     labels.map(r => byReason[r].map(c => ({ name:c.name, val:fmtBig$(c.churned_mrr || c.mrr || 0) + '/mo' }))),
     labels.map(r => `${byReason[r].length} · ${fmtBig$(byReason[r].reduce((s,c)=>s+(c.churned_mrr||c.mrr||0),0))}/mo lost`));
-  if(noReason){
-    const leg = document.getElementById('legend-egc-churn');
-    if(leg) leg.innerHTML += `<span class="legend-item" style="color:var(--ink3)">${noReason} churned with no reason recorded</span>`;
+  const leg = document.getElementById('legend-egc-churn');
+  if(leg){
+    // With a single reason the pie is a solid circle, which is honest but says
+    // little on its own — so the sentence rides underneath rather than instead.
+    // The chart is here to be read once there is a spread worth reading.
+    if(labels.length === 1){
+      const r = labels[0], lost = byReason[r].reduce((a,c)=>a+(c.churned_mrr||c.mrr||0),0);
+      leg.innerHTML += `<span class="legend-item" style="color:var(--ink3)">`
+        + `Every EGC churn so far left for this one reason &mdash; ${fmtBig$(lost)}/mo across `
+        + `${withReason.length} account${withReason.length===1?'':'s'}.</span>`;
+    }
+    if(noReason) leg.innerHTML += `<span class="legend-item" style="color:var(--ink3)">${noReason} churned with no reason recorded</span>`;
   }
 }
 
@@ -6614,11 +6637,10 @@ function egcRenderChurned(){
     return;
   }
 
-  const postsByKey = {};
-  (egcPosts||[]).forEach(p => { postsByKey[egcKey(p.company_name)] = p; });
+  const prodFor = name => (egcPosts||[]).find(p => egcSameCo(p.company_name, name)) || null;
 
   body.innerHTML = cos.map(c => {
-    const prod = postsByKey[egcKey(c.name)] || null;
+    const prod = prodFor(c.name);
     const firstPost = c.first_post_date || (prod && prod.first_post) || null;
     const ttv = egcDays(c.kickoff_date, firstPost);
     const neverPosted = !firstPost && prod && prod.posts_all_time === 0;
@@ -6642,7 +6664,7 @@ function egcRenderChurned(){
 
   const lostTotal = cos.reduce((s,c)=>s+(c.churned_mrr||c.mrr||0),0);
   const never = cos.filter(c => {
-    const prod = postsByKey[egcKey(c.name)];
+    const prod = prodFor(c.name);
     return !c.first_post_date && prod && prod.posts_all_time === 0;
   });
   if(note) note.innerHTML = `<b>${cos.length} EGC account${cos.length===1?'':'s'}</b> churned, `
