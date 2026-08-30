@@ -5862,7 +5862,7 @@ function egcGroup(rows){
     };
     g.people.push(r);
   });
-  return Object.values(by).map(g=>{
+  const list = Object.values(by).map(g=>{
     const silent = g.people.filter(egcSilent);
     // An account's risk is its most-neglected seat: one dark publisher out of
     // two is half the account gone quiet, which a company-wide average hides.
@@ -5902,17 +5902,46 @@ function egcGroup(rows){
       liNone:   g.people.filter(p=>!p.li_connected).length,
       hs: egcHubspot(g.name),
     };
-  }).sort((a,b)=> b.silent.length - a.silent.length || b.worst - a.worst || a.name.localeCompare(b.name));
+  });
+
+  // An EGC account HubSpot calls a customer but which has NO company record in
+  // the product at all. Madison West Partners is the live case: customer
+  // lifecycle, product EGC, both Faces of Content labelled — and not a single
+  // row in user_companies or users. Leaving it off the tab was wrong. It is not
+  // a gap in the data, it is the most severe state an account can be in: we are
+  // billing them and nobody has been given a way in. It outranks every other
+  // flag here, so it sorts first.
+  const seen = new Set(list.map(g => (g.name||'').trim().toLowerCase()));
+  const ghosts = (typeof allCompanies !== 'undefined' ? allCompanies : [])
+    .filter(c => tierOf(c) === 'EGC' && !seen.has((c.name||'').trim().toLowerCase()))
+    .map(c => ({
+      id: 'hs:' + c.id, name: c.name, seats: null, people: [],
+      notProvisioned: true,
+      silent: [], stalled: [], publishers: [], misaimed: [], unlabelled: [], focNoEmail: [],
+      worst: 0, posts30: 0, edited30: 0, edits30: 0, posts90: 0, edited90: 0, edits90: 0,
+      editMin90: 0, pub30: 0, ignored30: 0, surfaced30: 0,
+      lastPost: null, firstSeat: null, firstPost: null,
+      liBroken: 0, liNone: 0, hs: c,
+    }));
+
+  return [...ghosts, ...list]
+    .sort((a,b)=> (b.notProvisioned?1:0) - (a.notProvisioned?1:0)
+              || b.silent.length - a.silent.length || b.worst - a.worst
+              || a.name.localeCompare(b.name));
 }
 
 function egcRender(opts){
   const rows = egcRows||[];
   const groups = egcGroup(rows);
-  const shown = egcView==='risk' ? groups.filter(g=>g.silent.length || g.stalled.length || g.unlabelled.length || g.focNoEmail.length || g.liBroken || g.liNone) : groups;
+  const shown = egcView==='risk' ? groups.filter(g=>g.notProvisioned || g.silent.length || g.stalled.length || g.unlabelled.length || g.focNoEmail.length || g.liBroken || g.liNone) : groups;
 
   const setTxt=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
   const silentAll = rows.filter(egcSilent);
   setTxt('m-egc-accounts', String(groups.length));
+  const ghosts = groups.filter(g=>g.notProvisioned);
+  setTxt('m-egc-accounts-sub', ghosts.length
+    ? `${ghosts.length} not in the product: ${ghosts.map(g=>g.name).join(', ')}`
+    : 'With a seat in the product');
   const pubRows = rows.filter(egcIsPublisher);
   const otherSeats = rows.length - pubRows.length;
   setTxt('m-egc-publishers', String(pubRows.length));
@@ -5963,6 +5992,15 @@ function egcRender(opts){
   }
 
   body.innerHTML = shown.map(g=>{
+    // Nothing to expand and no usage to report — say what is wrong instead of
+    // printing a row of zeros that reads like a quiet account.
+    if(g.notProvisioned) return `<tr>
+      <td><span style="display:inline-block;width:12px"></span> ${escapeHtml(g.name)}
+        <span class="rt-chip" style="${EGC_CORAL_CHIP}" title="HubSpot has this account as a customer on the EGC product, but it has no company record in the product database — nobody has been provisioned. There is no usage to measure until someone is.">not in the product</span></td>
+      <td>${escapeHtml(g.hs && g.hs.csm || '—')}</td>
+      <td class="rt-val" colspan="7"><span class="rt-pending">No seats created &mdash; nothing to measure yet</span></td>
+      <td class="rt-val"><span class="rt-pending">&mdash;</span></td>
+    </tr>`;
     const open = !!egcOpen[g.id];
     const silentChip = g.silent.length
       ? `<span class="rt-chip" style="background:rgba(216,90,48,0.15);color:#993C1D">${g.silent.length} of ${g.people.length}</span>`
@@ -6026,6 +6064,10 @@ function egcRenderAttention(groups){
   if(!rows.length){ body.innerHTML='<tr><td colspan="5" class="rt-empty">No proposal activity in the last 30 days.</td></tr>'; return; }
 
   body.innerHTML = rows.map(g=>{
+    if(g.notProvisioned) return `<tr>
+      <td>${escapeHtml(g.name)}</td>
+      <td class="rt-val" colspan="4"><span class="rt-pending">Not in the product &mdash; no seats created</span></td>
+    </tr>`;
     // Nothing surfaced is a different state from nothing acted on: one is our
     // supply, the other is their attention. Never render it as 0%.
     const nothingSurfaced = g.surfaced30 === 0;
@@ -6085,6 +6127,10 @@ function egcRenderEdits(groups){
   if(!rows.length){ body.innerHTML='<tr><td colspan="6" class="rt-empty">No EGC publishers found.</td></tr>'; return; }
 
   body.innerHTML = rows.map(g=>{
+    if(g.notProvisioned) return `<tr>
+      <td>${escapeHtml(g.name)}</td>
+      <td class="rt-val" colspan="5"><span class="rt-pending">Not in the product &mdash; no seats created</span></td>
+    </tr>`;
     // Nobody posted is not zero editing — it is nothing to measure.
     if(!g.posts90) return `<tr>
       <td>${escapeHtml(g.name)}</td>
