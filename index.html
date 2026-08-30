@@ -1696,6 +1696,23 @@ textarea.prt-input{resize:vertical}
     </div>
     <div class="rt-note" id="egc-poc-note"></div>
 
+    <div class="section-header" style="margin-top:22px">
+      <span class="section-title">Churned EGC customers</span>
+      <span class="section-note">Every account HubSpot has on the EGC product with a churn recorded</span>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Account</th><th>Churned</th><th>Time to value</th><th>Churn reason</th>
+            <th>Industry</th><th>MRR lost</th><th>Pilot status</th><th>Stage</th>
+          </tr></thead>
+          <tbody id="egc-churn-body"><tr><td colspan="8" class="rt-empty">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rt-note" id="egc-churn-note"></div>
+
     <div class="section-header">
       <span class="section-title">Accounts</span>
       <span class="section-note">Riskiest first &middot; click a row for the people behind it</span>
@@ -5714,7 +5731,7 @@ function npsWire(){
 // One row per EGC publisher, from the egc_usage() SECURITY DEFINER function.
 // The login signal lives in Supabase's auth schema, which PostgREST does not
 // expose, so the function reaches in and hands back only what this renders.
-let egcRows=null, egcWeeks=null, egcFocs=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
+let egcRows=null, egcWeeks=null, egcFocs=null, egcPosts=null, egcView='all', egcWired=false, egcLoading=null, egcOpen={};
 
 // The one signal Melissa is confident about: a publisher who has not been in
 // the product for three days is worth a call. Everything else on this tab is
@@ -5850,8 +5867,22 @@ function egcSince(hours){
 
 // Accounts come from the product database; the AM and health colour live in
 // HubSpot. Match on name, which is how the rest of this dashboard joins the two.
+// HubSpot and the product database do not agree on spacing: HubSpot has
+// "VitalBenefits", the product has "Vital Benefits". An exact lower-case match
+// would have shown a churned account as "not in the product". Compare on
+// letters and digits only.
+const egcKey = n => String(n||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 function egcHubspot(name){
-  return (allCompanies||[]).find(c => (c.name||'').toLowerCase() === (name||'').toLowerCase()) || null;
+  const k = egcKey(name);
+  return (allCompanies||[]).find(c => egcKey(c.name) === k) || null;
+}
+
+// Churned accounts belong in their own list, not in the active roster — they
+// have no seats by design, and rendering them as "not in the product" would
+// read as a provisioning failure rather than a customer who left.
+const EGC_CHURNED_STATUSES = new Set(['Exited During Pilot','Churned Post Conversion']);
+function egcIsChurned(c){
+  return !!c && (EGC_CHURNED_STATUSES.has(c.pilot_status) || c.lifecyclestage === CHURNED_STAGE);
 }
 
 function egcGroup(rows){
@@ -5911,9 +5942,9 @@ function egcGroup(rows){
   // a gap in the data, it is the most severe state an account can be in: we are
   // billing them and nobody has been given a way in. It outranks every other
   // flag here, so it sorts first.
-  const seen = new Set(list.map(g => (g.name||'').trim().toLowerCase()));
+  const seen = new Set(list.map(g => egcKey(g.name)));
   const ghosts = (typeof allCompanies !== 'undefined' ? allCompanies : [])
-    .filter(c => tierOf(c) === 'EGC' && !seen.has((c.name||'').trim().toLowerCase()))
+    .filter(c => tierOf(c) === 'EGC' && !egcIsChurned(c) && !seen.has(egcKey(c.name)))
     .map(c => ({
       id: 'hs:' + c.id, name: c.name, seats: null, people: [],
       notProvisioned: true,
@@ -5981,6 +6012,7 @@ function egcRender(opts){
   const body=document.getElementById('egc-body');
   if(!body) return;
   egcRenderPoc(groups);
+  egcRenderChurned();
   egcRenderAttention(groups);
   egcRenderEdits(groups);
   // Toggling a row only rewrites the table; rebuilding the canvases would flash.
@@ -6294,6 +6326,15 @@ function egcRenderChurnPie(){
   const byReason = {};
   withReason.forEach(c => { (byReason[c.churn_reason] = byReason[c.churn_reason] || []).push(c); });
   const labels = Object.keys(byReason).sort((a,b) => byReason[b].length - byReason[a].length);
+
+  // One reason draws a solid circle, which says less than the sentence does.
+  if(labels.length === 1){
+    const r = labels[0], lost = byReason[r].reduce((s,c)=>s+(c.churned_mrr||c.mrr||0),0);
+    egcPieEmpty('egcChurnPie','legend-egc-churn',
+      `Every EGC churn so far — ${withReason.length === 1 ? byReason[r][0].name : withReason.length + ' accounts'} — `
+      + `left for the same reason: <b>${escapeHtml(r)}</b>, ${fmtBig$(lost)}/mo.`);
+    return;
+  }
   const noReason = churned.length - withReason.length;
   egcPieShow('egcChurnPie');
   renderPie('egcChurnPie',
@@ -6551,6 +6592,65 @@ function egcRenderPoc(groups){
     : 'No EGC account is currently inside a proof of concept.';
 }
 
+// Churned EGC customers.
+//
+// Time to value is kickoff to first post going live. HubSpot's first_post_date
+// is used when set, otherwise the product's own post history — which for a
+// churned account is the only place the answer survives. Where an account never
+// published at all, that is not a missing value, it is the finding: VitalBenefits
+// took a seat on 3 June, published nothing, and churned on 31 July citing
+// adoption. The cell says so in coral rather than leaving a dash.
+function egcRenderChurned(){
+  const body = document.getElementById('egc-churn-body');
+  if(!body) return;
+  const cos = (typeof allCompanies !== 'undefined' ? allCompanies : [])
+    .filter(c => tierOf(c) === 'EGC' && egcIsChurned(c))
+    .sort((a,b) => String(b.churn_date||'').localeCompare(String(a.churn_date||'')));
+
+  const note = document.getElementById('egc-churn-note');
+  if(!cos.length){
+    body.innerHTML = '<tr><td colspan="8" class="rt-empty">No EGC account has churned yet.</td></tr>';
+    if(note) note.textContent = '';
+    return;
+  }
+
+  const postsByKey = {};
+  (egcPosts||[]).forEach(p => { postsByKey[egcKey(p.company_name)] = p; });
+
+  body.innerHTML = cos.map(c => {
+    const prod = postsByKey[egcKey(c.name)] || null;
+    const firstPost = c.first_post_date || (prod && prod.first_post) || null;
+    const ttv = egcDays(c.kickoff_date, firstPost);
+    const neverPosted = !firstPost && prod && prod.posts_all_time === 0;
+    const ttvCell = ttv != null
+      ? `<span style="color:${ttv<=14?'var(--teal)':ttv<=30?'var(--blue)':'var(--amber)'}">${ttv} days</span>`
+      : neverPosted
+        ? `<span class="rt-chip" style="${EGC_CORAL_CHIP}" title="A seat existed but nothing was ever published. There was no value to be slow to.">never posted</span>`
+        : '<span class="rt-pending" title="No kickoff date or no first post recorded.">&mdash;</span>';
+    const lost = c.churned_mrr || c.mrr || 0;
+    return `<tr>
+      <td>${escapeHtml(c.name)}</td>
+      <td>${c.churn_date ? egcFmtDate(c.churn_date) : '<span class="rt-pending">not set</span>'}</td>
+      <td>${ttvCell}</td>
+      <td>${c.churn_reason ? escapeHtml(c.churn_reason) : '<span class="rt-pending">not recorded</span>'}</td>
+      <td>${c.vertical ? escapeHtml(c.vertical) : '<span class="rt-pending">not set</span>'}</td>
+      <td class="rt-val">${lost ? fmt$(lost) : '<span class="rt-pending">&mdash;</span>'}</td>
+      <td>${escapeHtml(c.pilot_status || '—')}</td>
+      <td>${c.stage ? escapeHtml(c.stage) : '<span class="rt-pending">not set</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  const lostTotal = cos.reduce((s,c)=>s+(c.churned_mrr||c.mrr||0),0);
+  const never = cos.filter(c => {
+    const prod = postsByKey[egcKey(c.name)];
+    return !c.first_post_date && prod && prod.posts_all_time === 0;
+  });
+  if(note) note.innerHTML = `<b>${cos.length} EGC account${cos.length===1?'':'s'}</b> churned, `
+    + `${fmt$(lostTotal)}/mo lost.`
+    + (never.length ? ` ${never.length === 1 ? never[0].name + ' never published a single post' : never.length + ' never published a single post'} — `
+        + `a seat was created and nothing came of it, which is a different failure from content that landed badly.` : '');
+}
+
 function egcToggle(id){ egcOpen[id]=!egcOpen[id]; egcRender({tableOnly:true}); }
 
 async function egcEnsureLoaded(){
@@ -6559,12 +6659,16 @@ async function egcEnsureLoaded(){
   if(egcLoading) return egcLoading;
   egcLoading=(async()=>{
     try{
-      const [usage, weeks, focs] = await Promise.all([
+      const [usage, weeks, focs, posts] = await Promise.all([
         sb.rpc('egc_usage'),
         sb.rpc('egc_post_weeks'),
         // The label cross-check is a nicety; losing it must not cost the tab.
         fetch('/api/egc-focs').then(r=>r.ok?r.json():null).catch(()=>null),
+        // Post history for every EGC seat ever, active or churned — the only
+        // source that can date a churned account's first post.
+        sb.rpc('egc_company_posts'),
       ]);
+      egcPosts = (posts && !posts.error && posts.data) ? posts.data : [];
       egcFocs = focs && focs.focs || null;
       if(usage.error) throw usage.error;
       egcRows = usage.data||[];
