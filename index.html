@@ -5412,7 +5412,15 @@ function rtRender(){
     const stale = rtData.roster_source === 'snapshot'
       ? ' <b style="color:var(--coral)">Account owners came from the bundled snapshot, not live HubSpot</b> — the HubSpot fetch failed on the last run, so reassignments since the snapshot was cut are not reflected.'
       : '';
-    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). A burst of customer messages counts as one prompt, timed from the first message. Accounts without a Slack channel (e.g. email-only or not yet onboarded) are excluded.'+stale;
+    // Name the excluded accounts. An account that quietly falls out of the table
+    // is how a broken channel match stays invisible — Othello was missing for
+    // weeks and the tab looked fine.
+    const un = Array.isArray(rtData.unmatched) ? rtData.unmatched : null;
+    const excluded = un && un.length
+      ? ' Not measured, no Slack channel matched: <b>' + un.map(rtEsc).join(', ') + '</b>'
+        + ' — expected for email-only accounts, worth a look otherwise.'
+      : un ? ' Every account on the roster matched a Slack channel.' : '';
+    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). A burst of customer messages counts as one prompt, timed from the first message.'+excluded+stale;
   }
 }
 
