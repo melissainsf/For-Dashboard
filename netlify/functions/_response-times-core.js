@@ -3,8 +3,11 @@
 //
 // Definitions (locked with CS):
 //   - Scope: `virio-<client company>` channels matched to Customer-stage accounts.
-//   - Clock: each customer message starts a clock; the first reply from ANY Virio
-//     teammate stops it. Raw wall-clock (24/7). Median per account; pooled per AM.
+//   - Clock: each BURST of customer messages starts one clock, timed from the
+//     first message in the burst; the first reply from ANY Virio teammate stops
+//     it. Messages less than BURST_GAP_SECONDS apart are the same burst, so a
+//     client who sends five lines in a row costs one measurement, not five.
+//     Raw wall-clock (24/7). Median per account; pooled per AM.
 //   - Internal vs external is decided by the author's Slack workspace: Virio
 //     teammates belong to our team_id; the customer side does not. We resolve each
 //     author's team via users.info (cached) — robust for Slack Connect channels.
@@ -15,6 +18,8 @@
 const ACCOUNTS = require('./_cs-accounts');
 
 const WINDOW_DAYS = 30;
+// Consecutive customer messages closer together than this are one prompt.
+const BURST_GAP_SECONDS = 600;
 const SLACK = 'https://slack.com/api/';
 
 async function slack(method, params, token) {
@@ -28,15 +33,55 @@ async function slack(method, params, token) {
 const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const tokens = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
 
-// Match a `virio-<company>` channel to an account. Handles both the full/joined
-// name (e.g. "virio-innovo-commerce-x" for InnovoCommerce) and abbreviated
-// multi-word names (e.g. "virio-hume-andrew" for "Hume AI", "virio-concord-kevin"
-// for "Concord Visa"), by also matching on the company's first word.
+// Match a client Slack channel to an account.
+//
+// The old rule was `/^virio-/` plus a prefix test, and it quietly dropped real
+// channels while matching empty ones. Audited against the live workspace, it
+// missed:
+//   - `othello-virio`        — the company name comes FIRST
+//   - `ext-watt-virio`       — an `ext-` prefix, Virio last
+//   - `ext-virio-sourcera`   — an `ext-` prefix, Virio in the middle
+//   - `virio-madwestpartners`— "Madison West Partners", abbreviated per word
+// and it matched `virio-othello-`, a channel HubSpot Breeze auto-creates that
+// holds nothing but join events, in preference to the real conversation.
+//
+// So: strip the `virio` and `ext` tokens wherever they sit, then compare what is
+// left. A channel must still carry a `virio` token to be a candidate at all,
+// which keeps `lino-trimble-*` and partner channels out.
+const CHANNEL_NOISE = new Set(['virio', 'ext']);
+function channelCore(channelName) {
+  return tokens(channelName).filter((t) => !CHANNEL_NOISE.has(t));
+}
+
+// Does `s` read as the company's words abbreviated and run together?
+// "madwestpartners" vs ["madison","west","partners"] -> mad|west|partners.
+// Every word must contribute at least two characters and the whole string must
+// be consumed, which is what stops "createanything" matching "Crescendo".
+function abbreviates(s, words) {
+  let i = 0;
+  for (const w of words) {
+    let k = 0;
+    while (k < w.length && i + k < s.length && s[i + k] === w[k]) k++;
+    if (k < 2) return false;
+    i += k;
+  }
+  return i === s.length;
+}
+
 function channelMatches(channelName, company) {
-  if (norm(channelName).startsWith('virio' + norm(company))) return true;
-  const chTok = tokens(channelName);          // e.g. ['virio','hume','andrew']
-  const coTok = tokens(company);              // e.g. ['hume','ai']
-  return chTok[0] === 'virio' && chTok[1] && coTok[0] && chTok[1] === coTok[0];
+  const chTok = tokens(channelName);
+  if (!chTok.includes('virio')) return false;      // not a Virio client channel
+  const core = channelCore(channelName);
+  if (!core.length) return false;
+  const joined = core.join('');
+  const coTok = tokens(company);
+  const co = coTok.join('');
+  if (!co) return false;
+
+  if (joined.startsWith(co)) return true;          // virio-hyperspell-conor
+  if (co.startsWith(joined) && joined.length >= 4) return true;  // virio-magnific / "Magnific (Freepik)"
+  if (core[0] === coTok[0]) return true;           // virio-hume-andrew / "Hume AI"
+  return abbreviates(joined, coTok);               // virio-madwestpartners
 }
 
 function median(nums) {
@@ -148,7 +193,7 @@ async function computeAndStore(token) {
   const virioTeamId = auth.team_id;
 
   const channels = await listAllChannels(token);
-  const virioChannels = channels.filter((c) => /^virio-/.test(c.name || ''));
+  const virioChannels = channels.filter((c) => tokens(c.name || '').includes('virio'));
   const oldest = (Date.now() / 1000 - WINDOW_DAYS * 86400).toFixed(6);
 
   // Live roster from HubSpot; fall back to the bundled snapshot on failure.
@@ -179,34 +224,64 @@ async function computeAndStore(token) {
   const unmatched = [];
 
   for (const acct of roster) {
-    const ch = virioChannels.find((c) => channelMatches(c.name, acct.company));
+    // ALL matching channels, not the first. An account can legitimately have two
+    // — Othello has the real `othello-virio` alongside `virio-othello-`, which
+    // HubSpot Breeze created and which holds only join events. Taking the first
+    // match meant reading the empty one and reporting no activity. Latencies are
+    // computed per channel and pooled afterwards, never by merging the message
+    // streams, so a customer message in one channel can never be "answered" by a
+    // Virio message in another.
+    const chs = virioChannels.filter((c) => channelMatches(c.name, acct.company));
     // Exclude accounts with no Slack channel (email-only customers, or not yet
-    // onboarded). They reappear automatically once a virio-<company> channel exists.
-    if (!ch) { unmatched.push(acct.company); continue; }
-    matched.push({ company: acct.company, channel: ch.name });
+    // onboarded). They reappear automatically once a channel exists.
+    if (!chs.length) { unmatched.push(acct.company); continue; }
+    matched.push({ company: acct.company, channel: chs.map((c) => c.name).join(', ') });
     let latencies = [], bizLatencies = [];
-    try {
-      const msgs = (await channelHistory(ch.id, oldest, token))
-        .filter((m) => !m.subtype && m.user) // drop joins / system / bot posts
-        .sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts));
-      for (const uid of [...new Set(msgs.map((m) => m.user))]) await teamOf(uid); // warm cache
-      const isInternal = (m) => userTeam[m.user] === virioTeamId;
-      for (let i = 0; i < msgs.length; i++) {
-        if (isInternal(msgs[i])) continue;               // internal msg, not a customer prompt
-        for (let j = i + 1; j < msgs.length; j++) {       // first Virio reply after it
-          if (isInternal(msgs[j])) {
-            const s = parseFloat(msgs[i].ts), e = parseFloat(msgs[j].ts);
-            latencies.push(e - s);
-            bizLatencies.push(businessSeconds(s, e));
-            break;
+    for (const ch of chs) {
+      try {
+        const msgs = (await channelHistory(ch.id, oldest, token))
+          .filter((m) => !m.subtype && m.user) // drop joins / system / bot posts
+          .sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts));
+        for (const uid of [...new Set(msgs.map((m) => m.user))]) await teamOf(uid); // warm cache
+        const isInternal = (m) => userTeam[m.user] === virioTeamId;
+
+        // One clock per BURST of customer messages, not per message.
+        //
+        // Previously every customer message started its own clock and a single
+        // reply stopped all of them, so a client who thinks out loud in five
+        // messages charged the AM five latencies for one gap — and the earliest
+        // was timed from the first message, so chatty accounts were penalised
+        // hardest. Consecutive customer messages less than BURST_GAP_SECONDS
+        // apart are now one prompt, timed from the first message in the burst,
+        // which is when they actually started waiting. A genuine second question
+        // hours later still starts its own clock.
+        let i = 0;
+        while (i < msgs.length) {
+          if (isInternal(msgs[i])) { i++; continue; }
+          let j = i;
+          while (j < msgs.length && !isInternal(msgs[j])) j++;   // run of customer messages
+          const reply = j < msgs.length ? msgs[j] : null;        // first Virio reply after it
+          if (reply) {
+            let burstStart = i;
+            for (let k = i + 1; k <= j; k++) {
+              const atEnd = k === j;
+              const gap = atEnd ? Infinity : parseFloat(msgs[k].ts) - parseFloat(msgs[k - 1].ts);
+              if (atEnd || gap > BURST_GAP_SECONDS) {
+                const st = parseFloat(msgs[burstStart].ts), en = parseFloat(reply.ts);
+                latencies.push(en - st);
+                bizLatencies.push(businessSeconds(st, en));
+                burstStart = k;
+              }
+            }
           }
+          i = j;
         }
-      }
-    } catch (e) { /* channel read failed — leave latencies empty */ }
+      } catch (e) { /* channel read failed — leave this channel out */ }
+    }
     accounts.push({
       company: acct.company, am: acct.am, product: acct.product,
       median_seconds: median(latencies), mean_seconds: mean(latencies), sample: latencies.length,
-      channel: ch.name,
+      channel: chs.map((c) => c.name).join(', '),
     });
     (amLat[acct.am] = amLat[acct.am] || []).push(...latencies);
     (amBizLat[acct.am] = amBizLat[acct.am] || []).push(...bizLatencies);
