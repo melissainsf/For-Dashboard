@@ -145,19 +145,26 @@ async function channelHistory(channelId, oldest, token) {
 // Pull the customer list + Account Manager + Product LIVE from HubSpot each run,
 // so the widgets always match HubSpot (no static drift). Falls back to the bundled
 // snapshot (_cs-accounts.js) if HubSpot is unavailable.
-const AM_LABEL = { 'CSM 2': 'David', 'Max': 'Maxwell' };      // HubSpot csm internal name -> dropdown label
-// Off the AM roster -> "Unassigned". HubSpot internal values, not display
-// labels ('CSM 2' is David). Mirrors FORMER_AM_VALUES in index.html — keep the
-// two in sync.
+// The Account Manager field. HubSpot's INTERNAL name for it is `csm` — the
+// label shown in the CRM is "Account Manager", and it is the only property
+// with that label (`csm_sentiment` / `hs_csm_sentiment` are a different
+// field, and `hubspot_owner_id` is the HubSpot user, not the AM). Reading
+// `csm` is reading Account Manager; the name is just legacy.
+const AM_PROPERTY = 'csm';
+// Two options store an internal value that differs from the label people see.
+const AM_LABEL = { 'CSM 2': 'David', 'Max': 'Maxwell' };
+// Off the AM roster -> "Unassigned". These are Account Manager option VALUES,
+// not the labels ('CSM 2' is David). Mirrors FORMER_AM_VALUES in index.html —
+// keep the two in sync.
 const FORMER_AMS = new Set([
   'Yichen', 'Lakeisha', 'Emmett', 'Jacob',
   'CSM 2',            // David — left Virio
   'Millie',
   'Former Employee',  // HubSpot's catch-all for departed staff
 ]);
-function amLabel(csm) {
-  if (!csm || FORMER_AMS.has(csm)) return 'Unassigned';
-  return AM_LABEL[csm] || csm;
+function amLabel(amValue) {
+  if (!amValue || FORMER_AMS.has(amValue)) return 'Unassigned';
+  return AM_LABEL[amValue] || amValue;
 }
 // ── ACCOUNT OWNERSHIP OVER TIME ───────────────────────────────────
 // An AM is only answerable for replies owed while they owned the account.
@@ -165,20 +172,20 @@ function amLabel(csm) {
 // person who inherited it: take an account off David on the 20th and his
 // slow replies from the 1st-19th land on your median, which is backwards.
 //
-// HubSpot keeps the history of the `csm` property, so we read it and give
-// each account a timeline of owners. Every measured reply is then credited
+// HubSpot keeps the history of the Account Manager property, so we read it
+// and give each account a timeline of owners. Every measured reply is then credited
 // to whoever owned the account at the moment the customer asked.
 //
 // History comes back newest-first as [{value, timestamp}], where timestamp
 // is when the property BECAME that value. Sorted oldest-first, entry i owns
 // the account from its timestamp until entry i+1's (or now, for the last).
-function ownerIntervals(history, currentCsm) {
+function ownerIntervals(history, currentAmValue) {
   const h = (history || [])
     .filter((e) => e && e.timestamp)
     .map((e) => ({ am: amLabel(e.value), at: Date.parse(e.timestamp) / 1000 }))
     .filter((e) => !isNaN(e.at))
     .sort((a, b) => a.at - b.at);
-  if (!h.length) return [{ am: amLabel(currentCsm), from: -Infinity, to: Infinity }];
+  if (!h.length) return [{ am: amLabel(currentAmValue), from: -Infinity, to: Infinity }];
   return h.map((e, i) => ({
     am: e.am,
     // The earliest entry also covers everything before it: the account had
@@ -200,8 +207,8 @@ function ownersInWindow(intervals, from, to) {
     .map((iv) => ({ am: iv.am, since: iv.from === -Infinity ? null : new Date(iv.from * 1000).toISOString() }));
 }
 
-// HubSpot's search endpoint cannot return property history, so pull it in a
-// second pass. A failure here is not fatal: without history every account
+// HubSpot's search endpoint cannot return property history, so pull the
+// Account Manager history in a second pass. A failure here is not fatal: without history every account
 // simply behaves as it did before, wholly owned by its current AM.
 async function fetchOwnerHistory(hsToken, ids) {
   const out = {};
@@ -210,14 +217,14 @@ async function fetchOwnerHistory(hsToken, ids) {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + hsToken, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        propertiesWithHistory: ['csm'], properties: ['name'],
+        propertiesWithHistory: [AM_PROPERTY], properties: ['name'],
         inputs: ids.slice(i, i + 100).map((id) => ({ id })),
       }),
     });
     if (!res.ok) throw new Error('HubSpot history ' + res.status + ': ' + (await res.text()).slice(0, 200));
     const data = await res.json();
     for (const r of (data.results || [])) {
-      out[r.id] = (r.propertiesWithHistory && r.propertiesWithHistory.csm) || [];
+      out[r.id] = (r.propertiesWithHistory && r.propertiesWithHistory[AM_PROPERTY]) || [];
     }
   }
   return out;
@@ -229,7 +236,7 @@ async function fetchRoster(hsToken) {
   do {
     const body = {
       filterGroups: [{ filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }] }],
-      properties: ['name', 'csm', 'product'], limit: 100, ...(after ? { after } : {}),
+      properties: ['name', AM_PROPERTY, 'product'], limit: 100, ...(after ? { after } : {}),
     };
     const res = await fetch('https://api.hubapi.com/crm/v3/objects/companies/search', {
       method: 'POST',
@@ -244,8 +251,8 @@ async function fetchRoster(hsToken) {
       roster.push({
         id: c.id,
         company: name,
-        csm: c.properties.csm,
-        am: amLabel(c.properties.csm),
+        am_value: c.properties[AM_PROPERTY],
+        am: amLabel(c.properties[AM_PROPERTY]),
         product: c.properties.product === 'EGC' ? 'EGC' : 'Full Service',
       });
     }
@@ -282,11 +289,11 @@ async function computeAndStore(token) {
     const hist = (ids.length && process.env.HUBSPOT_TOKEN)
       ? await fetchOwnerHistory(process.env.HUBSPOT_TOKEN, ids) : {};
     if (!ids.length) ownerSource = 'current-only';
-    for (const a of roster) a.owners = ownerIntervals(hist[a.id], a.csm);
+    for (const a of roster) a.owners = ownerIntervals(hist[a.id], a.am_value);
   } catch (e) {
-    console.log('response-times: HubSpot csm history unavailable, attributing to current owner —', e.message);
+    console.log('response-times: Account Manager history unavailable, attributing to current owner —', e.message);
     ownerSource = 'current-only';
-    for (const a of roster) a.owners = ownerIntervals(null, a.csm);
+    for (const a of roster) a.owners = ownerIntervals(null, a.am_value);
   }
 
   // Cache each author's workspace so we classify internal vs external reliably.
