@@ -5396,23 +5396,31 @@ function rtRender(){
   const mrrByName={};
   (typeof allCompanies!=='undefined'?allCompanies:[]).forEach(c=>{ if(c.name) mrrByName[c.name.trim().toLowerCase()]=c.mrr||0; });
   const acctMRR=a=>mrrByName[(a.company||'').trim().toLowerCase()];
-  const rows=[...accts].sort((a,b)=> rtRank(a.median_seconds)-rtRank(b.median_seconds));
+  // An account handed over mid-window has two owners' replies in it. The row is
+  // credited to the current owner, so it must show THEIR stretch, not the whole
+  // window — otherwise taking an account over looks like a performance drop.
+  const rtOwned = a => a.owned_since ? new Date(a.owned_since).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : null;
+  const rtShownMed = a => a.owned_since ? a.current_owner_median_seconds : a.median_seconds;
+  const rtShownN   = a => a.owned_since ? a.current_owner_sample : a.sample;
+  const rows=[...accts].sort((a,b)=> rtRank(rtShownMed(a))-rtRank(rtShownMed(b)));
   document.getElementById('rt-customer-body').innerHTML = rows.length ? rows.map(a=>{
-    const m=acctMRR(a);
+    const m=acctMRR(a), since=rtOwned(a);
+    const whole = since && a.median_seconds!=null
+      ? ` title="Whole window across all owners: ${rtEsc(fmtDur(a.median_seconds))} over ${a.sample||0}"` : '';
     return `<tr>
     <td>${rtEsc(a.company)}</td>
-    <td>${rtEsc(a.am||'Unassigned')}</td>
+    <td${whole}>${rtEsc(a.am||'Unassigned')}${since?` <span class="rt-dim" style="font-size:11px">since ${rtEsc(since)}</span>`:''}</td>
     <td>${rtProdChip(a.product)}</td>
     <td>${m===undefined?'<span class="rt-dim">—</span>':fmt$(m)}</td>
-    ${rtMedCell(a.median_seconds,a.sample)}
-    <td class="rt-dim">${a.sample||0}</td></tr>`; }).join('')
+    ${rtMedCell(rtShownMed(a),rtShownN(a))}
+    <td class="rt-dim">${rtShownN(a)||0}</td></tr>`; }).join('')
     : `<tr><td colspan="6" class="rt-empty">No accounts for this filter.</td></tr>`;
 
   // Headline: how much revenue is waiting longest. RT_SLOW_HOURS is the line
   // above which a median reply counts as slow.
   const RT_SLOW_HOURS=24;
   const priced=rows.filter(a=>acctMRR(a)!==undefined);
-  const slow=priced.filter(a=>typeof a.median_seconds==='number' && a.median_seconds > RT_SLOW_HOURS*3600);
+  const slow=priced.filter(a=>typeof rtShownMed(a)==='number' && rtShownMed(a) > RT_SLOW_HOURS*3600);
   const slowMRR=slow.reduce((s,a)=>s+acctMRR(a),0);
   const pricedMRR=priced.reduce((s,a)=>s+acctMRR(a),0);
   const expEl=document.getElementById('rt-exposure');
@@ -5467,7 +5475,17 @@ function rtRender(){
       ? ' Not measured, no Slack channel matched: <b>' + un.map(rtEsc).join(', ') + '</b>'
         + ' — expected for email-only accounts, worth a look otherwise.'
       : un ? ' Every account on the roster matched a Slack channel.' : '';
-    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). A burst of customer messages counts as one prompt, timed from the first message.'+excluded+stale;
+    // Whose median a reply lands on is the question people argue about, so the
+    // rule is stated rather than assumed.
+    const hos = Array.isArray(rtData.handovers) ? rtData.handovers : [];
+    const handover = hos.length
+      ? ' Reassigned inside this window: <b>' + hos.map(h=>rtEsc(h.company)+' ('+h.owners.map(rtEsc).join(' → ')+')').join(', ')
+        + '</b> — each reply counts for whoever owned the account when the customer asked, so an inherited account carries none of the previous owner\'s time.'
+      : '';
+    const ownerFallback = rtData.owner_source === 'current-only'
+      ? ' <b style="color:var(--coral)">Owner history unavailable on the last run</b> — replies are attributed to each account\'s current AM for the whole window, so a recent handover may still count against the AM who inherited it.'
+      : '';
+    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). A burst of customer messages counts as one prompt, timed from the first message. Replies are credited to the account owner at the time of the message.'+handover+excluded+stale+ownerFallback;
   }
 }
 

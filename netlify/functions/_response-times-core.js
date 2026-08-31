@@ -159,6 +159,70 @@ function amLabel(csm) {
   if (!csm || FORMER_AMS.has(csm)) return 'Unassigned';
   return AM_LABEL[csm] || csm;
 }
+// ── ACCOUNT OWNERSHIP OVER TIME ───────────────────────────────────
+// An AM is only answerable for replies owed while they owned the account.
+// Attributing the whole window to today's owner charges a handover to the
+// person who inherited it: take an account off David on the 20th and his
+// slow replies from the 1st-19th land on your median, which is backwards.
+//
+// HubSpot keeps the history of the `csm` property, so we read it and give
+// each account a timeline of owners. Every measured reply is then credited
+// to whoever owned the account at the moment the customer asked.
+//
+// History comes back newest-first as [{value, timestamp}], where timestamp
+// is when the property BECAME that value. Sorted oldest-first, entry i owns
+// the account from its timestamp until entry i+1's (or now, for the last).
+function ownerIntervals(history, currentCsm) {
+  const h = (history || [])
+    .filter((e) => e && e.timestamp)
+    .map((e) => ({ am: amLabel(e.value), at: Date.parse(e.timestamp) / 1000 }))
+    .filter((e) => !isNaN(e.at))
+    .sort((a, b) => a.at - b.at);
+  if (!h.length) return [{ am: amLabel(currentCsm), from: -Infinity, to: Infinity }];
+  return h.map((e, i) => ({
+    am: e.am,
+    // The earliest entry also covers everything before it: the account had
+    // an owner before HubSpot started recording changes, and it was them.
+    from: i === 0 ? -Infinity : e.at,
+    to: i + 1 < h.length ? h[i + 1].at : Infinity,
+  }));
+}
+function ownerAt(intervals, ts) {
+  if (!intervals || !intervals.length) return null;
+  for (const iv of intervals) if (ts >= iv.from && ts < iv.to) return iv.am;
+  return intervals[intervals.length - 1].am;
+}
+// Owners who held the account at any point inside the window, oldest first,
+// each with the moment they took it on. Drives the "since <date>" chip.
+function ownersInWindow(intervals, from, to) {
+  return intervals
+    .filter((iv) => iv.from < to && iv.to > from)
+    .map((iv) => ({ am: iv.am, since: iv.from === -Infinity ? null : new Date(iv.from * 1000).toISOString() }));
+}
+
+// HubSpot's search endpoint cannot return property history, so pull it in a
+// second pass. A failure here is not fatal: without history every account
+// simply behaves as it did before, wholly owned by its current AM.
+async function fetchOwnerHistory(hsToken, ids) {
+  const out = {};
+  for (let i = 0; i < ids.length; i += 100) {
+    const res = await fetch('https://api.hubapi.com/crm/v3/objects/companies/batch/read', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + hsToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        propertiesWithHistory: ['csm'], properties: ['name'],
+        inputs: ids.slice(i, i + 100).map((id) => ({ id })),
+      }),
+    });
+    if (!res.ok) throw new Error('HubSpot history ' + res.status + ': ' + (await res.text()).slice(0, 200));
+    const data = await res.json();
+    for (const r of (data.results || [])) {
+      out[r.id] = (r.propertiesWithHistory && r.propertiesWithHistory.csm) || [];
+    }
+  }
+  return out;
+}
+
 async function fetchRoster(hsToken) {
   const roster = [];
   let after;
@@ -178,7 +242,9 @@ async function fetchRoster(hsToken) {
       const name = c.properties && c.properties.name;
       if (!name || name === 'Virio') continue; // exclude Virio's own record
       roster.push({
+        id: c.id,
         company: name,
+        csm: c.properties.csm,
         am: amLabel(c.properties.csm),
         product: c.properties.product === 'EGC' ? 'EGC' : 'Full Service',
       });
@@ -206,6 +272,23 @@ async function computeAndStore(token) {
   }
   if (!roster || !roster.length) { roster = ACCOUNTS; rosterSource = 'snapshot'; }
 
+  // Owner timeline per account. Without it (snapshot roster, or the history
+  // call failing) every account falls back to one owner for the whole window,
+  // which is exactly the old behaviour.
+  const windowFrom = Number(oldest), windowTo = Date.now() / 1000;
+  let ownerSource = 'hubspot-history';
+  try {
+    const ids = roster.map((a) => a.id).filter(Boolean);
+    const hist = (ids.length && process.env.HUBSPOT_TOKEN)
+      ? await fetchOwnerHistory(process.env.HUBSPOT_TOKEN, ids) : {};
+    if (!ids.length) ownerSource = 'current-only';
+    for (const a of roster) a.owners = ownerIntervals(hist[a.id], a.csm);
+  } catch (e) {
+    console.log('response-times: HubSpot csm history unavailable, attributing to current owner —', e.message);
+    ownerSource = 'current-only';
+    for (const a of roster) a.owners = ownerIntervals(null, a.csm);
+  }
+
   // Cache each author's workspace so we classify internal vs external reliably.
   const userTeam = {};
   async function teamOf(uid) {
@@ -220,6 +303,8 @@ async function computeAndStore(token) {
   const amLat = {};
   const amBizLat = {};
   const amProdLat = {};
+  const amAccts = {};        // am -> Set of companies they owned any of the window for
+  const handovers = [];
   const matched = [];
   const unmatched = [];
 
@@ -236,7 +321,7 @@ async function computeAndStore(token) {
     // onboarded). They reappear automatically once a channel exists.
     if (!chs.length) { unmatched.push(acct.company); continue; }
     matched.push({ company: acct.company, channel: chs.map((c) => c.name).join(', ') });
-    let latencies = [], bizLatencies = [];
+    let events = [];   // { at, sec, biz } — `at` is when the customer started waiting
     for (const ch of chs) {
       try {
         const msgs = (await channelHistory(ch.id, oldest, token))
@@ -268,8 +353,7 @@ async function computeAndStore(token) {
               const gap = atEnd ? Infinity : parseFloat(msgs[k].ts) - parseFloat(msgs[k - 1].ts);
               if (atEnd || gap > BURST_GAP_SECONDS) {
                 const st = parseFloat(msgs[burstStart].ts), en = parseFloat(reply.ts);
-                latencies.push(en - st);
-                bizLatencies.push(businessSeconds(st, en));
+                events.push({ at: st, sec: en - st, biz: businessSeconds(st, en) });
                 burstStart = k;
               }
             }
@@ -278,20 +362,49 @@ async function computeAndStore(token) {
         }
       } catch (e) { /* channel read failed — leave this channel out */ }
     }
+    const latencies = events.map((e) => e.sec);
+    const pk = acct.product === 'EGC' ? 'EGC' : 'Full Service';
+    const owners = ownersInWindow(acct.owners, windowFrom, windowTo);
+    if (owners.length > 1) {
+      handovers.push({ company: acct.company, owners: owners.map((o) => o.am) });
+    }
+
+    // Every account the AM owned part of the window counts towards their row,
+    // even if it was quiet — otherwise a silent account vanishes from the count.
+    for (const o of owners) (amAccts[o.am] = amAccts[o.am] || new Set()).add(acct.company);
+
+    // Credit each measurement to whoever owned the account when the customer
+    // started waiting, not to whoever owns it today.
+    for (const e of events) {
+      const who = ownerAt(acct.owners, e.at) || acct.am;
+      (amLat[who] = amLat[who] || []).push(e.sec);
+      (amBizLat[who] = amBizLat[who] || []).push(e.biz);
+      amProdLat[who] = amProdLat[who] || {};
+      (amProdLat[who][pk] = amProdLat[who][pk] || []).push(e.sec);
+    }
+    for (const o of owners) { amLat[o.am] = amLat[o.am] || []; amBizLat[o.am] = amBizLat[o.am] || []; }
+
+    // The current owner's own figure, so the per-customer table can show a
+    // number the person named beside it is actually answerable for.
+    const cur = owners.length ? owners[owners.length - 1] : { am: acct.am, since: null };
+    const curEvents = events.filter((e) => (ownerAt(acct.owners, e.at) || acct.am) === cur.am
+                                        && (!cur.since || e.at >= Date.parse(cur.since) / 1000));
+    const curLat = curEvents.map((e) => e.sec);
+
     accounts.push({
       company: acct.company, am: acct.am, product: acct.product,
       median_seconds: median(latencies), mean_seconds: mean(latencies), sample: latencies.length,
+      owners,
+      owned_since: cur.since,
+      current_owner_median_seconds: median(curLat),
+      current_owner_sample: curLat.length,
       channel: chs.map((c) => c.name).join(', '),
     });
-    (amLat[acct.am] = amLat[acct.am] || []).push(...latencies);
-    (amBizLat[acct.am] = amBizLat[acct.am] || []).push(...bizLatencies);
-    const pk = acct.product === 'EGC' ? 'EGC' : 'Full Service';
-    amProdLat[acct.am] = amProdLat[acct.am] || {};
-    (amProdLat[acct.am][pk] = amProdLat[acct.am][pk] || []).push(...latencies);
   }
 
   const ams = Object.keys(amLat).map((am) => {
-    const accts = accounts.filter((a) => a.am === am);
+    const owned = amAccts[am] || new Set();
+    const accts = accounts.filter((a) => owned.has(a.company));
     const mix = accts.reduce((m, a) => { const k = a.product === 'EGC' ? 'EGC' : 'FS'; m[k] = (m[k] || 0) + 1; return m; }, {});
     // Pooled stats per product so filtered views stay pooled (not median-of-medians).
     const byProduct = {};
@@ -318,7 +431,8 @@ async function computeAndStore(token) {
   // than an absence nobody notices.
   const payload = {
     generated_at: new Date().toISOString(), window_days: WINDOW_DAYS, source: 'slack',
-    roster_source: rosterSource, accounts, ams, unmatched,
+    roster_source: rosterSource, owner_source: ownerSource, handovers,
+    accounts, ams, unmatched,
   };
 
   const { getStore } = require('@netlify/blobs');
@@ -327,4 +441,7 @@ async function computeAndStore(token) {
   return { payload, matched, unmatched };
 }
 
-module.exports = { computeAndStore, WINDOW_DAYS };
+// ownerIntervals/ownerAt/ownersInWindow are exported for the unit test in
+// response-times-attribution.test.js — the attribution rule is the part worth
+// pinning down, and it needs neither Slack nor HubSpot to exercise.
+module.exports = { computeAndStore, WINDOW_DAYS, ownerIntervals, ownerAt, ownersInWindow, amLabel };
