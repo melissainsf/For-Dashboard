@@ -2374,7 +2374,12 @@ function displayAM(csm) { return csm ? (AM_LABELS[csm]||csm) : 'Unassigned'; }
 // Anyone taken off this list should also go into FORMER_AM_VALUES above,
 // otherwise their old book keeps attributing to them across the AM widgets.
 // Last reconciled against the HubSpot `csm` dropdown: 2026-08-24.
-const CURRENT_AM_VALUES = ['Melissa','Marghi','Max','Emily','Daniel','Karishma'];
+// 'EGC' is not a person — it is the HubSpot Account Manager value for the EGC
+// book, which Eric, Emmett and Eng run together rather than any one AM owning.
+// It belongs on this roster so those accounts read as EGC across the AM widgets
+// (and stop landing on Melissa's response-time median and her book), but it is
+// not bonus-eligible — see BONUS_EXCLUDE_AMS.
+const CURRENT_AM_VALUES = ['Melissa','Marghi','Max','Emily','Daniel','Karishma','EGC'];
 const CURRENT_AMS = CURRENT_AM_VALUES.map(displayAM);  // display labels
 function amDisplayList(cos) {
   const set = new Set(CURRENT_AMS);
@@ -6891,7 +6896,12 @@ function bonusEnsureInit(){
 // bonusAggregateTeam(), so anyone listed here drops out of the team-half NRR
 // that every AM's bonus is measured on — keep it empty unless someone is
 // genuinely off the plan.
-const BONUS_EXCLUDE_AMS = [];
+// 'EGC' is a shared book, not a person, so there is nobody to pay a quarterly
+// bonus to and it must not appear in the AM picker. NOTE: this list also gates
+// bonusAggregateTeam(), so the EGC accounts currently sit OUT of the team-half
+// NRR as well. That is a side effect of the exclusion, not a decision about
+// whether EGC revenue counts as team performance — revisit if it should.
+const BONUS_EXCLUDE_AMS = ['EGC'];
 function bonusPopulateAMs(){
   const sel = document.getElementById('bonus-am');
   const ams = (typeof CURRENT_AMS!=='undefined' && CURRENT_AMS.length) ? CURRENT_AMS : [];
