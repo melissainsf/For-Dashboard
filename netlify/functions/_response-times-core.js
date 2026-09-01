@@ -160,6 +160,8 @@ const FORMER_AMS = new Set([
   'Yichen', 'Lakeisha', 'Emmett', 'Jacob',
   'CSM 2',            // David — left Virio
   'Millie',
+  'Prentice',         // offered the role, never accepted; an account briefly
+                      // pointed at him and the history still carries it
   'Former Employee',  // HubSpot's catch-all for departed staff
 ]);
 function amLabel(amValue) {

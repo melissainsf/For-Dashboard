@@ -2087,6 +2087,10 @@ const FORMER_AM_VALUES = new Set([
   'Yichen', 'Lakeisha', 'Emmett', 'Jacob',
   'CSM 2',            // David — left Virio; Karishma backfilled the seat
   'Millie',
+  'Prentice',         // offered the role, never accepted — an account was
+                      // assigned to him in anticipation and then moved back,
+                      // and the AM widgets read ownership HISTORY, so he kept
+                      // showing up as an AM with a book and no replies.
   'Former Employee',  // HubSpot's catch-all for departed staff
 ]);
 const scrubFormerAM = v => (v && FORMER_AM_VALUES.has(v)) ? null : v;
@@ -6891,17 +6895,20 @@ function bonusEnsureInit(){
   bonusRefreshSnapshots();   // async: pulls snapshots, updates status, re-prefills if an AM is picked
 }
 
-// AMs to hide from the BONUS CALCULATOR picker only (not the rest of the
-// dashboard) — e.g. roles not on this quarterly bonus plan. This also gates
-// bonusAggregateTeam(), so anyone listed here drops out of the team-half NRR
-// that every AM's bonus is measured on — keep it empty unless someone is
-// genuinely off the plan.
-// 'EGC' is a shared book, not a person, so there is nobody to pay a quarterly
-// bonus to and it must not appear in the AM picker. NOTE: this list also gates
-// bonusAggregateTeam(), so the EGC accounts currently sit OUT of the team-half
-// NRR as well. That is a side effect of the exclusion, not a decision about
-// whether EGC revenue counts as team performance — revisit if it should.
+// Two different questions, deliberately kept apart. They used to be one list,
+// which meant taking someone off the bonus plan also quietly deleted their
+// accounts from the team NRR everyone else is measured on.
+//
+// 1. Who can be PAID a bonus — hidden from the BONUS CALCULATOR picker only.
+//    'EGC' is a shared book (Eric, Emmett, Eng), not a person, so there is
+//    nobody to write a cheque to.
 const BONUS_EXCLUDE_AMS = ['EGC'];
+// 2. Whose accounts count as TEAM revenue for the team-half NRR. The EGC book
+//    is still Virio performance and stays in: dropping it would shrink the
+//    cohort and lower every AM's bonus for a reason that has nothing to do
+//    with how the team did. Only put someone here if their revenue genuinely
+//    should not count for anybody.
+const TEAM_NRR_EXCLUDE_AMS = [];
 function bonusPopulateAMs(){
   const sel = document.getElementById('bonus-am');
   const ams = (typeof CURRENT_AMS!=='undefined' && CURRENT_AMS.length) ? CURRENT_AMS : [];
@@ -6945,9 +6952,11 @@ function bonusOnAMChange(){
 }
 
 // ── team aggregate (drives the 50% team half for everyone) ─────
+// Note this uses TEAM_NRR_EXCLUDE_AMS, not BONUS_EXCLUDE_AMS: a book with no
+// bonus recipient (EGC) is still team revenue and belongs in the cohort.
 function bonusEligibleAMs(){
   const ams=(typeof CURRENT_AMS!=='undefined'?CURRENT_AMS:[]);
-  return ams.filter(a=>!BONUS_EXCLUDE_AMS.includes(a));
+  return ams.filter(a=>!TEAM_NRR_EXCLUDE_AMS.includes(a));
 }
 function bonusAggregateTeam(){
   if(typeof allCompanies==='undefined' || !allCompanies || !allCompanies.length) return null;
