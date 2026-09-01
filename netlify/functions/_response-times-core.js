@@ -16,6 +16,10 @@
 //     recorded (`reaction_acks`) and left out of the median rather than timed to
 //     a later message, which would only ever invent a slower number. Real timing
 //     needs a reaction_added event subscription.
+//   - Threads: a reply in the thread under a customer message stops that clock.
+//     conversations.history returns top-level messages only, so these were
+//     invisible and every median was inflated. Only threads rooted at a CUSTOMER
+//     message are fetched — ours cannot answer their question.
 //   - Storage: Netlify Blobs only. Supabase is never touched.
 
 const ACCOUNTS = require('./_cs-accounts');
@@ -143,6 +147,87 @@ async function channelHistory(channelId, oldest, token) {
     cursor = r.has_more && r.response_metadata ? r.response_metadata.next_cursor : null;
   } while (cursor);
   return out;
+}
+
+// Replies to one thread. Only ever called for a thread hanging off a CUSTOMER
+// message — see the burst loop for why that keeps the call count sane.
+async function threadReplies(channelId, parentTs, token) {
+  const out = [];
+  let cursor;
+  do {
+    const r = await slack('conversations.replies', {
+      channel: channelId, ts: parentTs, limit: '200', ...(cursor ? { cursor } : {}),
+    }, token);
+    out.push(...(r.messages || []));
+    cursor = r.has_more && r.response_metadata ? r.response_metadata.next_cursor : null;
+  } while (cursor);
+  // conversations.replies echoes the parent back as the first element.
+  return out.filter((m) => m.ts !== parentTs);
+}
+
+
+// The clock rule, lifted out of the channel loop so it can be tested against
+// hand-built conversations instead of a live Slack workspace.
+//
+// One clock per BURST of customer messages, not per message. Previously every
+// customer message started its own clock and a single reply stopped all of
+// them, so a client who thinks out loud in five messages charged the AM five
+// latencies for one gap — and the earliest was timed from the first message,
+// so chatty accounts were penalised hardest. Consecutive customer messages less
+// than BURST_GAP_SECONDS apart are one prompt, timed from the first message in
+// the burst, which is when they actually started waiting. A genuine second
+// question hours later still starts its own clock.
+//
+// A burst is answered by whichever comes first: a reply in the thread hanging
+// under one of its messages, or the next top-level post from our side. A burst
+// a teammate reacted to is acknowledged and deliberately not timed.
+//
+// ctx: { isInternal, ackedByReaction, repliesTo, onAck }
+async function burstEvents(msgs, ctx) {
+  const { isInternal, ackedByReaction, repliesTo, onAck } = ctx;
+  const events = [];
+  let i = 0;
+  while (i < msgs.length) {
+    if (isInternal(msgs[i])) { i++; continue; }
+    let j = i;
+    while (j < msgs.length && !isInternal(msgs[j])) j++;   // run of customer messages
+    const topLevelReply = j < msgs.length ? msgs[j] : null;
+
+    let burstStart = i;
+    for (let k = i + 1; k <= j; k++) {
+      const atEnd = k === j;
+      const gap = atEnd ? Infinity : parseFloat(msgs[k].ts) - parseFloat(msgs[k - 1].ts);
+      if (!atEnd && gap <= BURST_GAP_SECONDS) continue;
+
+      const burst = msgs.slice(burstStart, k);
+      burstStart = k;
+      if (!burst.length) continue;
+
+      if (burst.some(ackedByReaction)) { onAck(); continue; }
+
+      const st = parseFloat(burst[0].ts);
+      const lastTs = parseFloat(burst[burst.length - 1].ts);
+
+      // Whichever came first: a reply in the thread under one of these
+      // messages, or the next top-level post from our side.
+      let answer = topLevelReply ? parseFloat(topLevelReply.ts) : Infinity;
+      for (const m of burst) {
+        for (const r of await repliesTo(m)) {
+          const rts = parseFloat(r.ts);
+          if (isInternal(r) && rts >= lastTs && rts < answer) answer = rts;
+          // A teammate can also just react inside the thread.
+          if (ackedByReaction(r)) { answer = -1; break; }
+        }
+        if (answer === -1) break;
+      }
+      if (answer === -1) { onAck(); continue; }
+      if (!isFinite(answer)) continue;               // genuinely unanswered
+
+      events.push({ at: st, sec: answer - st, biz: businessSeconds(st, answer) });
+    }
+    i = j;
+  }
+  return events;
 }
 
 // Pull the customer list + Account Manager + Product LIVE from HubSpot each run,
@@ -369,6 +454,7 @@ async function computeAndStore(token) {
   const handovers = [];
   let unattributed = 0;      // replies inside the window with no recorded owner
   let reactionAcks = 0;      // bursts a teammate answered with an emoji (untimeable)
+  let threadFetches = 0;     // conversations.replies calls made this run
   const matched = [];
   const unmatched = [];
 
@@ -392,6 +478,7 @@ async function computeAndStore(token) {
           .filter((m) => !m.subtype && m.user) // drop joins / system / bot posts
           .sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts));
         const reactors = msgs.flatMap((m) => (m.reactions || []).flatMap((r) => r.users || []));
+        // Thread-reply authors are resolved lazily below, as their threads load.
         for (const uid of [...new Set([...msgs.map((m) => m.user), ...reactors])]) await teamOf(uid); // warm cache
         const isInternal = (m) => userTeam[m.user] === virioTeamId;
         // An emoji from a teammate IS an answer. For plenty of messages it is
@@ -419,28 +506,39 @@ async function computeAndStore(token) {
         // apart are now one prompt, timed from the first message in the burst,
         // which is when they actually started waiting. A genuine second question
         // hours later still starts its own clock.
-        let i = 0;
-        while (i < msgs.length) {
-          if (isInternal(msgs[i])) { i++; continue; }
-          let j = i;
-          while (j < msgs.length && !isInternal(msgs[j])) j++;   // run of customer messages
-          const reply = j < msgs.length ? msgs[j] : null;        // first Virio reply after it
-          const acked = msgs.slice(i, j).some(ackedByReaction);
-          if (acked) reactionAcks++;
-          if (reply && !acked) {
-            let burstStart = i;
-            for (let k = i + 1; k <= j; k++) {
-              const atEnd = k === j;
-              const gap = atEnd ? Infinity : parseFloat(msgs[k].ts) - parseFloat(msgs[k - 1].ts);
-              if (atEnd || gap > BURST_GAP_SECONDS) {
-                const st = parseFloat(msgs[burstStart].ts), en = parseFloat(reply.ts);
-                events.push({ at: st, sec: en - st, biz: businessSeconds(st, en) });
-                burstStart = k;
-              }
-            }
+        // Virio replies IN THREAD as a matter of practice, and conversations.history
+        // returns only top-level messages — so the answer to most questions was
+        // invisible and the clock ran on to some unrelated later post, or never
+        // stopped at all. Every median before this was inflated, some wildly.
+        //
+        // Fetching every thread in every channel would be 300-1200 extra Slack
+        // calls at 50/min, far past any function timeout. We do not need them:
+        // a thread rooted at one of OUR messages cannot answer a customer's
+        // question, so only threads hanging off a CUSTOMER message matter. That
+        // is a handful per channel per month.
+        const threadCache = {};
+        async function repliesTo(m) {
+          if (!m.reply_count) return [];
+          if (!(m.ts in threadCache)) {
+            try { threadCache[m.ts] = await threadReplies(ch.id, m.ts, token); }
+            catch (e) { threadCache[m.ts] = []; }
+            threadFetches++;
+            // MUST resolve these authors before isInternal() is asked about
+            // them: an unknown user id is not equal to our team id, so an
+            // unwarmed cache would read our own thread replies as customer
+            // messages — the clock would never stop and the fix would make
+            // the numbers worse than leaving threads out entirely.
+            const ids = threadCache[m.ts].flatMap((r) => [
+              r.user, ...(r.reactions || []).flatMap((x) => x.users || []),
+            ]).filter(Boolean);
+            for (const uid of [...new Set(ids)]) await teamOf(uid);
           }
-          i = j;
+          return threadCache[m.ts];
         }
+
+        events.push(...await burstEvents(msgs, {
+          isInternal, ackedByReaction, repliesTo, onAck: () => { reactionAcks++; },
+        }));
       } catch (e) { /* channel read failed — leave this channel out */ }
     }
     const latencies = events.map((e) => e.sec);
@@ -527,6 +625,7 @@ async function computeAndStore(token) {
     business_hours: { start: DAY_START, end: DAY_END, tz: BUSINESS_TZ, weekends_counted: true },
     unattributed_replies: unattributed,
     reaction_acks: reactionAcks,
+    thread_fetches: threadFetches,
     accounts, ams, unmatched,
   };
 
@@ -539,4 +638,4 @@ async function computeAndStore(token) {
 // ownerIntervals/ownerAt/ownersInWindow are exported for the unit test in
 // response-times-attribution.test.js — the attribution rule is the part worth
 // pinning down, and it needs neither Slack nor HubSpot to exercise.
-module.exports = { computeAndStore, WINDOW_DAYS, ownerIntervals, ownerAt, ownersInWindow, amLabel, businessSeconds };
+module.exports = { computeAndStore, WINDOW_DAYS, BURST_GAP_SECONDS, ownerIntervals, ownerAt, ownersInWindow, amLabel, businessSeconds, burstEvents };

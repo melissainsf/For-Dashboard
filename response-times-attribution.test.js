@@ -180,5 +180,68 @@ const blip = RT.ownerIntervals([
 eq('a never-hired AM never gets a row of his own',
    RT.ownersInWindow(blip, WIN_FROM, WIN_TO).map((o) => o.am).includes('Prentice'), false);
 
-console.log(`\n${passed} passed, ${failed} failed\n`);
-process.exit(failed ? 1 : 0);
+console.log('\n── Reply detection: threads, reactions, bursts ──');
+// Virio replies in-thread as a matter of practice. conversations.history only
+// returns top-level messages, so those answers were invisible.
+const VIRIO = 'T_VIRIO', CUST = 'T_CUST';
+const TEAM = { AM: VIRIO, ENG: VIRIO, CLIENT: CUST, CLIENT2: CUST };
+const M = (user, ts, extra) => Object.assign({ user, ts: String(ts) }, extra || {});
+function ctxFor(threads) {
+  return {
+    isInternal: (m) => TEAM[m.user] === VIRIO,
+    ackedByReaction: (m) =>
+      (m.reactions || []).some((r) => (r.users || []).some((u) => TEAM[u] === VIRIO)),
+    repliesTo: async (m) => (m.reply_count ? (threads[m.ts] || []) : []),
+    onAck: () => { acks++; },
+  };
+}
+let acks = 0;
+const run = async (msgs, threads) => { acks = 0; const e = await RT.burstEvents(msgs, ctxFor(threads || {})); return { secs: e.map((x) => x.sec), acks }; };
+
+(async () => {
+  // The headline case: client asks, we answer in the thread 5 minutes later,
+  // and nothing else is posted top-level for two days.
+  eq('a thread reply stops the clock',
+     (await run([M('CLIENT', 0, { reply_count: 1 }), M('AM', 172800)],
+                { '0': [M('AM', 300)] })).secs, [300]);
+
+  // Without the thread, that same conversation looked like a two-day wait.
+  eq('...and without it the clock ran to the next top-level post',
+     (await run([M('CLIENT', 0), M('AM', 172800)])).secs, [172800]);
+
+  // A thread reply where NOTHING is posted top-level afterwards used to be
+  // invisible entirely -- the burst was dropped, so a fast answer never counted.
+  eq('a threaded answer with no later top-level post is now counted',
+     (await run([M('CLIENT', 0, { reply_count: 1 })], { '0': [M('AM', 120)] })).secs, [120]);
+
+  // A client replying inside their own thread is not an answer.
+  eq('the client talking in their own thread does not stop the clock',
+     (await run([M('CLIENT', 0, { reply_count: 1 }), M('AM', 900)],
+                { '0': [M('CLIENT2', 60)] })).secs, [900]);
+
+  // Emoji, top-level and in-thread.
+  eq('a teammate emoji on the message is an acknowledgement, not a latency',
+     (await run([M('CLIENT', 0, { reactions: [{ name: 'eyes', users: ['ENG'] }] }), M('AM', 259200)])).secs, []);
+  eq('...and it is counted as an ack', acks, 1);
+  eq('a teammate emoji inside the thread also acknowledges',
+     (await run([M('CLIENT', 0, { reply_count: 1 }), M('AM', 259200)],
+                { '0': [M('CLIENT2', 60, { reactions: [{ name: 'eyes', users: ['AM'] }] })] })).secs, []);
+  eq('the client reacting to themselves is not an acknowledgement',
+     (await run([M('CLIENT', 0, { reactions: [{ name: 'eyes', users: ['CLIENT'] }] }), M('AM', 600)])).secs, [600]);
+
+  // Bursts still behave.
+  eq('five messages inside the gap are one prompt, timed from the first',
+     (await run([M('CLIENT', 0), M('CLIENT', 60), M('CLIENT', 120), M('AM', 300)])).secs, [300]);
+  eq('a question hours later starts its own clock',
+     (await run([M('CLIENT', 0), M('CLIENT', 7200), M('AM', 7500)])).secs, [7500, 300]);
+  eq('an unanswered question is charged to nobody',
+     (await run([M('CLIENT', 0)])).secs, []);
+
+  // The earliest answer wins, whichever channel it came through.
+  eq('a top-level reply beats a slower thread reply',
+     (await run([M('CLIENT', 0, { reply_count: 1 }), M('AM', 100)], { '0': [M('AM', 500)] })).secs, [100]);
+
+  console.log(`\n${passed} passed, ${failed} failed\n`);
+  process.exit(failed ? 1 : 0);
+})();
+
