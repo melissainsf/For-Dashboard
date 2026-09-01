@@ -204,7 +204,28 @@ const submitResponse = (token, score, comment) =>
   rpc('nps_submit_response', { p_token: token, p_score: score == null ? null : score, p_comment: comment == null ? null : comment });
 
 // ── Email ──────────────────────────────────────────────────────────────────
-const FROM = process.env.NPS_FROM || 'Eric from Virio <eric@virio.ai>';
+//
+// Two ways out. Resend is the original: it needs a domain verified by DNS.
+// Google is the fallback for when that DNS is not ours to change — the domain
+// already authorises Google to send for it, which is how @virio.ai mail works
+// today, so nothing needs adding anywhere.
+//
+// Google wins when GMAIL_USER and GMAIL_APP_PASSWORD are both set; otherwise
+// Resend. Neither set and nothing sends, which is the dormant state.
+const GMAIL_USER = (process.env.GMAIL_USER || '').trim();
+// App passwords are shown as four blocks of four. People paste them that way,
+// and SMTP rejects the spaces, so strip them rather than fail on a copy-paste.
+const GMAIL_PASS = (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+const useGmail = () => !!(GMAIL_USER && GMAIL_PASS);
+
+// Over SMTP the From address must be the account that authenticated — Google
+// rewrites or rejects anything else — so it is built from GMAIL_USER rather
+// than read from NPS_FROM, which could silently disagree with it.
+const FROM_NAME = process.env.NPS_FROM_NAME || 'Eric, CEO at Virio';
+function fromHeader() {
+  if (useGmail()) return `"${FROM_NAME.replace(/"/g, '')}" <${GMAIL_USER}>`;
+  return process.env.NPS_FROM || 'Eric from Virio <eric@virio.ai>';
+}
 const REPLY_TO = process.env.NPS_REPLY_TO || 'eric@virio.ai';
 
 function publicBase() {
@@ -260,17 +281,43 @@ Thanks,
 Eric`;
 }
 
-async function sendEmail(row) {
+const SUBJECT = () => process.env.NPS_SUBJECT || 'Quick question — how are we doing?';
+
+let mailer = null;
+function gmailTransport() {
+  if (!mailer) {
+    const nodemailer = require('nodemailer');
+    mailer = nodemailer.createTransport({
+      host: 'smtp.gmail.com', port: 465, secure: true,
+      auth: { user: GMAIL_USER, pass: GMAIL_PASS },
+    });
+  }
+  return mailer;
+}
+
+async function sendViaGmail(row) {
+  const info = await gmailTransport().sendMail({
+    from: fromHeader(),
+    to: row.contact_email,
+    replyTo: REPLY_TO,
+    subject: SUBJECT(),
+    html: emailHtml(row),
+    text: emailText(row),
+  });
+  return JSON.stringify({ id: info.messageId, via: 'gmail' });
+}
+
+async function sendViaResend(row) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error('RESEND_API_KEY not set');
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
     body: JSON.stringify({
-      from: FROM,
+      from: fromHeader(),
       to: [row.contact_email],
       reply_to: REPLY_TO,
-      subject: process.env.NPS_SUBJECT || 'Quick question — how are we doing?',
+      subject: SUBJECT(),
       html: emailHtml(row),
       text: emailText(row),
       tags: [{ name: 'type', value: 'nps' }],
@@ -280,6 +327,16 @@ async function sendEmail(row) {
   if (!res.ok) throw new Error(`Resend ${res.status}: ${body.slice(0, 300)}`);
   return body;
 }
+
+async function sendEmail(row) {
+  if (useGmail()) return sendViaGmail(row);
+  return sendViaResend(row);
+}
+
+// Is anything configured to send at all? Used by the job and the manual
+// trigger so both report the same thing instead of naming Resend specifically.
+function canSend() { return useGmail() || !!process.env.RESEND_API_KEY; }
+function transportName() { return useGmail() ? 'gmail' : (process.env.RESEND_API_KEY ? 'resend' : 'none'); }
 
 // ── misc ───────────────────────────────────────────────────────────────────
 function newToken() {
@@ -296,6 +353,7 @@ function escapeHtml(s) {
 }
 
 module.exports = {
+  canSend, transportName, fromHeader,
   FOC_LABEL, CHURNED_STAGE, usable, supabaseUrl, supabaseAnon,
   tierOf, fetchActiveCompanies, fetchFocContactIds, fetchContacts, buildAudience,
   recordSends, pendingSends, markSent, submitResponse,

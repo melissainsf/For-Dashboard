@@ -51,7 +51,8 @@ async function sendTest(to, period) {
   return {
     test: true,
     sent_to: to,
-    from: process.env.NPS_FROM || 'Eric from Virio <eric@virio.ai>',
+    via: core.transportName(),
+    from: core.fromHeader(),
     scoring_link_example: `${core.publicBase()}/api/nps-respond?t=${saved.token}&s=9`,
     note: 'Recorded under company id __TEST__, which the NPS tab excludes from every metric. Delete the row when you are done, or leave it — it is invisible.',
   };
@@ -81,7 +82,7 @@ exports.handler = async function (event) {
 
   if (testTo) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(testTo)) return json(400, { error: `"${testTo}" is not an email address` });
-    if (!process.env.RESEND_API_KEY) return json(500, { error: 'RESEND_API_KEY not set — nothing can be sent yet.' });
+    if (!core.canSend()) return json(500, { error: 'No sending transport configured — set GMAIL_USER + GMAIL_APP_PASSWORD, or RESEND_API_KEY.' });
     try {
       return json(200, { ok: true, ...(await sendTest(testTo, period)) });
     } catch (e) {
@@ -89,7 +90,7 @@ exports.handler = async function (event) {
     }
   }
 
-  if (!dryRun && !process.env.RESEND_API_KEY) return json(500, { error: 'RESEND_API_KEY not set — a real run would send nothing. Use ?dry=1 to preview.' });
+  if (!dryRun && !core.canSend()) return json(500, { error: 'No sending transport configured — a real run would send nothing. Use ?dry=1 to preview.' });
 
   try {
     const retryFailed = q.retry === '1' || q.retry === 'true';
@@ -103,7 +104,7 @@ exports.handler = async function (event) {
 function checkEnv() {
   // SUPABASE_URL / SUPABASE_ANON_KEY are omitted: they are public, they fall
   // back to the committed values, and a bad paste of them is now harmless.
-  for (const name of ['HUBSPOT_TOKEN', 'NPS_JOB_SECRET', 'RESEND_API_KEY', 'NPS_FROM']) {
+  for (const name of ['HUBSPOT_TOKEN', 'NPS_JOB_SECRET', 'RESEND_API_KEY', 'NPS_FROM', 'GMAIL_USER']) {
     const v = process.env[name];
     if (!v) continue;
     const bad = [...v].find(c => c.charCodeAt(0) > 126 || c.charCodeAt(0) < 32);
