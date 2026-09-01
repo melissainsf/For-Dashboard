@@ -310,6 +310,7 @@ async function computeAndStore(token) {
   const amLat = {};
   const amBizLat = {};
   const amProdLat = {};
+  const amProdBiz = {};
   const amAccts = {};        // am -> Set of companies they owned any of the window for
   const handovers = [];
   const matched = [];
@@ -388,6 +389,8 @@ async function computeAndStore(token) {
       (amBizLat[who] = amBizLat[who] || []).push(e.biz);
       amProdLat[who] = amProdLat[who] || {};
       (amProdLat[who][pk] = amProdLat[who][pk] || []).push(e.sec);
+      amProdBiz[who] = amProdBiz[who] || {};
+      (amProdBiz[who][pk] = amProdBiz[who][pk] || []).push(e.biz);
     }
     for (const o of owners) { amLat[o.am] = amLat[o.am] || []; amBizLat[o.am] = amBizLat[o.am] || []; }
 
@@ -397,13 +400,17 @@ async function computeAndStore(token) {
     const curEvents = events.filter((e) => (ownerAt(acct.owners, e.at) || acct.am) === cur.am
                                         && (!cur.since || e.at >= Date.parse(cur.since) / 1000));
     const curLat = curEvents.map((e) => e.sec);
+    const bizAll = events.map((e) => e.biz);
+    const curBiz = curEvents.map((e) => e.biz);
 
     accounts.push({
       company: acct.company, am: acct.am, product: acct.product,
       median_seconds: median(latencies), mean_seconds: mean(latencies), sample: latencies.length,
+      median_business_seconds: median(bizAll), mean_business_seconds: mean(bizAll),
       owners,
       owned_since: cur.since,
       current_owner_median_seconds: median(curLat),
+      current_owner_median_business_seconds: median(curBiz),
       current_owner_sample: curLat.length,
       channel: chs.map((c) => c.name).join(', '),
     });
@@ -417,9 +424,11 @@ async function computeAndStore(token) {
     const byProduct = {};
     for (const p of ['EGC', 'Full Service']) {
       const lat = (amProdLat[am] && amProdLat[am][p]) || [];
+      const bz = (amProdBiz[am] && amProdBiz[am][p]) || [];
       byProduct[p] = {
         accounts: accts.filter((a) => a.product === p).length,
         median_seconds: median(lat), mean_seconds: mean(lat), sample: lat.length,
+        median_business_seconds: median(bz), mean_business_seconds: mean(bz),
       };
     }
     const biz = amBizLat[am] || [];
@@ -439,6 +448,7 @@ async function computeAndStore(token) {
   const payload = {
     generated_at: new Date().toISOString(), window_days: WINDOW_DAYS, source: 'slack',
     roster_source: rosterSource, owner_source: ownerSource, handovers,
+    business_hours: { start: DAY_START, end: DAY_END, tz: BUSINESS_TZ, weekends_counted: true },
     accounts, ams, unmatched,
   };
 
@@ -451,4 +461,4 @@ async function computeAndStore(token) {
 // ownerIntervals/ownerAt/ownersInWindow are exported for the unit test in
 // response-times-attribution.test.js — the attribution rule is the part worth
 // pinning down, and it needs neither Slack nor HubSpot to exercise.
-module.exports = { computeAndStore, WINDOW_DAYS, ownerIntervals, ownerAt, ownersInWindow, amLabel };
+module.exports = { computeAndStore, WINDOW_DAYS, ownerIntervals, ownerAt, ownersInWindow, amLabel, businessSeconds };

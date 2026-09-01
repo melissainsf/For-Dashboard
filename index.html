@@ -5342,17 +5342,30 @@ function fmtDur(sec){
   const d=Math.floor(sec/86400), h=Math.floor((sec%86400)/3600); return h?`${d}d ${h}h`:`${d}d`;
 }
 function rtProdChip(p){ return p==='EGC' ? '<span class="rt-chip egc">EGC</span>' : '<span class="rt-chip fs">Full Service</span>'; }
-function rtMedianTitle(sec,sample){
+// The headline median counts only working hours (07:00–22:00 PT, weekends
+// included — Virio works them). Raw 24/7 charged the whole night to whoever
+// was owed the reply: a 10pm message answered at 7am read as nine hours, which
+// is a statement about sleep, not about responsiveness. The 24/7 figure is
+// still measured and still shown, in the tooltip, since it is the strict
+// always-on view.
+function rtMedianTitle(sec,sample,raw){
   if(sec==null||!sample) return 'No customer replies measured in the last 30 days yet.';
-  const parts=[];
+  const parts=['Median of '+sample+' measured first-reply times over the last 30 days, counting only 7am–10pm PT.'];
+  if(raw!=null && raw>sec) parts.push('Raw 24/7, counting overnight and weekend gaps: '+fmtDurPlain(raw)+'.');
   if(sample<5) parts.push('Based on only '+sample+' measured repl'+(sample===1?'y':'ies')+' — a single slow reply skews this, so treat it as low-confidence.');
-  if(sec>=4*3600) parts.push('Measured 24/7, so overnight and weekend gaps count — e.g. a late-evening message answered the next morning adds hours.');
-  if(!parts.length) parts.push('Median of '+sample+' measured first-reply times over the last 30 days.');
   return parts.join(' ');
 }
-function rtMedCell(sec,sample){
+function fmtDurPlain(sec){
+  if(sec==null) return '—';
+  sec=Math.round(sec);
+  if(sec<60) return sec+'s';
+  if(sec<3600){ const m=Math.floor(sec/60); return m+'m'; }
+  if(sec<86400){ const h=Math.floor(sec/3600), m=Math.round(sec%3600/60); return m?`${h}h ${m}m`:`${h}h`; }
+  const d=Math.floor(sec/86400), h=Math.round(sec%86400/3600); return h?`${d}d ${h}h`:`${d}d`;
+}
+function rtMedCell(sec,sample,raw){
   const low = sample && sample<5 && sec!=null;
-  return `<td class="rt-val"><span class="rt-med${low?' rt-lowconf':''}" title="${rtEsc(rtMedianTitle(sec,sample))}">${fmtDur(sec)}</span></td>`;
+  return `<td class="rt-val"><span class="rt-med${low?' rt-lowconf':''}" title="${rtEsc(rtMedianTitle(sec,sample,raw))}">${fmtDur(sec)}</span></td>`;
 }
 function rtMixCell(mix){
   const egc=mix&&mix.EGC||0, fs=mix&&mix.FS||0, out=[];
@@ -5366,7 +5379,7 @@ function rtDeriveAms(accts){
   return Object.keys(by).map(am=>{
     const list=by[am];
     const mix=list.reduce((m,a)=>{ const k=a.product==='EGC'?'EGC':'FS'; m[k]=(m[k]||0)+1; return m; },{});
-    const meds=list.map(a=>a.median_seconds).filter(v=>v!=null).sort((x,y)=>x-y);
+    const meds=list.map(a=>a.median_business_seconds!=null?a.median_business_seconds:a.median_seconds).filter(v=>v!=null).sort((x,y)=>x-y);
     let med=null; if(meds.length){ const mid=Math.floor(meds.length/2); med=meds.length%2?meds[mid]:(meds[mid-1]+meds[mid])/2; }
     const sample=list.reduce((s,a)=>s+(a.sample||0),0);
     return { am, accounts:list.length, product_mix:mix, median_seconds:med, sample };
@@ -5400,7 +5413,11 @@ function rtRender(){
   // credited to the current owner, so it must show THEIR stretch, not the whole
   // window — otherwise taking an account over looks like a performance drop.
   const rtOwned = a => a.owned_since ? new Date(a.owned_since).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : null;
-  const rtShownMed = a => a.owned_since ? a.current_owner_median_seconds : a.median_seconds;
+  // Business-hours median for the owner the row is credited to.
+  const rtShownMed = a => a.owned_since
+    ? (a.current_owner_median_business_seconds != null ? a.current_owner_median_business_seconds : a.current_owner_median_seconds)
+    : (a.median_business_seconds != null ? a.median_business_seconds : a.median_seconds);
+  const rtShownRaw = a => a.owned_since ? a.current_owner_median_seconds : a.median_seconds;
   const rtShownN   = a => a.owned_since ? a.current_owner_sample : a.sample;
   const rows=[...accts].sort((a,b)=> rtRank(rtShownMed(a))-rtRank(rtShownMed(b)));
   document.getElementById('rt-customer-body').innerHTML = rows.length ? rows.map(a=>{
@@ -5412,7 +5429,7 @@ function rtRender(){
     <td${whole}>${rtEsc(a.am||'Unassigned')}${since?` <span class="rt-dim" style="font-size:11px">since ${rtEsc(since)}</span>`:''}</td>
     <td>${rtProdChip(a.product)}</td>
     <td>${m===undefined?'<span class="rt-dim">—</span>':fmt$(m)}</td>
-    ${rtMedCell(rtShownMed(a),rtShownN(a))}
+    ${rtMedCell(rtShownMed(a),rtShownN(a),rtShownRaw(a))}
     <td class="rt-dim">${rtShownN(a)||0}</td></tr>`; }).join('')
     : `<tr><td colspan="6" class="rt-empty">No accounts for this filter.</td></tr>`;
 
@@ -5427,8 +5444,8 @@ function rtRender(){
   if(expEl) expEl.innerHTML = !priced.length
     ? 'No MRR matched to these accounts yet — load the portfolio tabs first.'
     : slow.length
-      ? `<b>${fmtBig$(slowMRR)}/mo · ${fmtBig$(slowMRR*12)} ARR</b> sits with accounts whose median reply is over ${RT_SLOW_HOURS}h — ${pctOf(slowMRR,pricedMRR)}% of the matched book, across ${slow.length} account${slow.length===1?'':'s'}: ${slow.sort((a,b)=>acctMRR(b)-acctMRR(a)).slice(0,5).map(a=>rtEsc(a.company)).join(', ')}${slow.length>5?'…':''}`
-      : `Every matched account (${fmtBig$(pricedMRR)}/mo) replies inside ${RT_SLOW_HOURS}h.`;
+      ? `<b>${fmtBig$(slowMRR)}/mo · ${fmtBig$(slowMRR*12)} ARR</b> sits with accounts whose median reply is over ${RT_SLOW_HOURS} working hours — ${pctOf(slowMRR,pricedMRR)}% of the matched book, across ${slow.length} account${slow.length===1?'':'s'}: ${slow.sort((a,b)=>acctMRR(b)-acctMRR(a)).slice(0,5).map(a=>rtEsc(a.company)).join(', ')}${slow.length>5?'…':''}`
+      : `Every matched account (${fmtBig$(pricedMRR)}/mo) replies inside ${RT_SLOW_HOURS} working hours.`;
   // Widget 2 — by AM. Pooled server stats; by_product keeps filtered views pooled
   // too (not median-of-medians), so the number matches across All / EGC / Full Service.
   let ams;
@@ -5440,7 +5457,8 @@ function rtRender(){
         const bp=(x.by_product&&x.by_product[rtProduct])||{accounts:0,median_seconds:null,mean_seconds:null,sample:0};
         return { am:x.am, accounts:bp.accounts,
                  product_mix: rtProduct==='EGC'?{EGC:bp.accounts}:{FS:bp.accounts},
-                 median_seconds:bp.median_seconds, mean_seconds:bp.mean_seconds, sample:bp.sample };
+                 median_seconds:bp.median_seconds, median_business_seconds:bp.median_business_seconds,
+                 mean_seconds:bp.mean_seconds, sample:bp.sample };
       }).filter(x=>x.accounts>0);
     } else {
       ams = rtDeriveAms(accts); // old payload without by_product
@@ -5448,12 +5466,13 @@ function rtRender(){
   } else {
     ams = rtDeriveAms(accts);
   }
-  ams.sort((a,b)=> rtRank(a.median_seconds)-rtRank(b.median_seconds));
+  const amMed = x => x.median_business_seconds != null ? x.median_business_seconds : x.median_seconds;
+  ams.sort((a,b)=> rtRank(amMed(a))-rtRank(amMed(b)));
   document.getElementById('rt-am-body').innerHTML = ams.length ? ams.map(x=>`<tr>
     <td>${rtEsc(x.am)}</td>
     <td class="rt-dim">${x.accounts}</td>
     <td>${rtMixCell(x.product_mix)}</td>
-    ${rtMedCell(x.median_seconds,x.sample)}</tr>`).join('')
+    ${rtMedCell(amMed(x),x.sample,x.median_seconds)}</tr>`).join('')
     : `<tr><td colspan="4" class="rt-empty">No AMs for this filter.</td></tr>`;
   // Footnote
   const note=document.getElementById('rt-note');
@@ -5477,6 +5496,8 @@ function rtRender(){
       : un ? ' Every account on the roster matched a Slack channel.' : '';
     // Whose median a reply lands on is the question people argue about, so the
     // rule is stated rather than assumed.
+    const b = rtData.business_hours;
+    const bh = b ? `${b.start}:00–${b.end}:00 ${b.tz==='America/Los_Angeles'?'PT':b.tz}, weekends included` : '7:00–22:00 PT, weekends included';
     const hos = Array.isArray(rtData.handovers) ? rtData.handovers : [];
     const handover = hos.length
       ? ' Reassigned inside this window: <b>' + hos.map(h=>rtEsc(h.company)+' ('+h.owners.map(rtEsc).join(' → ')+')').join(', ')
@@ -5485,7 +5506,7 @@ function rtRender(){
     const ownerFallback = rtData.owner_source === 'current-only'
       ? ' <b style="color:var(--coral)">Owner history unavailable on the last run</b> — replies are attributed to each account\'s current AM for the whole window, so a recent handover may still count against the AM who inherited it.'
       : '';
-    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply (raw 24/7). A burst of customer messages counts as one prompt, timed from the first message. Replies are credited to the account owner at the time of the message.'+handover+excluded+stale+ownerFallback;
+    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply, counting working hours only ('+bh+'). A burst of customer messages counts as one prompt, timed from the first message. Replies are credited to the account owner at the time of the message. Hover any median for the raw 24/7 figure.'+handover+excluded+stale+ownerFallback;
   }
 }
 

@@ -64,5 +64,22 @@ eq('Max -> Maxwell', RT.amLabel('Max'), 'Maxwell');
 eq('departed staff -> Unassigned', RT.amLabel('Former Employee'), 'Unassigned');
 eq('blank -> Unassigned', RT.amLabel(null), 'Unassigned');
 
+console.log('\n── Business-hours clock (the headline median) ──');
+// 07:00–22:00 America/Los_Angeles. Weekends count; nights do not.
+const B = RT.businessSeconds;
+const h = (n) => Math.round(n / 3600 * 100) / 100;
+eq('an hour inside the working day counts in full',
+   h(B(T('2026-08-12T17:00:00Z'), T('2026-08-12T18:00:00Z'))), 1);      // 10:00->11:00 PT
+eq('10pm PT to 7am PT next day counts as nothing',
+   B(T('2026-08-13T05:00:00Z'), T('2026-08-13T14:00:00Z')), 0);          // 22:00 -> 07:00 PT
+eq('a 10pm message answered at 8am costs one working hour, not nine',
+   h(B(T('2026-08-13T04:30:00Z'), T('2026-08-13T15:00:00Z'))), 1.5);     // 21:30 -> 08:00 PT
+eq('a full day is capped at the 15-hour window',
+   h(B(T('2026-08-12T14:00:00Z'), T('2026-08-13T14:00:00Z'))), 15);      // 07:00 -> 07:00 PT
+eq('end before start is zero, never negative',
+   B(T('2026-08-12T18:00:00Z'), T('2026-08-12T17:00:00Z')), 0);
+eq('weekends are counted — Virio works them',
+   h(B(T('2026-08-15T17:00:00Z'), T('2026-08-15T19:00:00Z'))), 2);       // Saturday 10:00->12:00 PT
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed ? 1 : 0);
