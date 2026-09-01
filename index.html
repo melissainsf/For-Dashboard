@@ -5433,9 +5433,19 @@ function rtRender(){
     <td class="rt-dim">${rtShownN(a)||0}</td></tr>`; }).join('')
     : `<tr><td colspan="6" class="rt-empty">No accounts for this filter.</td></tr>`;
 
-  // Headline: how much revenue is waiting longest. RT_SLOW_HOURS is the line
-  // above which a median reply counts as slow.
-  const RT_SLOW_HOURS=24;
+  // Headline: how much revenue is waiting longest.
+  //
+  // The threshold moved with the clock. It was 24 hours of raw wall time —
+  // roughly "not answered by tomorrow", though an overnight message could trip
+  // it on its own. On the working-hours clock the coverage window is 15 hours a
+  // day (7am–10pm PT), so 24 would now mean a day and a half of working time:
+  // looser than the old bar, and it would flag almost nothing.
+  //
+  // 8 working hours is "we did not get back to them within a working day".
+  // A morning message answered by end of day passes; one left until the next
+  // day does not. Raise it if this flags half the book, lower it if it never
+  // fires — the number is meant to be tuned against what the team commits to.
+  const RT_SLOW_HOURS=8;
   const priced=rows.filter(a=>acctMRR(a)!==undefined);
   const slow=priced.filter(a=>typeof rtShownMed(a)==='number' && rtShownMed(a) > RT_SLOW_HOURS*3600);
   const slowMRR=slow.reduce((s,a)=>s+acctMRR(a),0);
@@ -5444,7 +5454,7 @@ function rtRender(){
   if(expEl) expEl.innerHTML = !priced.length
     ? 'No MRR matched to these accounts yet — load the portfolio tabs first.'
     : slow.length
-      ? `<b>${fmtBig$(slowMRR)}/mo · ${fmtBig$(slowMRR*12)} ARR</b> sits with accounts whose median reply is over ${RT_SLOW_HOURS} working hours — ${pctOf(slowMRR,pricedMRR)}% of the matched book, across ${slow.length} account${slow.length===1?'':'s'}: ${slow.sort((a,b)=>acctMRR(b)-acctMRR(a)).slice(0,5).map(a=>rtEsc(a.company)).join(', ')}${slow.length>5?'…':''}`
+      ? `<b>${fmtBig$(slowMRR)}/mo · ${fmtBig$(slowMRR*12)} ARR</b> sits with accounts whose median reply is over ${RT_SLOW_HOURS} working hours (7am–10pm PT) — ${pctOf(slowMRR,pricedMRR)}% of the matched book, across ${slow.length} account${slow.length===1?'':'s'}: ${slow.sort((a,b)=>acctMRR(b)-acctMRR(a)).slice(0,5).map(a=>rtEsc(a.company)).join(', ')}${slow.length>5?'…':''}`
       : `Every matched account (${fmtBig$(pricedMRR)}/mo) replies inside ${RT_SLOW_HOURS} working hours.`;
   // Widget 2 — by AM. Pooled server stats; by_product keeps filtered views pooled
   // too (not median-of-medians), so the number matches across All / EGC / Full Service.
