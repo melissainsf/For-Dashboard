@@ -36,6 +36,7 @@ exports.handler = async function (event) {
       ok: true,
       generated_at: payload.generated_at,
       reaction_acks: payload.reaction_acks,   // bursts answered with an emoji
+      thread_fetches: payload.thread_fetches, // conversations.replies calls made
       unattributed_replies: payload.unattributed_replies,
       matched_count: matched.length,
       unmatched: unmatched,
