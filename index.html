@@ -5546,6 +5546,12 @@ let npsRows=null, npsProduct='all', npsMonths=6, npsWired=false, npsLoading=null
 // it so nobody reports "EGC is at -100" off a single bad month.
 const NPS_MIN_N = 5;
 
+// nps_sends stores the raw HubSpot Account Manager VALUE as a snapshot, so the
+// rows carry internal names ('Max', 'CSM 2') that the rest of the dashboard
+// never shows. Put them through the same scrub-then-label path everything else
+// uses, or this tab is the one place Maxwell reads as "Max" and a departed AM
+// keeps a book.
+function npsAM(v){ return displayAM(scrubFormerAM(v)); }
 function npsBucket(score){ return score>=9?'promoter':score>=7?'passive':'detractor'; }
 
 // Standard NPS: promoters minus detractors, as a percentage of respondents.
@@ -5657,7 +5663,7 @@ function npsRender(){
   npsRenderSegTable('nps-seg-pilot',   npsSegRows(rows, r=>r.pilot_status||'Unset'));
   npsRenderSegTable('nps-seg-vertical',npsSegRows(rows, r=>r.vertical||'Unset'));
   npsRenderSegTable('nps-seg-stage',   npsSegRows(rows, r=>r.stage||'Unset'));
-  npsRenderSegTable('nps-seg-am',      npsSegRows(rows, r=>r.am||'Unassigned'), true);
+  npsRenderSegTable('nps-seg-am',      npsSegRows(rows, r=>npsAM(r.am)), true);
 
   npsRenderResponses(st.answered);
   npsRenderGaps(rows);
@@ -5730,7 +5736,7 @@ function npsRenderResponses(answered){
     <td>${escapeHtml(r.company_name||'—')}</td>
     <td>${escapeHtml(r.contact_name||r.contact_email||'—')}</td>
     <td>${rtProdChip(r.product)}</td>
-    <td>${escapeHtml(r.am||'Unassigned')}</td>
+    <td>${escapeHtml(npsAM(r.am))}</td>
     <td class="rt-val">${npsScoreChip(r.score)}</td>
     <td>${r.comment?escapeHtml(r.comment):'<span class="rt-pending">—</span>'}</td>
     <td class="rt-val">${r.responded_at?new Date(r.responded_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—'}</td>
@@ -5755,7 +5761,7 @@ function npsRenderGaps(rows){
   body.innerHTML=list.map(g=>`<tr>
     <td>${escapeHtml(g.name||'—')}</td>
     <td>${rtProdChip(g.product)}</td>
-    <td>${escapeHtml(g.am||'Unassigned')}</td>
+    <td>${escapeHtml(npsAM(g.am))}</td>
     <td>${[...g.reasons].map(why).map(escapeHtml).join(' · ')}</td>
     <td class="rt-val">${g.periods.size}</td>
   </tr>`).join('');
