@@ -306,6 +306,13 @@ function subjectFor(row) {
   return tpl.replace(/\{company\}/g, co);
 }
 
+// Caching the transporter is not enough: without `pool`, nodemailer opens a new
+// connection -- and a new LOGIN -- for every message. A 39-account month is then
+// 39 logins in about ninety seconds, and Google answers the last of them with
+// "454-4.7.0 Too many login attempts", failing whoever happens to be at the end
+// of the queue. Pooling logs in once and reuses the connection for the whole
+// run; rateLimit paces us well under Gmail's ceiling and keeps the run inside
+// Netlify's function timeout, which the unpooled version also blew past.
 let mailer = null;
 function gmailTransport() {
   if (!mailer) {
@@ -313,6 +320,11 @@ function gmailTransport() {
     mailer = nodemailer.createTransport({
       host: 'smtp.gmail.com', port: 465, secure: true,
       auth: { user: GMAIL_USER, pass: GMAIL_PASS },
+      pool: true,
+      maxConnections: 1,      // one login for the month, not one per customer
+      maxMessages: Infinity,  // never cycle the connection mid-run
+      rateDelta: 1000,
+      rateLimit: 5,           // <= 5 messages/sec, far under Gmail's limit
     });
   }
   return mailer;
