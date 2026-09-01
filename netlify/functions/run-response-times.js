@@ -14,8 +14,18 @@ exports.handler = async function (event) {
   const key = (event && event.queryStringParameters && event.queryStringParameters.key) || '';
 
   if (!token) return json(500, { error: 'SLACK_BOT_TOKEN not set' });
-  // Gate on the last 6 chars of the bot token (avoids needing a separate env var).
-  if (key !== token.slice(-6)) return json(401, { error: 'unauthorized — key must be the last 6 characters of the Slack bot token' });
+
+  // Gating on the last 6 characters of the bot token saved an env var and cost
+  // us the ability to actually run this: SLACK_BOT_TOKEN is stored as a Netlify
+  // SECRET, and Netlify masks a secret permanently once set — the value cannot
+  // be read back from the UI or the API. So the only way to get the key was to
+  // go to the Slack app config, which is not something the person who needs
+  // this endpoint can reach. NPS_JOB_SECRET is the internal job secret, already
+  // set in every deploy context, and already used to gate the NPS run — accept
+  // it here too. The token suffix still works for anyone who has it.
+  const jobSecret = process.env.NPS_JOB_SECRET;
+  const ok = (jobSecret && key === jobSecret) || key === token.slice(-6);
+  if (!ok) return json(401, { error: 'unauthorized — pass NPS_JOB_SECRET as ?key=' });
 
   try {
     const { connectLambda } = require('@netlify/blobs');
@@ -25,6 +35,8 @@ exports.handler = async function (event) {
     return json(200, {
       ok: true,
       generated_at: payload.generated_at,
+      reaction_acks: payload.reaction_acks,   // bursts answered with an emoji
+      unattributed_replies: payload.unattributed_replies,
       matched_count: matched.length,
       unmatched: unmatched,
       accounts: payload.accounts.map((a) => ({

@@ -11,8 +11,11 @@
 //   - Internal vs external is decided by the author's Slack workspace: Virio
 //     teammates belong to our team_id; the customer side does not. We resolve each
 //     author's team via users.info (cached) — robust for Slack Connect channels.
-//   - Reactions: not timed here (Slack history has no reaction timestamp); the
-//     go-forward reaction_added event will add that. This job counts message replies.
+//   - Reactions COUNT as a reply: an emoji from a teammate is often the entire
+//     answer. Slack exposes no timestamp for one, so an acknowledged burst is
+//     recorded (`reaction_acks`) and left out of the median rather than timed to
+//     a later message, which would only ever invent a slower number. Real timing
+//     needs a reaction_added event subscription.
 //   - Storage: Netlify Blobs only. Supabase is never touched.
 
 const ACCOUNTS = require('./_cs-accounts');
@@ -365,6 +368,7 @@ async function computeAndStore(token) {
   const amAccts = {};        // am -> Set of companies they owned any of the window for
   const handovers = [];
   let unattributed = 0;      // replies inside the window with no recorded owner
+  let reactionAcks = 0;      // bursts a teammate answered with an emoji (untimeable)
   const matched = [];
   const unmatched = [];
 
@@ -387,8 +391,23 @@ async function computeAndStore(token) {
         const msgs = (await channelHistory(ch.id, oldest, token))
           .filter((m) => !m.subtype && m.user) // drop joins / system / bot posts
           .sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts));
-        for (const uid of [...new Set(msgs.map((m) => m.user))]) await teamOf(uid); // warm cache
+        const reactors = msgs.flatMap((m) => (m.reactions || []).flatMap((r) => r.users || []));
+        for (const uid of [...new Set([...msgs.map((m) => m.user), ...reactors])]) await teamOf(uid); // warm cache
         const isInternal = (m) => userTeam[m.user] === virioTeamId;
+        // An emoji from a teammate IS an answer. For plenty of messages it is
+        // the whole answer -- "got it", "on it", "shipped" -- and treating it as
+        // silence charges the AM for a gap the customer never experienced.
+        //
+        // Slack will not tell us WHEN it was added: conversations.history gives
+        // reactions as {name, users, count} with no timestamp, and no API
+        // returns one after the fact. So we can know the burst was acknowledged
+        // but not how fast. Timing it to some later message would be inventing a
+        // number, and inventing it always upward. We record the acknowledgement
+        // and leave it out of the median instead -- the same rule the owner
+        // timeline uses for a stretch with no recorded owner: known to exist,
+        // not honestly measurable, charged to nobody.
+        const ackedByReaction = (m) =>
+          (m.reactions || []).some((r) => (r.users || []).some((u) => userTeam[u] === virioTeamId));
 
         // One clock per BURST of customer messages, not per message.
         //
@@ -406,7 +425,9 @@ async function computeAndStore(token) {
           let j = i;
           while (j < msgs.length && !isInternal(msgs[j])) j++;   // run of customer messages
           const reply = j < msgs.length ? msgs[j] : null;        // first Virio reply after it
-          if (reply) {
+          const acked = msgs.slice(i, j).some(ackedByReaction);
+          if (acked) reactionAcks++;
+          if (reply && !acked) {
             let burstStart = i;
             for (let k = i + 1; k <= j; k++) {
               const atEnd = k === j;
@@ -505,6 +526,7 @@ async function computeAndStore(token) {
     roster_source: rosterSource, owner_source: ownerSource, handovers,
     business_hours: { start: DAY_START, end: DAY_END, tz: BUSINESS_TZ, weekends_counted: true },
     unattributed_replies: unattributed,
+    reaction_acks: reactionAcks,
     accounts, ams, unmatched,
   };
 
