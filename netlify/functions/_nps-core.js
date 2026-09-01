@@ -247,6 +247,16 @@ function scoreRow(token) {
     Array.from({ length: 11 }, (_, n) => cell(n)).join('')}</tr></table>`;
 }
 
+// What each number means, in Melissa's words. Shared by the HTML and text
+// parts so the two cannot drift.
+const SCALE = [
+  ['0–3',  'absolutely not'],
+  ['4–6',  'probably not'],
+  ['7–8',  'probably'],
+  ['9',    'for sure'],
+  ['10',   'shouting from the rooftops'],
+];
+
 function emailHtml(row) {
   const first = (row.contact_name || '').split(' ')[0];
   const hi = first ? `Hi ${escapeHtml(first)},` : 'Hi,';
@@ -256,9 +266,11 @@ function emailHtml(row) {
 <p style="margin:0 0 14px">Eric here, CEO and Co-Founder at Virio. One quick question for you, really appreciate your help:</p>
 <p style="margin:0 0 12px"><strong>How likely are you to recommend Virio to a friend or colleague?</strong></p>
 ${scoreRow(row.token)}
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:407px;margin:6px 0 18px">
-<tr><td style="font:12px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#8a8f98">Not likely</td>
-<td align="right" style="font:12px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#8a8f98">Extremely likely</td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:407px;margin:8px 0 18px">
+${SCALE.map(([range, meaning]) => `<tr>
+<td style="padding:1px 8px 1px 0;font:12px/1.7 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#141414;white-space:nowrap"><strong>${range}</strong></td>
+<td style="padding:1px 0;font:12px/1.7 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#8a8f98">${meaning}</td></tr>`).join('')}
+</table>
 <p style="margin:0 0 14px">If there&rsquo;s anything we can improve on, or if you have any additional feedback to share, just reply to this email and it comes straight to me.</p>
 <p style="margin:0">Thanks,<br>Eric</p>
 </div></body></html>`;
@@ -271,7 +283,9 @@ function emailText(row) {
 
 Eric here, CEO and Co-Founder at Virio. One quick question for you, really appreciate your help:
 
-How likely are you to recommend Virio to a friend or colleague? (0 = not likely, 10 = extremely likely)
+How likely are you to recommend Virio to a friend or colleague?
+
+${SCALE.map(([r, m]) => `  ${r.padEnd(5)} ${m}`).join('\n')}
 
 ${Array.from({ length: 11 }, (_, n) => `${n}: ${base}/api/nps-respond?t=${row.token}&s=${n}`).join('\n')}
 
