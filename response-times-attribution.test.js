@@ -20,11 +20,12 @@ const HANDOVER = [
 
 console.log('\n── Owner timeline ──');
 const iv = RT.ownerIntervals(HANDOVER, 'Melissa');
-eq('two intervals', iv.length, 2);
-eq('earliest interval reaches back forever', iv[0].from, -Infinity);
-eq('first owner is David, mapped from "CSM 2"', iv[0].am, 'Unassigned'); // David has left -> Unassigned
-eq('handover boundary', iv[1].from, T('2026-08-20T00:00:00Z'));
-eq('current interval is open-ended', iv[1].to, Infinity);
+eq('unknown stretch + two recorded owners', iv.length, 3);
+eq('the unknown stretch reaches back forever', iv[0].from, -Infinity);
+eq('interval 0 is the unknown stretch before any record', iv[0].am, null);
+eq('first RECORDED owner is David, mapped from "CSM 2"', iv[1].am, 'Unassigned'); // David has left
+eq('handover boundary', iv[2].from, T('2026-08-20T00:00:00Z'));
+eq('current interval is open-ended', iv[2].to, Infinity);
 
 console.log('\n── The actual complaint: a reply owed before the handover ──');
 eq('reply on Aug 10 belongs to the previous owner',
@@ -35,12 +36,12 @@ eq('a reply the very instant of handover belongs to the new owner',
    RT.ownerAt(iv, T('2026-08-20T00:00:00Z')), 'Melissa');
 eq('a reply one second before handover does not',
    RT.ownerAt(iv, T('2026-08-20T00:00:00Z') - 1), 'Unassigned');
-eq('a reply from before any recorded change goes to the earliest known owner',
-   RT.ownerAt(iv, T('2026-01-01T00:00:00Z')), 'Unassigned');
+eq('a reply from before any recorded change is charged to nobody',
+   RT.ownerAt(iv, T('2026-01-01T00:00:00Z')), null);
 
 console.log('\n── No history: behave exactly as before ──');
 const flat = RT.ownerIntervals(null, 'Melissa');
-eq('single interval', flat.length, 1);
+eq('single interval, no unknown stretch', flat.length, 1);
 eq('covers any timestamp', RT.ownerAt(flat, T('2020-01-01T00:00:00Z')), 'Melissa');
 eq('empty history is the same as none', RT.ownerIntervals([], 'Max')[0].am, 'Maxwell');
 eq('malformed entries are ignored, not crashed on',
@@ -54,7 +55,7 @@ eq('a window entirely after the handover names only Melissa',
    RT.ownersInWindow(iv, T('2026-08-21T00:00:00Z'), to).map(o => o.am), ['Melissa']);
 eq('a window entirely before it names only the previous owner',
    RT.ownersInWindow(iv, T('2026-06-01T00:00:00Z'), T('2026-07-01T00:00:00Z')).map(o => o.am), ['Unassigned']);
-eq('the inherited-from-the-start owner reports no handover date',
+eq('an owner who already held it when the window opened reports no date',
    RT.ownersInWindow(iv, from, to)[0].since, null);
 eq('the new owner reports when they took it on',
    RT.ownersInWindow(iv, from, to)[1].since, '2026-08-20T00:00:00.000Z');
@@ -64,6 +65,25 @@ eq('Max -> Maxwell', RT.amLabel('Max'), 'Maxwell');
 eq('departed staff -> Unassigned', RT.amLabel('Former Employee'), 'Unassigned');
 eq('blank -> Unassigned', RT.amLabel(null), 'Unassigned');
 
+console.log('\n── Assigned mid-window, with no record of the previous owner ──');
+// The case that kept the original bug alive: HubSpot records only the
+// assignment, so there is no entry for whoever held the account before it.
+const ONLY_ASSIGNMENT = [{ value: 'Melissa', timestamp: '2026-08-20T00:00:00Z' }];
+const oa = RT.ownerIntervals(ONLY_ASSIGNMENT, 'Melissa');
+eq('a reply owed BEFORE the assignment is charged to nobody',
+   RT.ownerAt(oa, T('2026-08-05T00:00:00Z')), null);
+eq('a reply owed after it is hers',
+   RT.ownerAt(oa, T('2026-08-25T00:00:00Z')), 'Melissa');
+eq('she is not listed as an owner of the stretch before she had it',
+   RT.ownersInWindow(oa, T('2026-08-01T00:00:00Z'), T('2026-09-01T00:00:00Z')).map(o=>o.am), ['Melissa']);
+eq('and the window reports when she took it on',
+   RT.ownersInWindow(oa, T('2026-08-01T00:00:00Z'), T('2026-09-01T00:00:00Z'))[0].since,
+   '2026-08-20T00:00:00.000Z');
+// History that predates the window is unambiguous — no unknown stretch inside it.
+const OLD = [{ value: 'Melissa', timestamp: '2026-01-05T00:00:00Z' }];
+eq('an assignment predating the window covers the whole window',
+   RT.ownerAt(RT.ownerIntervals(OLD,'Melissa'), T('2026-08-05T00:00:00Z')), 'Melissa');
+
 console.log('\n── Entries that are NOT handovers ──');
 // A workflow re-saving the same value writes history; it is not a transfer.
 const REPEAT = [
@@ -71,8 +91,8 @@ const REPEAT = [
   { value: 'Melissa', timestamp: '2026-08-15T00:00:00Z' },
   { value: 'Melissa', timestamp: '2026-06-01T00:00:00Z' },
 ];
-eq('repeated saves of the same owner collapse to one interval',
-   RT.ownerIntervals(REPEAT, 'Melissa').length, 1);
+eq('repeated saves of the same owner collapse to one recorded interval',
+   RT.ownerIntervals(REPEAT, 'Melissa').length-1, 1);
 eq('and that owner covers the whole window',
    RT.ownerAt(RT.ownerIntervals(REPEAT,'Melissa'), T('2026-08-05T00:00:00Z')), 'Melissa');
 
@@ -81,10 +101,12 @@ const BACKFILL = [
   { value: 'Melissa', timestamp: '2026-08-25T00:00:00Z' },
   { value: '',        timestamp: '2026-05-01T00:00:00Z' },
 ];
-eq('a blank-then-named field does not strip earlier work',
-   RT.ownerAt(RT.ownerIntervals(BACKFILL,'Melissa'), T('2026-08-05T00:00:00Z')), 'Melissa');
-eq('backfill collapses to a single owner',
-   RT.ownerIntervals(BACKFILL, 'Melissa').length, 1);
+eq('a blank field is not evidence of an owner — charge nobody, do not guess',
+   RT.ownerAt(RT.ownerIntervals(BACKFILL,'Melissa'), T('2026-08-05T00:00:00Z')), null);
+eq('the blank is not treated as a recorded owner in the chain',
+   RT.ownerIntervals(BACKFILL,'Melissa').filter(x=>x.am).map(x=>x.am), ['Melissa']);
+eq('backfill collapses to a single recorded owner',
+   RT.ownerIntervals(BACKFILL, 'Melissa').length-1, 1);
 
 // A genuine handover still survives both guards.
 const REAL = [
@@ -92,7 +114,7 @@ const REAL = [
   { value: 'Melissa', timestamp: '2026-08-19T00:00:00Z' },  // no-op save just before
   { value: 'CSM 2',   timestamp: '2026-05-01T00:00:00Z' },
 ];
-eq('a real handover is still two intervals', RT.ownerIntervals(REAL,'Melissa').length, 2);
+eq('a real handover is still two recorded owners', RT.ownerIntervals(REAL,'Melissa').length-1, 2);
 // Collapsing keeps the EARLIEST of the repeats, so the handover is dated to
 // when Melissa actually took it (the 19th), not to the later no-op save.
 eq('the handover dates to the first save, not the no-op that followed',

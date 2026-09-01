@@ -5514,10 +5514,15 @@ function rtRender(){
       ? ' Reassigned inside this window: <b>' + hos.map(h=>rtEsc(h.company)+' ('+h.owners.map(rtEsc).join(' → ')+')').join(', ')
         + '</b> — each reply counts for whoever owned the account when the customer asked, so an inherited account carries none of the previous owner\'s time.'
       : '';
+    // Replies owed during a stretch with no recorded owner are counted for the
+    // account but charged to no AM. Saying how many keeps that visible.
+    const orphan = rtData.unattributed_replies
+      ? ` ${rtData.unattributed_replies} repl${rtData.unattributed_replies===1?'y':'ies'} fell in a stretch with no recorded account owner — counted for the account, charged to no AM.`
+      : '';
     const ownerFallback = rtData.owner_source === 'current-only'
       ? ' <b style="color:var(--coral)">Owner history unavailable on the last run</b> — replies are attributed to each account\'s current AM for the whole window, so a recent handover may still count against the AM who inherited it.'
       : '';
-    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply, counting working hours only ('+bh+'). A burst of customer messages counts as one prompt, timed from the first message. Replies are credited to the account owner at the time of the message. Hover any median for the raw 24/7 figure.'+handover+excluded+stale+ownerFallback;
+    note.innerHTML='Updated '+new Date(rtData.generated_at).toLocaleString('en-US')+' · '+(rtData.window_days||30)+'-day window · median time to first Virio reply, counting working hours only ('+bh+'). A burst of customer messages counts as one prompt, timed from the first message. Replies are credited to the account owner at the time of the message. Hover any median for the raw 24/7 figure.'+handover+orphan+excluded+stale+ownerFallback;
   }
 }
 

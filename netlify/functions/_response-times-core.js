@@ -202,11 +202,24 @@ function ownerIntervals(history, currentAmValue) {
   const seq = named.filter((e, k) => k === 0 || e.am !== named[k - 1].am);
 
   if (!seq.length) return [{ am: amLabel(currentAmValue), from: -Infinity, to: Infinity }];
-  return seq.map((e, k) => ({
-    am: e.am,
-    from: k === 0 ? -Infinity : e.at,
-    to: k + 1 < seq.length ? seq[k + 1].at : Infinity,
+
+  const out = seq.map((e, k) => ({
+    am: e.am, from: e.at, to: k + 1 < seq.length ? seq[k + 1].at : Infinity,
   }));
+
+  // Before the first recorded value, we do not know who owned the account.
+  //
+  // Stretching the earliest known owner back to the beginning of time is what
+  // kept the original bug alive: when HubSpot's history records only the
+  // assignment itself — "Melissa, Aug 20", with no entry for whoever held it
+  // before — that rule charged Melissa with every reply owed before she took
+  // the account, which is the exact complaint the timeline was meant to fix.
+  //
+  // `am: null` means unknown, and an unknown stretch is charged to nobody. The
+  // account still reports its own median over the full window; only the per-AM
+  // pools skip it, because there is no honest answer to whose it was.
+  out.unshift({ am: null, from: -Infinity, to: seq[0].at });
+  return out;
 }
 function ownerAt(intervals, ts) {
   if (!intervals || !intervals.length) return null;
@@ -217,8 +230,14 @@ function ownerAt(intervals, ts) {
 // each with the moment they took it on. Drives the "since <date>" chip.
 function ownersInWindow(intervals, from, to) {
   return intervals
-    .filter((iv) => iv.from < to && iv.to > from)
-    .map((iv) => ({ am: iv.am, since: iv.from === -Infinity ? null : new Date(iv.from * 1000).toISOString() }));
+    .filter((iv) => iv.am && iv.from < to && iv.to > from)
+    // `since` means "took it on during this window". An owner who already held
+    // the account when the window opened reports null, so the table does not
+    // put a "since <date>" chip on every long-standing account.
+    .map((iv) => ({
+      am: iv.am,
+      since: iv.from > from ? new Date(iv.from * 1000).toISOString() : null,
+    }));
 }
 
 // HubSpot's search endpoint cannot return property history, so pull the
@@ -327,6 +346,7 @@ async function computeAndStore(token) {
   const amProdBiz = {};
   const amAccts = {};        // am -> Set of companies they owned any of the window for
   const handovers = [];
+  let unattributed = 0;      // replies inside the window with no recorded owner
   const matched = [];
   const unmatched = [];
 
@@ -398,7 +418,10 @@ async function computeAndStore(token) {
     // Credit each measurement to whoever owned the account when the customer
     // started waiting, not to whoever owns it today.
     for (const e of events) {
-      const who = ownerAt(acct.owners, e.at) || acct.am;
+      const who = ownerAt(acct.owners, e.at);
+      // No recorded owner at that moment — do not guess, and do not default to
+      // whoever holds the account today. That default was the bug.
+      if (!who) { unattributed++; continue; }
       (amLat[who] = amLat[who] || []).push(e.sec);
       (amBizLat[who] = amBizLat[who] || []).push(e.biz);
       amProdLat[who] = amProdLat[who] || {};
@@ -411,7 +434,7 @@ async function computeAndStore(token) {
     // The current owner's own figure, so the per-customer table can show a
     // number the person named beside it is actually answerable for.
     const cur = owners.length ? owners[owners.length - 1] : { am: acct.am, since: null };
-    const curEvents = events.filter((e) => (ownerAt(acct.owners, e.at) || acct.am) === cur.am
+    const curEvents = events.filter((e) => ownerAt(acct.owners, e.at) === cur.am
                                         && (!cur.since || e.at >= Date.parse(cur.since) / 1000));
     const curLat = curEvents.map((e) => e.sec);
     const bizAll = events.map((e) => e.biz);
@@ -463,6 +486,7 @@ async function computeAndStore(token) {
     generated_at: new Date().toISOString(), window_days: WINDOW_DAYS, source: 'slack',
     roster_source: rosterSource, owner_source: ownerSource, handovers,
     business_hours: { start: DAY_START, end: DAY_END, tz: BUSINESS_TZ, weekends_counted: true },
+    unattributed_replies: unattributed,
     accounts, ams, unmatched,
   };
 
