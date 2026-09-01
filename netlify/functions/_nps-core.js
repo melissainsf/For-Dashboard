@@ -295,7 +295,16 @@ Thanks,
 Eric`;
 }
 
-const SUBJECT = () => process.env.NPS_SUBJECT || 'Quick question — how are we doing?';
+// The subject names the account, so it reads as being about their
+// relationship rather than as a generic survey. NPS_SUBJECT overrides it and
+// may use {company}; without a company name (which only happens on a test
+// row) it falls back to something that still makes sense on its own.
+function subjectFor(row) {
+  const co = ((row && row.company_name) || '').trim();
+  const tpl = process.env.NPS_SUBJECT
+    || (co ? 'Virio x {company} Partnership' : 'Quick question — how are we doing?');
+  return tpl.replace(/\{company\}/g, co);
+}
 
 let mailer = null;
 function gmailTransport() {
@@ -314,7 +323,7 @@ async function sendViaGmail(row) {
     from: fromHeader(),
     to: row.contact_email,
     replyTo: REPLY_TO,
-    subject: SUBJECT(),
+    subject: subjectFor(row),
     html: emailHtml(row),
     text: emailText(row),
   });
@@ -331,7 +340,7 @@ async function sendViaResend(row) {
       from: fromHeader(),
       to: [row.contact_email],
       reply_to: REPLY_TO,
-      subject: SUBJECT(),
+      subject: subjectFor(row),
       html: emailHtml(row),
       text: emailText(row),
       tags: [{ name: 'type', value: 'nps' }],
@@ -367,7 +376,7 @@ function escapeHtml(s) {
 }
 
 module.exports = {
-  canSend, transportName, fromHeader,
+  canSend, transportName, fromHeader, subjectFor,
   FOC_LABEL, CHURNED_STAGE, usable, supabaseUrl, supabaseAnon,
   tierOf, fetchActiveCompanies, fetchFocContactIds, fetchContacts, buildAudience,
   recordSends, pendingSends, markSent, submitResponse,
