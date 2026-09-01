@@ -182,16 +182,30 @@ function amLabel(amValue) {
 function ownerIntervals(history, currentAmValue) {
   const h = (history || [])
     .filter((e) => e && e.timestamp)
-    .map((e) => ({ am: amLabel(e.value), at: Date.parse(e.timestamp) / 1000 }))
+    .map((e) => ({ raw: e.value, am: amLabel(e.value), at: Date.parse(e.timestamp) / 1000 }))
     .filter((e) => !isNaN(e.at))
     .sort((a, b) => a.at - b.at);
-  if (!h.length) return [{ am: amLabel(currentAmValue), from: -Infinity, to: Infinity }];
-  return h.map((e, i) => ({
+
+  // Not every history entry is a handover, and treating them as if they were
+  // is how an AM's work disappears from their own row.
+  //
+  // Leading blanks: if the field was empty until someone filled it in, that is
+  // the CRM catching up, not a transfer from nobody. Crediting the replies
+  // before it to "Unassigned" would delete real work from the dashboard, so
+  // the first person actually named covers everything before them.
+  let i = 0;
+  while (i < h.length && !h[i].raw) i++;
+  const named = h.slice(i);
+
+  // Repeats: HubSpot writes a history entry on every save, including workflow
+  // re-saves that set the same value. Same owner twice is not a handover.
+  const seq = named.filter((e, k) => k === 0 || e.am !== named[k - 1].am);
+
+  if (!seq.length) return [{ am: amLabel(currentAmValue), from: -Infinity, to: Infinity }];
+  return seq.map((e, k) => ({
     am: e.am,
-    // The earliest entry also covers everything before it: the account had
-    // an owner before HubSpot started recording changes, and it was them.
-    from: i === 0 ? -Infinity : e.at,
-    to: i + 1 < h.length ? h[i + 1].at : Infinity,
+    from: k === 0 ? -Infinity : e.at,
+    to: k + 1 < seq.length ? seq[k + 1].at : Infinity,
   }));
 }
 function ownerAt(intervals, ts) {

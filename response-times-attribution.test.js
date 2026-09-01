@@ -64,6 +64,42 @@ eq('Max -> Maxwell', RT.amLabel('Max'), 'Maxwell');
 eq('departed staff -> Unassigned', RT.amLabel('Former Employee'), 'Unassigned');
 eq('blank -> Unassigned', RT.amLabel(null), 'Unassigned');
 
+console.log('\n── Entries that are NOT handovers ──');
+// A workflow re-saving the same value writes history; it is not a transfer.
+const REPEAT = [
+  { value: 'Melissa', timestamp: '2026-08-30T00:00:00Z' },
+  { value: 'Melissa', timestamp: '2026-08-15T00:00:00Z' },
+  { value: 'Melissa', timestamp: '2026-06-01T00:00:00Z' },
+];
+eq('repeated saves of the same owner collapse to one interval',
+   RT.ownerIntervals(REPEAT, 'Melissa').length, 1);
+eq('and that owner covers the whole window',
+   RT.ownerAt(RT.ownerIntervals(REPEAT,'Melissa'), T('2026-08-05T00:00:00Z')), 'Melissa');
+
+// A field that was blank until someone filled it in is the CRM catching up.
+const BACKFILL = [
+  { value: 'Melissa', timestamp: '2026-08-25T00:00:00Z' },
+  { value: '',        timestamp: '2026-05-01T00:00:00Z' },
+];
+eq('a blank-then-named field does not strip earlier work',
+   RT.ownerAt(RT.ownerIntervals(BACKFILL,'Melissa'), T('2026-08-05T00:00:00Z')), 'Melissa');
+eq('backfill collapses to a single owner',
+   RT.ownerIntervals(BACKFILL, 'Melissa').length, 1);
+
+// A genuine handover still survives both guards.
+const REAL = [
+  { value: 'Melissa', timestamp: '2026-08-20T00:00:00Z' },
+  { value: 'Melissa', timestamp: '2026-08-19T00:00:00Z' },  // no-op save just before
+  { value: 'CSM 2',   timestamp: '2026-05-01T00:00:00Z' },
+];
+eq('a real handover is still two intervals', RT.ownerIntervals(REAL,'Melissa').length, 2);
+// Collapsing keeps the EARLIEST of the repeats, so the handover is dated to
+// when Melissa actually took it (the 19th), not to the later no-op save.
+eq('the handover dates to the first save, not the no-op that followed',
+   RT.ownerAt(RT.ownerIntervals(REAL,'Melissa'), T('2026-08-19T12:00:00Z')), 'Melissa');
+eq('the day before it is still the previous owner',
+   RT.ownerAt(RT.ownerIntervals(REAL,'Melissa'), T('2026-08-18T12:00:00Z')), 'Unassigned');
+
 console.log('\n── Business-hours clock (the headline median) ──');
 // 07:00–22:00 America/Los_Angeles. Weekends count; nights do not.
 const B = RT.businessSeconds;

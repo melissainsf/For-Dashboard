@@ -1472,13 +1472,13 @@ textarea.prt-input{resize:vertical}
 
     <div class="section-header">
       <span class="section-title">Response time by AM</span>
-      <span class="section-note">Fastest first · pooled across each AM's accounts</span>
+      <span class="section-note">Fastest first · pooled across the accounts each AM owned during the window</span>
     </div>
     <div class="table-card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Account Manager</th><th># Accounts</th><th>Product</th><th>Median response</th></tr></thead>
-          <tbody id="rt-am-body"><tr><td colspan="4" class="rt-empty">Loading…</td></tr></tbody>
+          <thead><tr><th>Account Manager</th><th># Accounts</th><th>Product</th><th>Median response</th><th>Samples</th></tr></thead>
+          <tbody id="rt-am-body"><tr><td colspan="5" class="rt-empty">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1486,7 +1486,7 @@ textarea.prt-input{resize:vertical}
 
     <div class="section-header" style="margin-top:22px">
       <span class="section-title">Response time by customer</span>
-      <span class="section-note">Median time from a customer message to the first Virio reply · Slack · raw 24/7</span>
+      <span class="section-note">Median time from a customer message to the first Virio reply · Slack · working hours</span>
     </div>
     <div class="rt-note" id="rt-exposure" style="margin-top:0;margin-bottom:10px"></div>
     <div class="table-card">
@@ -5482,8 +5482,9 @@ function rtRender(){
     <td>${rtEsc(x.am)}</td>
     <td class="rt-dim">${x.accounts}</td>
     <td>${rtMixCell(x.product_mix)}</td>
-    ${rtMedCell(amMed(x),x.sample,x.median_seconds)}</tr>`).join('')
-    : `<tr><td colspan="4" class="rt-empty">No AMs for this filter.</td></tr>`;
+    ${rtMedCell(amMed(x),x.sample,x.median_seconds)}
+    <td class="rt-dim">${x.sample||0}</td></tr>`).join('')
+    : `<tr><td colspan="5" class="rt-empty">No AMs for this filter.</td></tr>`;
   // Footnote
   const note=document.getElementById('rt-note');
   if(rtData.source==='seed' || rtData.generated_at==null){
