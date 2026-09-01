@@ -139,5 +139,46 @@ eq('end before start is zero, never negative',
 eq('weekends are counted — Virio works them',
    h(B(T('2026-08-15T17:00:00Z'), T('2026-08-15T19:00:00Z'))), 2);       // Saturday 10:00->12:00 PT
 
+console.log('\n\u2500\u2500 Shared books (EGC) and non-AMs \u2500\u2500');
+// The EGC book is run by Eric, Emmett and Eng together. When HubSpot was
+// relabelled on Sep 1, the accounts had read "Melissa" for the whole window.
+// Treating that as a handover would charge her a month of replies for accounts
+// no one person owned -- so a shared book owns its whole timeline.
+const WIN_FROM = T('2026-08-02T00:00:00Z'), WIN_TO = T('2026-09-01T23:59:00Z');
+const relabelled = RT.ownerIntervals([
+  { value: 'EGC',     timestamp: '2026-09-01T23:03:00Z' },
+  { value: 'Melissa', timestamp: '2026-05-01T00:00:00Z' },
+], 'EGC');
+eq('a shared book owns one unbroken interval', relabelled.length, 1);
+eq('...reaching back before the relabel', relabelled[0].from, -Infinity);
+eq('a reply owed weeks before the relabel is EGC\'s, not Melissa\'s',
+   RT.ownerAt(relabelled, T('2026-08-15T12:00:00Z')), 'EGC');
+eq('Melissa does not appear on an EGC account at all',
+   RT.ownersInWindow(relabelled, WIN_FROM, WIN_TO).map((o) => o.am), ['EGC']);
+
+// The backdating must NOT leak into ordinary handovers between two people.
+const realHandover = RT.ownerIntervals([
+  { value: 'Emily',   timestamp: '2026-08-20T00:00:00Z' },
+  { value: 'Melissa', timestamp: '2026-05-01T00:00:00Z' },
+], 'Emily');
+eq('a real handover still splits at the boundary',
+   RT.ownersInWindow(realHandover, WIN_FROM, WIN_TO).map((o) => o.am), ['Melissa', 'Emily']);
+eq('...the predecessor keeps her own replies',
+   RT.ownerAt(realHandover, T('2026-08-15T12:00:00Z')), 'Melissa');
+eq('...and the successor only owns from the handover on',
+   RT.ownerAt(realHandover, T('2026-08-25T12:00:00Z')), 'Emily');
+
+// Prentice was offered the role and never accepted; an account pointed at him
+// briefly and the history kept it, which gave him his own AM row.
+eq('Prentice maps to Unassigned', RT.amLabel('Prentice'), 'Unassigned');
+eq('EGC survives amLabel as itself', RT.amLabel('EGC'), 'EGC');
+const blip = RT.ownerIntervals([
+  { value: 'Melissa',  timestamp: '2026-08-12T00:00:00Z' },
+  { value: 'Prentice', timestamp: '2026-08-05T00:00:00Z' },
+  { value: 'Melissa',  timestamp: '2026-06-01T00:00:00Z' },
+], 'Melissa');
+eq('a never-hired AM never gets a row of his own',
+   RT.ownersInWindow(blip, WIN_FROM, WIN_TO).map((o) => o.am).includes('Prentice'), false);
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed ? 1 : 0);

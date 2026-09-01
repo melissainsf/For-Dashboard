@@ -168,6 +168,9 @@ function amLabel(amValue) {
   if (!amValue || FORMER_AMS.has(amValue)) return 'Unassigned';
   return AM_LABEL[amValue] || amValue;
 }
+// Account Manager values that name a SHARED book rather than one person. These
+// own their accounts for the whole window — see ownerIntervals for why.
+const SHARED_BOOKS = new Set(['EGC']);
 // ── ACCOUNT OWNERSHIP OVER TIME ───────────────────────────────────
 // An AM is only answerable for replies owed while they owned the account.
 // Attributing the whole window to today's owner charges a handover to the
@@ -182,6 +185,19 @@ function amLabel(amValue) {
 // is when the property BECAME that value. Sorted oldest-first, entry i owns
 // the account from its timestamp until entry i+1's (or now, for the last).
 function ownerIntervals(history, currentAmValue) {
+  // A shared book is the exception to the timeline, and deliberately so.
+  //
+  // 'EGC' is not a person taking an account over — it is the statement that no
+  // individual is solo-accountable for it, because Eric, Emmett and Eng are all
+  // in there. So the name HubSpot carried before the book was labelled is a
+  // MISLABEL, not a predecessor: the account was already run this way, the CRM
+  // just did not say so. Splitting the window at the relabel would charge that
+  // person a month of replies for accounts they never solely owned, which is
+  // the same unfairness the timeline was built to stop, arriving from the other
+  // direction. Backdating it is a correction, not a rewrite of history.
+  if (SHARED_BOOKS.has(currentAmValue)) {
+    return [{ am: amLabel(currentAmValue), from: -Infinity, to: Infinity }];
+  }
   const h = (history || [])
     .filter((e) => e && e.timestamp)
     .map((e) => ({ raw: e.value, am: amLabel(e.value), at: Date.parse(e.timestamp) / 1000 }))
