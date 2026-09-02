@@ -1486,6 +1486,7 @@ textarea.prt-input{resize:vertical}
          is no Microsoft Graph integration anywhere in this codebase, so a client
          we talk to in Teams (Knopman Marks) or over email (Trimble) contributes
          nothing and the label implied they were covered. -->
+    <div class="rt-note" id="rt-departed"></div>
     <div class="rt-note">Slack only. Clients we talk to by email or in Microsoft Teams — Trimble, Knopman Marks, Axya — are not measured here at all.</div>
 
     <div class="section-header" style="margin-top:22px">
@@ -5490,6 +5491,16 @@ function rtRender(){
     ams = rtDeriveAms(accts);
   }
   const amMed = x => x.median_business_seconds != null ? x.median_business_seconds : x.median_seconds;
+  // "Unassigned" is not an Account Manager and does not belong in a table of
+  // them. No active customer account is unassigned in HubSpot — the row is a
+  // TIME slice: stretches owned by someone who has since left (David, Millie,
+  // Emmett, Jacob, Prentice, HubSpot's "Former Employee"), whose replies still
+  // have to go somewhere. Sitting in the AM table it read as a book of neglected
+  // accounts and, being the slowest row, dragged the whole board's optics for
+  // work nobody here did. Pulled out and reported underneath instead, so the
+  // measurements are still accounted for rather than silently dropped.
+  const departed = ams.find(x => x.am === 'Unassigned') || null;
+  ams = ams.filter(x => x.am !== 'Unassigned');
   ams.sort((a,b)=> rtRank(amMed(a))-rtRank(amMed(b)));
   document.getElementById('rt-am-body').innerHTML = ams.length ? ams.map(x=>`<tr>
     <td>${rtEsc(x.am)}</td>
@@ -5498,6 +5509,13 @@ function rtRender(){
     ${rtMedCell(amMed(x),x.sample,x.median_seconds)}
     <td class="rt-dim">${x.sample||0}</td></tr>`).join('')
     : `<tr><td colspan="5" class="rt-empty">No AMs for this filter.</td></tr>`;
+  // Say what was set aside, and why, rather than letting it disappear.
+  const depEl = document.getElementById('rt-departed');
+  if(depEl){
+    depEl.innerHTML = (departed && departed.sample)
+      ? `Excludes ${departed.sample} repl${departed.sample===1?'y':'ies'} across ${departed.accounts} account${departed.accounts===1?'':'s'} owed while the account was assigned to someone who has since left Virio${Array.isArray(departed.companies)&&departed.companies.length?` (${departed.companies.map(rtEsc).join(', ')})`:''}. They belong to no current AM, so they are counted nowhere above.`
+      : '';
+  }
   // Footnote
   const note=document.getElementById('rt-note');
   if(rtData.source==='seed' || rtData.generated_at==null){
