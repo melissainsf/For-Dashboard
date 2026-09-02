@@ -20,6 +20,11 @@
 //     conversations.history returns top-level messages only, so these were
 //     invisible and every median was inflated. Only threads rooted at a CUSTOMER
 //     message are fetched — ours cannot answer their question.
+//   - A channel the bot cannot read is reported in `channel_issues`, never
+//     silently treated as a quiet account. Slack answers not_in_channel when
+//     the app is not a member; an account can also be missing from
+//     conversations.list entirely, which is the same cause for a private or
+//     Slack Connect channel — the app only sees those it belongs to.
 //   - Storage: Netlify Blobs only. Supabase is never touched.
 
 const ACCOUNTS = require('./_cs-accounts');
@@ -455,6 +460,7 @@ async function computeAndStore(token) {
   let unattributed = 0;      // replies inside the window with no recorded owner
   let reactionAcks = 0;      // bursts a teammate answered with an emoji (untimeable)
   let threadFetches = 0;     // conversations.replies calls made this run
+  const channelIssues = [];  // channels matched but unreadable (usually not_in_channel)
   const matched = [];
   const unmatched = [];
 
@@ -539,7 +545,14 @@ async function computeAndStore(token) {
         events.push(...await burstEvents(msgs, {
           isInternal, ackedByReaction, repliesTo, onAck: () => { reactionAcks++; },
         }));
-      } catch (e) { /* channel read failed — leave this channel out */ }
+      } catch (e) {
+        // Never swallow this. A channel we cannot READ looks exactly like a
+        // channel nobody talked in — both produce sample 0 — and "this account
+        // had no conversation" is a very different statement from "our bot was
+        // never invited". Slack returns not_in_channel when the app is not a
+        // member, which is the usual cause and is fixed by inviting it.
+        channelIssues.push({ company: acct.company, channel: ch.name, error: e.message });
+      }
     }
     const latencies = events.map((e) => e.sec);
     const pk = acct.product === 'EGC' ? 'EGC' : 'Full Service';
@@ -626,6 +639,7 @@ async function computeAndStore(token) {
     unattributed_replies: unattributed,
     reaction_acks: reactionAcks,
     thread_fetches: threadFetches,
+    channel_issues: channelIssues,
     accounts, ams, unmatched,
   };
 

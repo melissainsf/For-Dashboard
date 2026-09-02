@@ -37,6 +37,7 @@ exports.handler = async function (event) {
       generated_at: payload.generated_at,
       reaction_acks: payload.reaction_acks,   // bursts answered with an emoji
       thread_fetches: payload.thread_fetches, // conversations.replies calls made
+      channel_issues: payload.channel_issues, // matched but unreadable (invite the bot)
       unattributed_replies: payload.unattributed_replies,
       matched_count: matched.length,
       unmatched: unmatched,
