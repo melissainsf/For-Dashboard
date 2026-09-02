@@ -65,6 +65,14 @@ Neither site is reachable from a Claude Code session — the egress proxy return
   Goody. The dry run does show the resolved address, so sweep its preview for
   free-provider domains (gmail/outlook/yahoo) before sending; nothing flags it
   for you.
+- **Response times are Slack only.** There is no Teams/Graph integration and
+  adding one is not practical: Knopman Marks talks to us in Microsoft Teams, but
+  Melissa is a **guest in Knopman's tenant**, so those messages live in their
+  directory and nothing authenticating as `@virio.ai` can read them (her Virio
+  Teams account can see exactly one chat, a 1:1 with Maxwell). It would take an
+  app consented in *Knopman's* tenant, or moving them to a Virio-hosted Teams
+  shared channel. Trimble and Axya are email-only. All three are correctly
+  unmeasured — the tab used to claim it covered Teams, which was never true.
 - Emmett declined the Supabase **service-role key**. Writes go through
   SECURITY DEFINER functions on the public anon key. Do not reintroduce it.
 
