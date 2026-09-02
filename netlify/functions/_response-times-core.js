@@ -620,7 +620,11 @@ async function computeAndStore(token) {
     }
     const biz = amBizLat[am] || [];
     return {
-      am, accounts: accts.length, product_mix: mix,
+      // Name them, do not just count them. "Unassigned: 7 accounts" is an
+      // unanswerable row -- these come from ownership HISTORY (a stretch before
+      // the first record, or a former AM), so they are not discoverable by
+      // looking at who owns what today.
+      am, accounts: accts.length, companies: [...owned].sort(), product_mix: mix,
       median_seconds: median(amLat[am]), mean_seconds: mean(amLat[am]), sample: amLat[am].length,
       median_business_seconds: median(biz), mean_business_seconds: mean(biz),
       by_product: byProduct,

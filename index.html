@@ -5493,7 +5493,7 @@ function rtRender(){
   ams.sort((a,b)=> rtRank(amMed(a))-rtRank(amMed(b)));
   document.getElementById('rt-am-body').innerHTML = ams.length ? ams.map(x=>`<tr>
     <td>${rtEsc(x.am)}</td>
-    <td class="rt-dim">${x.accounts}</td>
+    <td class="rt-dim"${Array.isArray(x.companies)&&x.companies.length?` title="${rtEsc(x.companies.join(', '))}" style="cursor:help;text-decoration:underline dotted"`:''}>${x.accounts}</td>
     <td>${rtMixCell(x.product_mix)}</td>
     ${rtMedCell(amMed(x),x.sample,x.median_seconds)}
     <td class="rt-dim">${x.sample||0}</td></tr>`).join('')

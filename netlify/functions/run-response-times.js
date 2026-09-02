@@ -45,7 +45,11 @@ exports.handler = async function (event) {
         company: a.company, am: a.am, channel: a.channel,
         median_seconds: a.median_seconds, sample: a.sample,
       })),
-      ams: payload.ams,
+      ams: payload.ams.map((a) => ({
+        am: a.am, accounts: a.accounts, companies: a.companies,
+        median_seconds: a.median_seconds, median_business_seconds: a.median_business_seconds,
+        mean_seconds: a.mean_seconds, sample: a.sample,
+      })),
     });
   } catch (e) {
     return json(500, { error: e.message });
