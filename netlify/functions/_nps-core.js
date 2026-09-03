@@ -200,6 +200,16 @@ function jobSecret() {
 const recordSends = (rows)          => rpc('nps_record_sends', { p_secret: jobSecret(), p_rows: rows });
 const pendingSends = (period, incFailed) => rpc('nps_pending', { p_secret: jobSecret(), p_period: period, p_include_failed: !!incFailed });
 const markSent = (id, status, err)  => rpc('nps_mark_sent',    { p_secret: jobSecret(), p_id: id, p_status: status, p_error: err || null });
+// Reminders re-use the row the survey went out on — see the migration. The
+// claim is a compare-and-set on the attempt count the audience reported, so two
+// runs racing (or one run retried mid-flight) cannot nudge the same person
+// twice; a refused claim means somebody else got there, or they just answered.
+const reminderAudience = (period, incFailed) =>
+  rpc('nps_reminder_audience', { p_secret: jobSecret(), p_period: period, p_include_failed: !!incFailed });
+const claimReminder = (id, attempts) =>
+  rpc('nps_claim_reminder', { p_secret: jobSecret(), p_id: id, p_attempts: attempts });
+const markReminderFailed = (id, err) =>
+  rpc('nps_mark_reminder_failed', { p_secret: jobSecret(), p_id: id, p_error: err || null });
 const submitResponse = (token, score, comment) =>
   rpc('nps_submit_response', { p_token: token, p_score: score == null ? null : score, p_comment: comment == null ? null : comment });
 
@@ -257,13 +267,34 @@ const SCALE = [
   ['10',   'shouting from the rooftops'],
 ];
 
-function emailHtml(row) {
+// The survey and its reminder differ only in the opening line and the closing
+// nudge. The question, the scale, the buttons and the TOKEN are identical, so a
+// late answer is the same answer, landing on the same row. Keeping both in one
+// function is what stops the reminder's scoring links from drifting from the
+// survey's — a reminder that scored somewhere else would double-count.
+function copyFor(reminder) {
+  if (reminder) return {
+    introHtml: 'Eric here, CEO and Co-Founder at Virio. I asked this at the start of the month and know it may well have been buried — so, once more, and it really is one click:',
+    introText: "Eric here, CEO and Co-Founder at Virio. I asked this at the start of the month and know it may well have been buried — so, once more, and it really is one click:",
+    closeHtml: 'If a number doesn&rsquo;t capture it, just reply to this email instead &mdash; it comes straight to me, and I read every one.',
+    closeText: "If a number doesn't capture it, just reply to this email instead — it comes straight to me, and I read every one.",
+  };
+  return {
+    introHtml: 'Eric here, CEO and Co-Founder at Virio. One quick question for you, really appreciate your help:',
+    introText: 'Eric here, CEO and Co-Founder at Virio. One quick question for you, really appreciate your help:',
+    closeHtml: 'If there&rsquo;s anything we can improve on, or if you have any additional feedback to share, just reply to this email and it comes straight to me.',
+    closeText: "If there's anything we can improve on, or if you have any additional feedback to share, just reply to this email and it comes straight to me.",
+  };
+}
+
+function emailHtml(row, opts) {
   const first = (row.contact_name || '').split(' ')[0];
   const hi = first ? `Hi ${escapeHtml(first)},` : 'Hi,';
+  const c = copyFor(opts && opts.reminder);
   return `<!doctype html><html><body style="margin:0;padding:0;background:#ffffff">
 <div style="max-width:520px;margin:0 auto;padding:24px 20px;font:15px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#141414">
 <p style="margin:0 0 14px">${hi}</p>
-<p style="margin:0 0 14px">Eric here, CEO and Co-Founder at Virio. One quick question for you, really appreciate your help:</p>
+<p style="margin:0 0 14px">${c.introHtml}</p>
 <p style="margin:0 0 12px"><strong>How likely are you to recommend Virio to a friend or colleague?</strong></p>
 ${scoreRow(row.token)}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:407px;margin:8px 0 18px">
@@ -271,17 +302,18 @@ ${SCALE.map(([range, meaning]) => `<tr>
 <td style="padding:1px 8px 1px 0;font:12px/1.7 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#141414;white-space:nowrap"><strong>${range}</strong></td>
 <td style="padding:1px 0;font:12px/1.7 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#8a8f98">${meaning}</td></tr>`).join('')}
 </table>
-<p style="margin:0 0 14px">If there&rsquo;s anything we can improve on, or if you have any additional feedback to share, just reply to this email and it comes straight to me.</p>
+<p style="margin:0 0 14px">${c.closeHtml}</p>
 <p style="margin:0">Thanks,<br>Eric</p>
 </div></body></html>`;
 }
 
-function emailText(row) {
+function emailText(row, opts) {
   const first = (row.contact_name || '').split(' ')[0];
   const base = publicBase();
+  const c = copyFor(opts && opts.reminder);
   return `${first ? `Hi ${first},` : 'Hi,'}
 
-Eric here, CEO and Co-Founder at Virio. One quick question for you, really appreciate your help:
+${c.introText}
 
 How likely are you to recommend Virio to a friend or colleague?
 
@@ -289,7 +321,7 @@ ${SCALE.map(([r, m]) => `  ${r.padEnd(5)} ${m}`).join('\n')}
 
 ${Array.from({ length: 11 }, (_, n) => `${n}: ${base}/api/nps-respond?t=${row.token}&s=${n}`).join('\n')}
 
-If there's anything we can improve on, or if you have any additional feedback to share, just reply to this email and it comes straight to me.
+${c.closeText}
 
 Thanks,
 Eric`;
@@ -299,11 +331,20 @@ Eric`;
 // relationship rather than as a generic survey. NPS_SUBJECT overrides it and
 // may use {company}; without a company name (which only happens on a test
 // row) it falls back to something that still makes sense on its own.
-function subjectFor(row) {
+function subjectFor(row, opts) {
   const co = ((row && row.company_name) || '').trim();
   const tpl = process.env.NPS_SUBJECT
     || (co ? 'Virio x {company} Partnership' : 'Quick question — how are we doing?');
-  return tpl.replace(/\{company\}/g, co);
+  const subject = tpl.replace(/\{company\}/g, co);
+  if (!opts || !opts.reminder) return subject;
+  // The reminder is a follow-up to that exact message, so it keeps the subject
+  // and adds a Re:. Most clients thread on that, which is what makes it read as
+  // a nudge rather than a second survey arriving out of nowhere. (It is not a
+  // true threaded reply: the first send's Message-ID was never stored, so there
+  // is no In-Reply-To to set.) NPS_REMINDER_SUBJECT overrides, {company} and all.
+  const rtpl = process.env.NPS_REMINDER_SUBJECT;
+  if (rtpl) return rtpl.replace(/\{company\}/g, co);
+  return /^re:\s/i.test(subject) ? subject : 'Re: ' + subject;
 }
 
 // Caching the transporter is not enough: without `pool`, nodemailer opens a new
@@ -330,19 +371,19 @@ function gmailTransport() {
   return mailer;
 }
 
-async function sendViaGmail(row) {
+async function sendViaGmail(row, opts) {
   const info = await gmailTransport().sendMail({
     from: fromHeader(),
     to: row.contact_email,
     replyTo: REPLY_TO,
-    subject: subjectFor(row),
-    html: emailHtml(row),
-    text: emailText(row),
+    subject: subjectFor(row, opts),
+    html: emailHtml(row, opts),
+    text: emailText(row, opts),
   });
   return JSON.stringify({ id: info.messageId, via: 'gmail' });
 }
 
-async function sendViaResend(row) {
+async function sendViaResend(row, opts) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error('RESEND_API_KEY not set');
   const res = await fetch('https://api.resend.com/emails', {
@@ -352,10 +393,10 @@ async function sendViaResend(row) {
       from: fromHeader(),
       to: [row.contact_email],
       reply_to: REPLY_TO,
-      subject: subjectFor(row),
-      html: emailHtml(row),
-      text: emailText(row),
-      tags: [{ name: 'type', value: 'nps' }],
+      subject: subjectFor(row, opts),
+      html: emailHtml(row, opts),
+      text: emailText(row, opts),
+      tags: [{ name: 'type', value: opts && opts.reminder ? 'nps-reminder' : 'nps' }],
     }),
   });
   const body = await res.text();
@@ -363,9 +404,11 @@ async function sendViaResend(row) {
   return body;
 }
 
-async function sendEmail(row) {
-  if (useGmail()) return sendViaGmail(row);
-  return sendViaResend(row);
+// opts.reminder picks the follow-up copy; everything else about the send —
+// address, From, token, scoring links — is identical.
+async function sendEmail(row, opts) {
+  if (useGmail()) return sendViaGmail(row, opts);
+  return sendViaResend(row, opts);
 }
 
 // Is anything configured to send at all? Used by the job and the manual
@@ -392,6 +435,7 @@ module.exports = {
   FOC_LABEL, CHURNED_STAGE, usable, supabaseUrl, supabaseAnon,
   tierOf, fetchActiveCompanies, fetchFocContactIds, fetchContacts, buildAudience,
   recordSends, pendingSends, markSent, submitResponse,
-  sendEmail, emailHtml, emailText, publicBase,
+  reminderAudience, claimReminder, markReminderFailed,
+  sendEmail, emailHtml, emailText, copyFor, publicBase,
   newToken, periodOf, escapeHtml,
 };

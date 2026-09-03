@@ -5673,6 +5673,13 @@ function npsRender(){
   setTxt('m-nps-responses', String(st.answered.length));
   setTxt('m-nps-responses-sub', `Of ${st.delivered.length} survey${st.delivered.length===1?'':'s'} delivered`);
   setTxt('m-nps-rate', st.rate==null?'—':st.rate+'%');
+  // Say so when a follow-up went out, otherwise a response rate that climbed
+  // mid-month reads as people answering the first email late.
+  const reminded=st.delivered.filter(r=>r.reminder_attempts>0);
+  const answeredAfter=reminded.filter(r=>r.responded_at&&r.reminded_at&&r.responded_at>r.reminded_at);
+  setTxt('m-nps-rate-sub', reminded.length
+    ? `Of surveys delivered · ${reminded.length} reminded, ${answeredAfter.length} answered after`
+    : 'Of surveys actually delivered');
   setTxt('m-nps-coverage', st.coverage==null?'—':st.coverage+'%');
   setTxt('m-nps-coverage-sub', st.companies
     ? `${st.covered} of ${st.companies} accounts had a Face of Content to email`

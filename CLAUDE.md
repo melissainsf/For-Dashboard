@@ -109,3 +109,19 @@ Two dedup traps when rows already exist for the period:
 Test sends (`&test=you@virio.ai`) are recorded under company id `__TEST__`, which
 `npsFilterRows` drops, so they never move a real number. A score only counts once
 its row is `status='sent'`; `nps_mark_sent` flips `failed` → `sent` on retry.
+
+## Reminding the people who did not answer
+
+`?key=…&remind=1` nudges everyone whose survey was **delivered** and who has not
+answered. It reads **nothing from HubSpot** — the audience is the stored rows,
+and each nudge goes to the address on its own row with that row's token, so a
+late answer lands on the send it belongs to and counts once. The corollary is
+the same as `&retry=1`: a CRM fix made after the send does not reach the
+reminder either. Fix the row, not HubSpot, if an address is wrong.
+
+Nobody is nudged twice. `nps_claim_reminder` is a compare-and-set on
+`reminder_attempts`, so a second run, or an answer that arrives mid-run, is
+refused the claim. `&remind=1&retry=1` re-opens only reminders the transport
+**rejected** (`reminder_error`), never ones that went out. `&remind=1&dry=1`
+previews the list; `&remind=1&test=you@virio.ai` sends the follow-up copy to one
+address. Same order as the monthly send: **dry run → send.**
