@@ -2,7 +2,9 @@
    run recorded but never sent.
    Run:  node nps-sweep.test.js
    No dependencies; Supabase and the mail transport are both stubbed. The case
-   being pinned down is 2026-09-01: 37 rows written, 0 emails delivered. */
+   being pinned down is 2026-09-01: 37 sends attempted, all 37 rejected by
+   Resend with "the virio.ai domain is not verified", and nothing said so until
+   somebody looked three days later. */
 const core = require('./netlify/functions/_nps-core.js');
 const { sweepMonth } = require('./netlify/functions/_nps-run.js');
 
@@ -14,11 +16,13 @@ function eq(name, actual, expected) {
 }
 const ok = (name, cond) => eq(name, !!cond, true);
 
-const ROW = (n) => ({
+const ROW = (n, status) => ({
   id: `row-${n}`, period: '2026-09-01', hs_company_id: String(n),
   company_name: `Co ${n}`, contact_email: `c${n}@example.com`,
-  status: 'pending', token: `TOK${n}`,
+  status: status || 'pending', token: `TOK${n}`,
 });
+// What Sept 1 actually left behind: rows marked failed, not pending.
+const REJECTED = (n) => ROW(n, 'failed');
 
 // Only the four calls that reach the outside world. buildAudience is NOT among
 // them on purpose — a sweep that touched HubSpot would fail this file.
@@ -41,11 +45,12 @@ function stub(over) {
 }
 
 (async () => {
-  console.log('\n── The September case: rows recorded, nothing delivered ──');
-  let s = stub({ pending: [ROW(1), ROW(2), ROW(3)] });
+  console.log('\n── The September case: every send REJECTED by the transport ──');
+  let s = stub({ pending: [REJECTED(1), REJECTED(2), REJECTED(3)] });
   let out = await sweepMonth({ period: '2026-09-01' });
-  eq('it sends every row the monthly run left behind', out.sent, 3);
-  eq('and says how many were stranded', out.still_pending, 3);
+  eq('a month rejected wholesale is re-sent', out.sent, 3);
+  eq('and counted as stranded', out.still_unsent, 3);
+  eq('and identified as rejections, not stalled rows', out.were_rejected, 3);
   ok('HubSpot is never called — the whole run goes into email',
      !s.calls.some(c => c[0] === 'hubspot'));
   ok('and nothing new is recorded', !s.calls.some(c => c[0] === 'record'));
@@ -56,16 +61,24 @@ function stub(over) {
   console.log('\n── When the monthly run worked, the sweep is a no-op ──');
   s = stub({ pending: [] });
   out = await sweepMonth({ period: '2026-09-01' });
-  eq('nobody is emailed', [out.still_pending, out.sent, out.failed], [0, 0, 0]);
+  eq('nobody is emailed', [out.still_unsent, out.sent, out.failed], [0, 0, 0]);
   ok('not one send is attempted', !s.calls.some(c => c[0] === 'send'));
   s.restore();
 
-  console.log('\n── It asks only for PENDING rows, never failed ones ──');
-  // Re-sending a row that a transport rejected is a decision for &retry=1, not
-  // something a job should do unattended three times an hour.
+  console.log('\n── It asks for rejected rows too ──');
+  // The whole point. A sweep that only looked at 'pending' would have found
+  // nothing on Sept 1 and left the month unsent — the rows were 'failed'.
   s = stub({ pending: [ROW(1)] });
   await sweepMonth({ period: '2026-09-01' });
-  eq('include_failed is false', s.calls[0], ['pending', '2026-09-01', false]);
+  eq('include_failed is true', s.calls[0], ['pending', '2026-09-01', true]);
+  s.restore();
+
+  console.log('\n── A row that actually went out is never in the list ──');
+  // Not a matter of filtering: nps_pending returns only pending and failed, so
+  // a delivered row cannot reach the sweep at all. Stubbed the same way here.
+  s = stub({ pending: [] });
+  out = await sweepMonth({ period: '2026-09-01' });
+  eq('nobody is emailed twice', out.sent, 0);
   s.restore();
 
   console.log('\n── One bad address does not strand the rest ──');

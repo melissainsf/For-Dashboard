@@ -97,18 +97,26 @@ So the order is: **dry run → fix HubSpot → delete any drifted rows → send.
    rows — `nps_pending` returns them only under that flag, so without it a
    re-run sends to nobody.
 
-**The scheduled job cannot be trusted on its own.** On 2026-09-01 `send-nps`
-fired on time, recorded all 37 rows at 13:00 UTC, and delivered **none** of
-them; the surveys went out only because the manual trigger was run by hand that
-evening. The rows prove the HubSpot half completed and the sending half did not.
-Root cause unknown — the Netlify function log for that invocation would say.
+**What went wrong on 2026-09-01, so it is not re-derived.** `send-nps` fired on
+time, ran 11.7s, attempted all 37 sends — and **Resend rejected every one**:
+`403 The virio.ai domain is not verified`. It had fallen back to Resend because
+`GMAIL_USER`/`GMAIL_APP_PASSWORD` were not in play for that run. The surveys only
+went out that evening when the manual trigger was run with `&retry=1`, which
+flips `failed` → `sent` and therefore **erased the evidence** — the rows now read
+`sent`, which is why the failure looked from the database like "the job died
+before sending". It did not. Read the function log, not the rows.
 
-`sweep-nps` now runs at 14:00, 15:00 and 16:00 UTC on the 1st and delivers
-whatever is still `pending`. It reads **no** HubSpot, so the whole invocation
-goes into email and it cannot re-resolve an audience or hit the dedup traps
-below. `?key=…&sweep=1` is the manual equivalent — the safest thing to click
-when rows exist but people were not emailed, since it can only send to rows
-whose email never left.
+Two things now guard it:
+
+- **Resend is refused as a transport** unless `NPS_ALLOW_RESEND=1`. It cannot
+  send as `virio.ai`, so falling back to it is not a fallback, it is a silent
+  month-long failure. With no usable transport the job is dormant and logs why.
+- **`sweep-nps`** runs at 14:00, 15:00 and 16:00 UTC on the 1st and re-attempts
+  everything still unsent — **pending and rejected both**, because a rejected
+  month is recorded as `failed`, not `pending`. It reads no HubSpot, so the whole
+  invocation goes into sending and it cannot hit the dedup traps below.
+  `?key=…&sweep=1` is the manual equivalent, and the safest thing to click when
+  rows exist but people were not emailed.
 
 Two dedup traps when rows already exist for the period:
 

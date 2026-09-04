@@ -29,6 +29,10 @@ exports.handler = async function () {
   }
 
   const period = periodOf();
+  // Named before the run, not just after it: the 2026-09-01 failure was
+  // entirely "which transport did it pick", and that took three days to work
+  // out from the outside.
+  console.log(`send-nps ${period}: starting, transport = ${transportName()}.`);
   try {
     const s = await runMonth({ hsToken, period, dryRun: false });
     console.log(`send-nps ${period} via ${transportName()}: sent ${s.sent}, failed ${s.failed}, no FOC ${s.no_foc}, no email ${s.no_email}, across ${s.companies} companies.`);

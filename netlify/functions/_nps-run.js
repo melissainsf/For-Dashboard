@@ -64,30 +64,37 @@ async function deliver(rows, summary) {
   return summary;
 }
 
-// Deliver whatever the monthly run recorded but never sent.
+// Deliver whatever the monthly run recorded but never got out the door.
 //
-// On 2026-09-01 the scheduled job wrote all 37 rows at 13:00 UTC and delivered
-// none of them; the surveys only went out when the trigger was run by hand that
-// evening. Whatever killed it, the rows prove the HubSpot half finished and the
-// SENDING half did not — so this deliberately does not touch HubSpot at all.
-// Every second it gets goes into email, not into re-resolving an audience that
-// is already recorded, and it cannot introduce the drift a second buildAudience
-// would (a merged contact id inserting a duplicate row, a renamed company).
+// On 2026-09-01 send-nps ran for 11.7 seconds, attempted all 37 sends, and had
+// every one rejected by Resend: 403, "the virio.ai domain is not verified". The
+// month's surveys only went out that evening, when the manual trigger was run
+// with &retry=1. A whole month failed for one fixable reason and nothing said so.
 //
-// Safe to run as often as you like: it claims nothing new, and `pending` is
-// exactly the set of rows whose email never left. A row already sent is not in
-// it, so nobody is emailed twice.
+// So this picks up BOTH pending and failed rows. Pending alone would have been
+// useless in September: a rejected send is recorded as failed, not left pending.
+// Re-attempting a failed row is safe — the rejection means nothing was
+// delivered, and nps_mark_sent flips failed to sent when it finally lands.
+//
+// It reads NOTHING from HubSpot. The audience is already recorded, so the whole
+// invocation goes into sending, and it cannot re-resolve an audience or hit the
+// dedup traps a second buildAudience carries (a merged contact id inserting a
+// duplicate row, a renamed company surviving into a subject line).
+//
+// Safe to run as often as you like: it claims nothing new, and a row that was
+// actually delivered is 'sent' and therefore not in the list.
 async function sweepMonth({ period }) {
-  const pending = (await core.pendingSends(period, false)) || [];
+  const stuck = (await core.pendingSends(period, true)) || [];
   const summary = {
     period,
     sweep: true,
-    still_pending: pending.length,
+    still_unsent: stuck.length,
+    were_rejected: stuck.filter(r => r.status === 'failed').length,
     sent: 0,
     failed: 0,
     errors: [],
   };
-  await deliver(pending, summary);
+  await deliver(stuck, summary);
   return summary;
 }
 

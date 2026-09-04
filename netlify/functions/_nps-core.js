@@ -228,6 +228,16 @@ const GMAIL_USER = (process.env.GMAIL_USER || '').trim();
 const GMAIL_PASS = (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
 const useGmail = () => !!(GMAIL_USER && GMAIL_PASS);
 
+// Resend is OFF unless deliberately switched on, and this is why: on 2026-09-01
+// send-nps fell back to it and Resend rejected all 37 sends with 403 "the
+// virio.ai domain is not verified". It cannot send as virio.ai — the domain is
+// claimed by an account nobody can identify — so a fallback to it is not a
+// fallback, it is a silent month-long failure. Better to send nothing and say
+// so: with no usable transport the job is dormant and logs the reason, which is
+// visible, rather than burning a month's rows on a 403.
+// Set NPS_ALLOW_RESEND=1 to re-enable, if the domain is ever verified.
+const useResend = () => !!process.env.RESEND_API_KEY && process.env.NPS_ALLOW_RESEND === '1';
+
 // Over SMTP the From address must be the account that authenticated — Google
 // rewrites or rejects anything else — so it is built from GMAIL_USER rather
 // than read from NPS_FROM, which could silently disagree with it.
@@ -408,13 +418,18 @@ async function sendViaResend(row, opts) {
 // address, From, token, scoring links — is identical.
 async function sendEmail(row, opts) {
   if (useGmail()) return sendViaGmail(row, opts);
-  return sendViaResend(row, opts);
+  if (useResend()) return sendViaResend(row, opts);
+  throw new Error(
+    'No usable transport. Set GMAIL_USER + GMAIL_APP_PASSWORD (Eric\'s Workspace app '
+    + 'password). RESEND_API_KEY alone is not enough: Resend cannot send as virio.ai, '
+    + 'which is what rejected the whole 2026-09-01 run. Set NPS_ALLOW_RESEND=1 to '
+    + 'override, only if the domain has since been verified.');
 }
 
 // Is anything configured to send at all? Used by the job and the manual
 // trigger so both report the same thing instead of naming Resend specifically.
-function canSend() { return useGmail() || !!process.env.RESEND_API_KEY; }
-function transportName() { return useGmail() ? 'gmail' : (process.env.RESEND_API_KEY ? 'resend' : 'none'); }
+function canSend() { return useGmail() || useResend(); }
+function transportName() { return useGmail() ? 'gmail' : (useResend() ? 'resend' : 'none'); }
 
 // ── misc ───────────────────────────────────────────────────────────────────
 function newToken() {
@@ -431,7 +446,7 @@ function escapeHtml(s) {
 }
 
 module.exports = {
-  canSend, transportName, fromHeader, subjectFor,
+  canSend, transportName, useGmail, useResend, fromHeader, subjectFor,
   FOC_LABEL, CHURNED_STAGE, usable, supabaseUrl, supabaseAnon,
   tierOf, fetchActiveCompanies, fetchFocContactIds, fetchContacts, buildAudience,
   recordSends, pendingSends, markSent, submitResponse,
