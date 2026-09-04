@@ -12,6 +12,11 @@
 //   ?retry=1 — also re-attempt sends that previously FAILED, for when a whole
 //              month was rejected for one fixable reason. Never re-sends to
 //              anyone whose survey actually went out.
+//   ?sweep=1 — deliver rows this period RECORDED but never sent, without
+//              touching HubSpot. What to click if a run left people unsent: it
+//              cannot insert a row, cannot re-resolve an audience, and cannot
+//              email anyone whose survey already went. Same code path as the
+//              scheduled sweep-nps.
 //   ?remind=1 — send the FOLLOW-UP to everyone whose survey was delivered and
 //              who has not answered. Same row, same token, same scoring links,
 //              so a late answer counts once and lands on the send it belongs to.
@@ -25,7 +30,7 @@
 // also work, matching run-billing, but Netlify only ever reveals the last 4 of
 // a secret variable, which made that impractical to look up.)
 
-const { runMonth, remindMonth } = require('./_nps-run');
+const { runMonth, sweepMonth, remindMonth } = require('./_nps-run');
 const core = require('./_nps-core');
 const { periodOf } = core;
 
@@ -86,6 +91,7 @@ exports.handler = async function (event) {
 
   const dryRun = q.dry === '1' || q.dry === 'true';
   const remind = q.remind === '1' || q.remind === 'true';
+  const sweep = q.sweep === '1' || q.sweep === 'true';
   const retryFailed = q.retry === '1' || q.retry === 'true';
   const period = /^\d{4}-\d{2}-01$/.test(q.period || '') ? q.period : periodOf();
   const testTo = (q.test || '').trim();
@@ -105,6 +111,7 @@ exports.handler = async function (event) {
   if (!dryRun && !core.canSend()) return json(500, { error: 'No sending transport configured — a real run would send nothing. Use ?dry=1 to preview.' });
 
   try {
+    if (sweep) return json(200, { ok: true, ...(await sweepMonth({ period })) });
     if (remind) return json(200, { ok: true, ...(await remindMonth({ period, dryRun, retryFailed })) });
     return json(200, { ok: true, ...(await runMonth({ hsToken, period, dryRun, retryFailed })) });
   } catch (e) {

@@ -110,6 +110,23 @@ function stub(over) {
      s.calls[1], ['claim', 'row-1', 1]);
   s.restore();
 
+  console.log('\n── The transport that cost September ──');
+  const envBefore = { g: process.env.GMAIL_USER, p: process.env.GMAIL_APP_PASSWORD, r: process.env.RESEND_API_KEY, a: process.env.NPS_ALLOW_RESEND };
+  delete process.env.NPS_ALLOW_RESEND;
+  process.env.RESEND_API_KEY = 're_whatever';
+  delete process.env.GMAIL_USER; delete process.env.GMAIL_APP_PASSWORD;
+  eq('a Resend key alone is NOT a usable transport', core.canSend(), false);
+  eq('and the job says so plainly', core.transportName(), 'none');
+  let refused = null;
+  await core.sendEmail(ROW()).catch(e => { refused = e.message; });
+  ok('sending refuses rather than burning a month on a 403',
+     refused && refused.includes('Resend cannot send as virio.ai'));
+  process.env.NPS_ALLOW_RESEND = '1';
+  eq('the override still exists if the domain is ever verified', core.transportName(), 'resend');
+  for (const [k, v] of [['GMAIL_USER', envBefore.g], ['GMAIL_APP_PASSWORD', envBefore.p], ['RESEND_API_KEY', envBefore.r], ['NPS_ALLOW_RESEND', envBefore.a]]) {
+    if (v === undefined) delete process.env[k]; else process.env[k] = v;
+  }
+
   console.log(`\n${failed ? '✗' : '✓'} ${passed} passed, ${failed} failed\n`);
   process.exit(failed ? 1 : 0);
 })();

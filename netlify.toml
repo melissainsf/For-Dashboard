@@ -27,6 +27,15 @@
 [functions."send-nps"]
   schedule = "0 13 1 * *"
 
+# Safety net for the above. On 2026-09-01 send-nps attempted every send and had
+# all 37 rejected by Resend (403, virio.ai not verified); the month's surveys
+# only went out because the manual trigger was run by hand that evening.
+# sweep-nps re-attempts whatever is still unsent — pending or rejected — at
+# 14:00, 15:00 and 16:00 UTC on the 1st. It reads no HubSpot, so its whole run
+# goes into sending; when send-nps has worked it emails nobody.
+[functions."sweep-nps"]
+  schedule = "0 14,15,16 1 * *"
+
 [[redirects]]
   from = "/api/hubspot"
   to = "/.netlify/functions/hubspot"

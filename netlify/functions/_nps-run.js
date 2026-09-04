@@ -43,7 +43,14 @@ async function runMonth({ hsToken, period, dryRun, retryFailed }) {
   const pending = await core.pendingSends(period, !!retryFailed);
   summary.retrying_failed = !!retryFailed;
 
-  for (const row of pending) {
+  await deliver(pending, summary);
+  return summary;
+}
+
+// The send half, shared by the monthly run and the sweep that finishes what it
+// started. One copy, so a fix to one is a fix to both.
+async function deliver(rows, summary) {
+  for (const row of rows) {
     try {
       await core.sendEmail(row);
       await core.markSent(row.id, 'sent');
@@ -54,6 +61,40 @@ async function runMonth({ hsToken, period, dryRun, retryFailed }) {
       summary.errors.push(`${row.company_name} <${row.contact_email}>: ${e.message}`);
     }
   }
+  return summary;
+}
+
+// Deliver whatever the monthly run recorded but never got out the door.
+//
+// On 2026-09-01 send-nps ran for 11.7 seconds, attempted all 37 sends, and had
+// every one rejected by Resend: 403, "the virio.ai domain is not verified". The
+// month's surveys only went out that evening, when the manual trigger was run
+// with &retry=1. A whole month failed for one fixable reason and nothing said so.
+//
+// So this picks up BOTH pending and failed rows. Pending alone would have been
+// useless in September: a rejected send is recorded as failed, not left pending.
+// Re-attempting a failed row is safe — the rejection means nothing was
+// delivered, and nps_mark_sent flips failed to sent when it finally lands.
+//
+// It reads NOTHING from HubSpot. The audience is already recorded, so the whole
+// invocation goes into sending, and it cannot re-resolve an audience or hit the
+// dedup traps a second buildAudience carries (a merged contact id inserting a
+// duplicate row, a renamed company surviving into a subject line).
+//
+// Safe to run as often as you like: it claims nothing new, and a row that was
+// actually delivered is 'sent' and therefore not in the list.
+async function sweepMonth({ period }) {
+  const stuck = (await core.pendingSends(period, true)) || [];
+  const summary = {
+    period,
+    sweep: true,
+    still_unsent: stuck.length,
+    were_rejected: stuck.filter(r => r.status === 'failed').length,
+    sent: 0,
+    failed: 0,
+    errors: [],
+  };
+  await deliver(stuck, summary);
   return summary;
 }
 
@@ -120,4 +161,4 @@ async function remindMonth({ period, dryRun, retryFailed }) {
   return summary;
 }
 
-module.exports = { runMonth, remindMonth };
+module.exports = { runMonth, sweepMonth, remindMonth };

@@ -97,6 +97,27 @@ So the order is: **dry run → fix HubSpot → delete any drifted rows → send.
    rows — `nps_pending` returns them only under that flag, so without it a
    re-run sends to nobody.
 
+**What went wrong on 2026-09-01, so it is not re-derived.** `send-nps` fired on
+time, ran 11.7s, attempted all 37 sends — and **Resend rejected every one**:
+`403 The virio.ai domain is not verified`. It had fallen back to Resend because
+`GMAIL_USER`/`GMAIL_APP_PASSWORD` were not in play for that run. The surveys only
+went out that evening when the manual trigger was run with `&retry=1`, which
+flips `failed` → `sent` and therefore **erased the evidence** — the rows now read
+`sent`, which is why the failure looked from the database like "the job died
+before sending". It did not. Read the function log, not the rows.
+
+Two things now guard it:
+
+- **Resend is refused as a transport** unless `NPS_ALLOW_RESEND=1`. It cannot
+  send as `virio.ai`, so falling back to it is not a fallback, it is a silent
+  month-long failure. With no usable transport the job is dormant and logs why.
+- **`sweep-nps`** runs at 14:00, 15:00 and 16:00 UTC on the 1st and re-attempts
+  everything still unsent — **pending and rejected both**, because a rejected
+  month is recorded as `failed`, not `pending`. It reads no HubSpot, so the whole
+  invocation goes into sending and it cannot hit the dedup traps below.
+  `?key=…&sweep=1` is the manual equivalent, and the safest thing to click when
+  rows exist but people were not emailed.
+
 Two dedup traps when rows already exist for the period:
 
 - The unique index is `(period, hs_company_id, contact_key)` where
