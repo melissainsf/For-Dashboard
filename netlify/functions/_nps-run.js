@@ -43,7 +43,14 @@ async function runMonth({ hsToken, period, dryRun, retryFailed }) {
   const pending = await core.pendingSends(period, !!retryFailed);
   summary.retrying_failed = !!retryFailed;
 
-  for (const row of pending) {
+  await deliver(pending, summary);
+  return summary;
+}
+
+// The send half, shared by the monthly run and the sweep that finishes what it
+// started. One copy, so a fix to one is a fix to both.
+async function deliver(rows, summary) {
+  for (const row of rows) {
     try {
       await core.sendEmail(row);
       await core.markSent(row.id, 'sent');
@@ -54,6 +61,33 @@ async function runMonth({ hsToken, period, dryRun, retryFailed }) {
       summary.errors.push(`${row.company_name} <${row.contact_email}>: ${e.message}`);
     }
   }
+  return summary;
+}
+
+// Deliver whatever the monthly run recorded but never sent.
+//
+// On 2026-09-01 the scheduled job wrote all 37 rows at 13:00 UTC and delivered
+// none of them; the surveys only went out when the trigger was run by hand that
+// evening. Whatever killed it, the rows prove the HubSpot half finished and the
+// SENDING half did not — so this deliberately does not touch HubSpot at all.
+// Every second it gets goes into email, not into re-resolving an audience that
+// is already recorded, and it cannot introduce the drift a second buildAudience
+// would (a merged contact id inserting a duplicate row, a renamed company).
+//
+// Safe to run as often as you like: it claims nothing new, and `pending` is
+// exactly the set of rows whose email never left. A row already sent is not in
+// it, so nobody is emailed twice.
+async function sweepMonth({ period }) {
+  const pending = (await core.pendingSends(period, false)) || [];
+  const summary = {
+    period,
+    sweep: true,
+    still_pending: pending.length,
+    sent: 0,
+    failed: 0,
+    errors: [],
+  };
+  await deliver(pending, summary);
   return summary;
 }
 
@@ -120,4 +154,4 @@ async function remindMonth({ period, dryRun, retryFailed }) {
   return summary;
 }
 
-module.exports = { runMonth, remindMonth };
+module.exports = { runMonth, sweepMonth, remindMonth };

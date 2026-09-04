@@ -97,6 +97,19 @@ So the order is: **dry run → fix HubSpot → delete any drifted rows → send.
    rows — `nps_pending` returns them only under that flag, so without it a
    re-run sends to nobody.
 
+**The scheduled job cannot be trusted on its own.** On 2026-09-01 `send-nps`
+fired on time, recorded all 37 rows at 13:00 UTC, and delivered **none** of
+them; the surveys went out only because the manual trigger was run by hand that
+evening. The rows prove the HubSpot half completed and the sending half did not.
+Root cause unknown — the Netlify function log for that invocation would say.
+
+`sweep-nps` now runs at 14:00, 15:00 and 16:00 UTC on the 1st and delivers
+whatever is still `pending`. It reads **no** HubSpot, so the whole invocation
+goes into email and it cannot re-resolve an audience or hit the dedup traps
+below. `?key=…&sweep=1` is the manual equivalent — the safest thing to click
+when rows exist but people were not emailed, since it can only send to rows
+whose email never left.
+
 Two dedup traps when rows already exist for the period:
 
 - The unique index is `(period, hs_company_id, contact_key)` where
