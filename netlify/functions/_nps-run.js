@@ -57,4 +57,67 @@ async function runMonth({ hsToken, period, dryRun, retryFailed }) {
   return summary;
 }
 
-module.exports = { runMonth };
+// The reminder pass. Reads nothing from HubSpot: the audience is the rows that
+// were actually DELIVERED and have not been answered, and each nudge goes to the
+// address stored on its own row, carrying that row's token.
+//
+// That is deliberate, and it has a cost worth knowing. A HubSpot fix made after
+// the first send does not reach the reminder either — same reason a re-run does
+// not re-read the CRM. Re-resolving the audience instead would risk nudging a
+// DIFFERENT person than the one who holds the survey link, and scoring them
+// against a row that was never sent to them. A wrong address is fixed by fixing
+// the row, not by asking HubSpot again.
+async function remindMonth({ period, dryRun, retryFailed }) {
+  const audience = await core.reminderAudience(period, !!retryFailed) || [];
+
+  const summary = {
+    period,
+    reminder: true,
+    dry_run: !!dryRun,
+    retrying_failed: !!retryFailed,
+    companies: new Set(audience.map(r => r.hs_company_id)).size,
+    to_send: audience.length,
+    sent: 0,
+    skipped_answered: 0,
+    failed: 0,
+    errors: [],
+  };
+
+  if (dryRun) {
+    summary.preview = audience.map(r => ({
+      company: r.company_name, contact: r.contact_name, email: r.contact_email,
+      am: r.am, product: r.product,
+      first_sent: r.sent_at, previous_reminders: r.reminder_attempts,
+      previous_error: r.reminder_error || undefined,
+    }));
+    return summary;
+  }
+
+  for (const row of audience) {
+    // Claim first, exactly as the first send does: nudging someone twice is
+    // worse than missing them. The claim is refused if the answer landed while
+    // this run was working through the queue — a real possibility, since the
+    // list was built minutes earlier.
+    let claimed;
+    try {
+      claimed = await core.claimReminder(row.id, row.reminder_attempts);
+    } catch (e) {
+      summary.failed++;
+      summary.errors.push(`${row.company_name} <${row.contact_email}>: could not claim — ${e.message}`);
+      continue;
+    }
+    if (!claimed) { summary.skipped_answered++; continue; }
+
+    try {
+      await core.sendEmail(row, { reminder: true });
+      summary.sent++;
+    } catch (e) {
+      await core.markReminderFailed(row.id, String(e.message || e).slice(0, 500));
+      summary.failed++;
+      summary.errors.push(`${row.company_name} <${row.contact_email}>: ${e.message}`);
+    }
+  }
+  return summary;
+}
+
+module.exports = { runMonth, remindMonth };
