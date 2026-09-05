@@ -146,3 +146,40 @@ refused the claim. `&remind=1&retry=1` re-opens only reminders the transport
 **rejected** (`reminder_error`), never ones that went out. `&remind=1&dry=1`
 previews the list; `&remind=1&test=you@virio.ai` sends the follow-up copy to one
 address. Same order as the monthly send: **dry run → send.**
+
+## Clearing a response that should not count
+
+A score that was submitted by mistake is cleared by **nulling the answer on its
+row, not by deleting the row**. The survey was still delivered, so the row has
+to keep `status='sent'` — deleting it would shrink the response-rate denominator
+and the coverage count, and quietly flatter both.
+
+```sql
+update public.nps_sends
+   set score = null, comment = null, responded_at = null
+ where id = '<row id>';
+```
+
+Nothing in the dashboard needs redeploying: every NPS number is derived from
+`score is not null`, so the row drops out of the score, the mix bar, the trend,
+every segment table and the response list the moment the column is null, and
+reappears as a delivered-but-unanswered survey.
+
+Two things to know before doing it:
+
+- **The token stays live.** The email is still in their inbox and its links still
+  work, so the same accidental click can record the score again. That is
+  deliberate — it also leaves the real contact able to answer for that month —
+  but it means a cleared row is worth re-checking.
+- **Whether they get nudged again** depends on `reminder_attempts`, not on the
+  cleared score. A row already at 1 is never in `nps_reminder_audience` again,
+  so clearing the answer does not cause a second reminder.
+
+**Done once, on 2026-09-05.** Madison West Partners / Jessica Loché-Eggert
+(row `156029e2-cc8f-46b5-8892-bc257fec3f40`, period 2026-09-01) came back a
+`2` with the comment *"this was not madison west, was tiffany by accident
+disregard SORRY"* — a mis-click on the reminder email, not a judgement of the
+account. It was the only detractor among four EGC answers: clearing it moved
+overall NPS from **−9 to 0** on 10 answers, and EGC from **−25 to 0** on 3.
+Both are far under the `NPS_MIN_N` of 5, so neither figure should be quoted
+as a trend.
