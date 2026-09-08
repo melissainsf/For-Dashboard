@@ -1,0 +1,167 @@
+{
+  "_comment": "Real -> fictional name map for the public demo build. THIS FILE MUST STAY IN THE PRIVATE REPO: it names real customers and staff, and it maps every fictional name in the public demo back to the real one. build/build-demo.js in the anonymizeddashboard repo reads it from --src at build time.",
+  "people": [
+    [
+      "Maxwell",
+      "Sofia Reyes"
+    ],
+    [
+      "Melissa",
+      "Maya Chen"
+    ],
+    [
+      "melissa",
+      "maya"
+    ],
+    [
+      "Marghi",
+      "Jordan Ellis"
+    ],
+    [
+      "Karishma",
+      "Robin Tate"
+    ],
+    [
+      "Emmett",
+      "Marcus Webb"
+    ],
+    [
+      "Prentice",
+      "Casey Vaughn"
+    ],
+    [
+      "Lakeisha",
+      "Ingrid Sol"
+    ],
+    [
+      "Yichen",
+      "Rowan Vale"
+    ],
+    [
+      "Millie",
+      "Tessa Vane"
+    ],
+    [
+      "Daniel",
+      "Devin Walsh"
+    ],
+    [
+      "Jacob",
+      "Liam Brennan"
+    ],
+    [
+      "David",
+      "Priya Nair"
+    ],
+    [
+      "Emily",
+      "Naomi Park"
+    ],
+    [
+      "Eric",
+      "Sam Okafor"
+    ]
+  ],
+  "accounts": [
+    [
+      "Knopman Marks",
+      "Granite Logistics"
+    ],
+    [
+      "Knopman",
+      "Granite Logistics"
+    ],
+    [
+      "Magnific (Freepik)",
+      "Solstice Apparel"
+    ],
+    [
+      "Magnific",
+      "Solstice Apparel"
+    ],
+    [
+      "Madison West Partners",
+      "Tideway Bank Group"
+    ],
+    [
+      "Madison West",
+      "Tideway Bank"
+    ],
+    [
+      "VitalBenefits",
+      "MarigoldBeauty"
+    ],
+    [
+      "Vital Benefits",
+      "Marigold Beauty"
+    ],
+    [
+      "Trimble",
+      "Copperline Mfg"
+    ],
+    [
+      "Othello",
+      "Meridian Freight"
+    ],
+    [
+      "Buzzlead",
+      "Brightloom"
+    ],
+    [
+      "Runpod",
+      "Lumen Robotics"
+    ],
+    [
+      "Bland",
+      "Northwind Labs"
+    ],
+    [
+      "Thrad",
+      "Cedar & Pine Co"
+    ],
+    [
+      "Axya",
+      "Harborview Realty"
+    ],
+    [
+      "Goody",
+      "Verdant Foods"
+    ]
+  ],
+  "contacts": [
+    [
+      "Brandon Ray",
+      "Ari Patel"
+    ],
+    [
+      "Willow Thom",
+      "Dana Osei"
+    ],
+    [
+      "Alex Perez",
+      "Gray Vance"
+    ],
+    [
+      "Zhen Lu",
+      "Kai Nakamura"
+    ],
+    [
+      "Jared",
+      "Blake"
+    ]
+  ],
+  "brand": [
+    [
+      "virio.ai",
+      "northwind.example"
+    ],
+    [
+      "Virio",
+      "Northwind"
+    ],
+    [
+      "virio",
+      "northwind"
+    ]
+  ]
+}
