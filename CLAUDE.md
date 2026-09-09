@@ -73,17 +73,21 @@ Neither site is reachable from a Claude Code session — the egress proxy return
   app consented in *Knopman's* tenant, or moving them to a Virio-hosted Teams
   shared channel. Trimble and Axya are email-only. All three are correctly
   unmeasured — the tab used to claim it covered Teams, which was never true.
+- **Lineage stays connected; only its health score is off-limits.** Lineage is
+  still a primary data source and should remain one — `public.lineage_posts`
+  feeds EGC first-post and time-to-value, where HubSpot's `first_post_date` is
+  blank on four of five EGC accounts. The "from Lineage" wording on the EGC tab
+  is correct and should stay.
 - **Account health colors are the dashboard's own data, not Lineage's.** They
   live in the `account-health` Netlify Blobs store keyed by HubSpot company id,
-  written by `/api/health-write` when an AM clicks a chip. Lineage's health score
-  tracking (`account_health_states.human_health` / `agent_health` in Jacquard
-  PROD) is being **sunset** — the `/api/lineage` function that read it was dead
-  code by then and has been deleted, so the sunset costs the dashboard nothing.
-  Do not reintroduce a Lineage health read.
-- **Lineage still feeds EGC first-post / time-to-value, and that is unaffected.**
-  `public.lineage_posts` is post-publishing data with no health columns; the EGC
-  tab uses it for first post where HubSpot's `first_post_date` is blank. The
-  "from Lineage" wording on the EGC tab is correct and should stay.
+  written by `/api/health-write` when an AM clicks a chip. Lineage's Red/Yellow/
+  Green/Blue picker (`account_health_states.human_health` / `agent_health` in
+  Jacquard PROD) is being **removed** — the `/api/lineage` function that read it
+  was already dead code and has been deleted, so the removal costs the dashboard
+  nothing. Nothing on the dashboard is influenced by a Lineage health value:
+  audited 2026-09-09, no table, view or RPC it reads has a health column, and
+  no HubSpot property it pulls carries one. Do not reintroduce a Lineage health
+  read — that is the one Lineage door that stays shut.
 - Emmett declined the Supabase **service-role key**. Writes go through
   SECURITY DEFINER functions on the public anon key. Do not reintroduce it.
 
