@@ -47,11 +47,6 @@
   status = 200
 
 [[redirects]]
-  from = "/api/lineage"
-  to = "/.netlify/functions/lineage"
-  status = 200
-
-[[redirects]]
   from = "/api/account-health"
   to = "/.netlify/functions/account-health"
   status = 200

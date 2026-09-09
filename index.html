@@ -669,7 +669,7 @@ textarea.prt-input{resize:vertical}
         </div>
         <div class="health-widget">
           <div class="health-widget-header">
-            <div><div class="health-widget-title">Pilot account health</div><div class="health-widget-sub">From Lineage · Red / Yellow / Green / Blue</div></div>
+            <div><div class="health-widget-title">Pilot account health</div><div class="health-widget-sub">Set by AMs here · Red / Yellow / Green / Blue</div></div>
             <div class="health-summary" id="pilot-health-summary"></div>
           </div>
           <div id="pilot-health-rows"><div class="no-sheet-data">Loading...</div></div>
@@ -726,7 +726,7 @@ textarea.prt-input{resize:vertical}
         </div>
         <div class="health-widget">
           <div class="health-widget-header">
-            <div><div class="health-widget-title">Post-pilot account health</div><div class="health-widget-sub">From Lineage · Red / Yellow / Green / Blue</div></div>
+            <div><div class="health-widget-title">Post-pilot account health</div><div class="health-widget-sub">Set by AMs here · Red / Yellow / Green / Blue</div></div>
             <div class="health-summary" id="post-health-summary"></div>
           </div>
           <div id="post-health-rows"><div class="no-sheet-data">Loading...</div></div>
@@ -1063,7 +1063,7 @@ textarea.prt-input{resize:vertical}
     <div style="margin-bottom:12px"></div>
     <div class="section-header">
       <span class="section-title">Account health by AM</span>
-      <span class="section-note">Active accounts · count of Red / Yellow / Green / Blue from Lineage</span>
+      <span class="section-note">Active accounts · count of Red / Yellow / Green / Blue, as set by AMs on this dashboard</span>
     </div>
     <div class="chart-card">
       <div class="chart-wrap-md"><canvas id="healthByAMBar"></canvas></div>
@@ -2188,6 +2188,13 @@ let lastGoodRefresh = null;   // set only when a HubSpot pull fully succeeds
 // (via /api/account-health), keyed by HubSpot company id — no Lineage, no CRM.
 // AMs set colors here and they persist for everyone. healthById mirrors that
 // store client-side: { [hubspotCompanyId]: "red"|"yellow"|"green"|"blue" }.
+//
+// This is the ONLY source of health on the dashboard. Lineage's health score
+// tracking (account_health_states.human_health / agent_health) is being sunset,
+// and the /api/lineage function that read it is gone — nothing here regressed,
+// because the colors moved into this store before the sunset was announced.
+// The Lineage references further down are the EGC first-post feed, which is
+// post-publishing data (lineage_posts) and a separate thing entirely.
 let healthById = {};
 
 // Manually-tracked deal numbers for rev-share / outbound clients (Forecasting tab), from the
@@ -2591,7 +2598,7 @@ async function loadData() {
     lastGoodRefresh=now;
     clearStale();
     document.getElementById('last-updated').textContent='Refreshed '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Lineage · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('footer-date').textContent='Virio CS Dashboard · HubSpot + Supabase · '+now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     recompute();
     // Keep the bonus calculator's snapshot store fresh too (self-contained).
     if(typeof bonusRefreshSnapshots==='function') bonusRefreshSnapshots();

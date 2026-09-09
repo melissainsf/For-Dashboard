@@ -73,6 +73,17 @@ Neither site is reachable from a Claude Code session — the egress proxy return
   app consented in *Knopman's* tenant, or moving them to a Virio-hosted Teams
   shared channel. Trimble and Axya are email-only. All three are correctly
   unmeasured — the tab used to claim it covered Teams, which was never true.
+- **Account health colors are the dashboard's own data, not Lineage's.** They
+  live in the `account-health` Netlify Blobs store keyed by HubSpot company id,
+  written by `/api/health-write` when an AM clicks a chip. Lineage's health score
+  tracking (`account_health_states.human_health` / `agent_health` in Jacquard
+  PROD) is being **sunset** — the `/api/lineage` function that read it was dead
+  code by then and has been deleted, so the sunset costs the dashboard nothing.
+  Do not reintroduce a Lineage health read.
+- **Lineage still feeds EGC first-post / time-to-value, and that is unaffected.**
+  `public.lineage_posts` is post-publishing data with no health columns; the EGC
+  tab uses it for first post where HubSpot's `first_post_date` is blank. The
+  "from Lineage" wording on the EGC tab is correct and should stay.
 - Emmett declined the Supabase **service-role key**. Writes go through
   SECURITY DEFINER functions on the public anon key. Do not reintroduce it.
 
